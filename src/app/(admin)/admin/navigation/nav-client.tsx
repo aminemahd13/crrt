@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Save, Check, Plus, Trash2, GripVertical, Eye, EyeOff } from "lucide-react";
+import { useState, useCallback } from "react";
+import { Save, Check, Plus, Trash2, GripVertical, Eye, EyeOff, ArrowUp, ArrowDown } from "lucide-react";
 
 interface NavItem {
   id: string;
@@ -16,6 +16,7 @@ export function NavigationStudioClient({ navItems }: { navItems: NavItem[] }) {
   const [items, setItems] = useState<NavItem[]>(navItems);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [dragItem, setDragItem] = useState<string | null>(null);
 
   const headerItems = items.filter((i) => i.section === "header").sort((a, b) => a.order - b.order);
   const footerItems = items.filter((i) => i.section === "footer").sort((a, b) => a.order - b.order);
@@ -40,10 +41,68 @@ export function NavigationStudioClient({ navItems }: { navItems: NavItem[] }) {
         section,
       },
     ]);
+    setSaved(false);
   };
 
   const removeItem = (id: string) => {
     setItems((prev) => prev.filter((item) => item.id !== id));
+    setSaved(false);
+  };
+
+  const moveItem = useCallback((id: string, direction: "up" | "down", section: string) => {
+    setItems((prev) => {
+      const sectionItems = prev.filter((i) => i.section === section).sort((a, b) => a.order - b.order);
+      const idx = sectionItems.findIndex((i) => i.id === id);
+      if (idx < 0) return prev;
+      if (direction === "up" && idx === 0) return prev;
+      if (direction === "down" && idx === sectionItems.length - 1) return prev;
+
+      const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+      const tempOrder = sectionItems[idx].order;
+      const result = prev.map((item) => {
+        if (item.id === sectionItems[idx].id) return { ...item, order: sectionItems[swapIdx].order };
+        if (item.id === sectionItems[swapIdx].id) return { ...item, order: tempOrder };
+        return item;
+      });
+      return result;
+    });
+    setSaved(false);
+  }, []);
+
+  // Drag and drop
+  const handleDragStart = (id: string) => {
+    setDragItem(id);
+  };
+
+  const handleDragOver = (e: React.DragEvent, targetId: string, section: string) => {
+    e.preventDefault();
+    if (!dragItem || dragItem === targetId) return;
+
+    setItems((prev) => {
+      const sectionItems = prev.filter((i) => i.section === section).sort((a, b) => a.order - b.order);
+      const fromIdx = sectionItems.findIndex((i) => i.id === dragItem);
+      const toIdx = sectionItems.findIndex((i) => i.id === targetId);
+      if (fromIdx < 0 || toIdx < 0) return prev;
+
+      // Swap orders
+      const reordered = [...sectionItems];
+      const [moved] = reordered.splice(fromIdx, 1);
+      reordered.splice(toIdx, 0, moved);
+
+      // Reassign order values
+      const orderMap = new Map<string, number>();
+      reordered.forEach((item, i) => orderMap.set(item.id, i));
+
+      return prev.map((item) => {
+        const newOrder = orderMap.get(item.id);
+        return newOrder !== undefined ? { ...item, order: newOrder } : item;
+      });
+    });
+    setSaved(false);
+  };
+
+  const handleDragEnd = () => {
+    setDragItem(null);
   };
 
   const handleSave = async () => {
@@ -67,10 +126,20 @@ export function NavigationStudioClient({ navItems }: { navItems: NavItem[] }) {
         </button>
       </div>
 
-      <div className="space-y-2">
-        {sectionItems.map((item) => (
-          <div key={item.id} className="flex items-center gap-2 py-1">
+      <div className="space-y-1">
+        {sectionItems.map((item, idx) => (
+          <div
+            key={item.id}
+            draggable
+            onDragStart={() => handleDragStart(item.id)}
+            onDragOver={(e) => handleDragOver(e, item.id, section)}
+            onDragEnd={handleDragEnd}
+            className={`flex items-center gap-2 py-1.5 px-1 rounded-lg transition-colors ${
+              dragItem === item.id ? "opacity-50 bg-signal-orange/5" : "hover:bg-white/[0.02]"
+            }`}
+          >
             <GripVertical size={14} className="text-steel-gray/40 cursor-grab shrink-0" />
+            <span className="text-[10px] text-steel-gray/40 w-5 shrink-0">{idx + 1}</span>
             <input
               type="text"
               value={item.label}
@@ -85,6 +154,22 @@ export function NavigationStudioClient({ navItems }: { navItems: NavItem[] }) {
               placeholder="/path"
               className="flex-1 px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white"
             />
+            <div className="flex items-center gap-0.5 shrink-0">
+              <button
+                onClick={() => moveItem(item.id, "up", section)}
+                disabled={idx === 0}
+                className="p-1 text-steel-gray/40 hover:text-ice-white disabled:opacity-20"
+              >
+                <ArrowUp size={12} />
+              </button>
+              <button
+                onClick={() => moveItem(item.id, "down", section)}
+                disabled={idx === sectionItems.length - 1}
+                className="p-1 text-steel-gray/40 hover:text-ice-white disabled:opacity-20"
+              >
+                <ArrowDown size={12} />
+              </button>
+            </div>
             <button
               onClick={() => updateItem(item.id, "visible", !item.visible)}
               className={`p-2 rounded-md transition-colors ${
@@ -110,7 +195,7 @@ export function NavigationStudioClient({ navItems }: { navItems: NavItem[] }) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-heading font-bold text-ice-white">Navigation Studio</h1>
-          <p className="text-sm text-steel-gray mt-1">Manage header and footer navigation links.</p>
+          <p className="text-sm text-steel-gray mt-1">Drag to reorder, toggle visibility, manage header and footer links.</p>
         </div>
         <button
           onClick={handleSave}

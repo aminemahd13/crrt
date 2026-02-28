@@ -228,49 +228,53 @@ export function FormBuilderClient({
         </div>
 
         {/* Right: Inspector */}
-        <div className="w-64 border-l border-[var(--ghost-border)] bg-midnight-light p-4 overflow-y-auto shrink-0">
+        <div className="w-72 border-l border-[var(--ghost-border)] bg-midnight-light p-4 overflow-y-auto shrink-0">
           {selected ? (
             <div className="space-y-4">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 pb-3 border-b border-[var(--ghost-border)]">
                 <FieldTypeIcon size={14} className="text-signal-orange" />
                 <h4 className="text-xs font-semibold text-ice-white uppercase tracking-wider">
                   {fieldTypes.find((ft) => ft.type === selected.type)?.label} Field
                 </h4>
               </div>
 
-              <div className="space-y-3">
+              {/* Basic Settings */}
+              <div className="space-y-1">
+                <label className="text-[10px] text-steel-gray font-medium uppercase tracking-wider">Label</label>
+                <input
+                  type="text"
+                  value={selected.label}
+                  onChange={(e) => updateField(selected.id, "label", e.target.value)}
+                  className="w-full px-2 py-1.5 rounded-md bg-midnight border border-[var(--ghost-border)] text-xs text-ice-white"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] text-steel-gray font-medium uppercase tracking-wider">Placeholder</label>
+                <input
+                  type="text"
+                  value={selected.placeholder ?? ""}
+                  onChange={(e) => updateField(selected.id, "placeholder", e.target.value)}
+                  className="w-full px-2 py-1.5 rounded-md bg-midnight border border-[var(--ghost-border)] text-xs text-ice-white"
+                />
+              </div>
+
+              {selected.type === "select" && (
                 <div className="space-y-1">
-                  <label className="text-[10px] text-steel-gray">Label</label>
+                  <label className="text-[10px] text-steel-gray font-medium uppercase tracking-wider">Options (comma-separated)</label>
                   <input
                     type="text"
-                    value={selected.label}
-                    onChange={(e) => updateField(selected.id, "label", e.target.value)}
+                    value={selected.options ?? ""}
+                    onChange={(e) => updateField(selected.id, "options", e.target.value)}
                     className="w-full px-2 py-1.5 rounded-md bg-midnight border border-[var(--ghost-border)] text-xs text-ice-white"
+                    placeholder="Option1, Option2"
                   />
                 </div>
+              )}
 
-                <div className="space-y-1">
-                  <label className="text-[10px] text-steel-gray">Placeholder</label>
-                  <input
-                    type="text"
-                    value={selected.placeholder ?? ""}
-                    onChange={(e) => updateField(selected.id, "placeholder", e.target.value)}
-                    className="w-full px-2 py-1.5 rounded-md bg-midnight border border-[var(--ghost-border)] text-xs text-ice-white"
-                  />
-                </div>
-
-                {selected.type === "select" && (
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-steel-gray">Options (comma-separated)</label>
-                    <input
-                      type="text"
-                      value={selected.options ?? ""}
-                      onChange={(e) => updateField(selected.id, "options", e.target.value)}
-                      className="w-full px-2 py-1.5 rounded-md bg-midnight border border-[var(--ghost-border)] text-xs text-ice-white"
-                      placeholder="Option1, Option2"
-                    />
-                  </div>
-                )}
+              {/* Validation Rules */}
+              <div className="pt-3 border-t border-[var(--ghost-border)] space-y-3">
+                <h5 className="text-[10px] text-steel-gray font-semibold uppercase tracking-widest">Validation</h5>
 
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -281,12 +285,81 @@ export function FormBuilderClient({
                   />
                   <span className="text-xs text-steel-gray">Required</span>
                 </label>
+
+                {(selected.type === "text" || selected.type === "textarea") && (
+                  <>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <label className="text-[10px] text-steel-gray">Min Length</label>
+                        <input
+                          type="number"
+                          min={0}
+                          placeholder="0"
+                          className="w-full px-2 py-1.5 rounded-md bg-midnight border border-[var(--ghost-border)] text-xs text-ice-white"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] text-steel-gray">Max Length</label>
+                        <input
+                          type="number"
+                          min={0}
+                          placeholder="∞"
+                          className="w-full px-2 py-1.5 rounded-md bg-midnight border border-[var(--ghost-border)] text-xs text-ice-white"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-steel-gray">Pattern (regex)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. ^[A-Za-z]+$"
+                        className="w-full px-2 py-1.5 rounded-md bg-midnight border border-[var(--ghost-border)] text-xs text-ice-white font-mono"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {selected.type === "number" && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-steel-gray">Min Value</label>
+                      <input
+                        type="number"
+                        placeholder="—"
+                        className="w-full px-2 py-1.5 rounded-md bg-midnight border border-[var(--ghost-border)] text-xs text-ice-white"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-steel-gray">Max Value</label>
+                      <input
+                        type="number"
+                        placeholder="—"
+                        className="w-full px-2 py-1.5 rounded-md bg-midnight border border-[var(--ghost-border)] text-xs text-ice-white"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Logic Hooks */}
+              <div className="pt-3 border-t border-[var(--ghost-border)] space-y-2">
+                <h5 className="text-[10px] text-steel-gray font-semibold uppercase tracking-widest">Logic</h5>
+                <p className="text-[10px] text-steel-gray/60">
+                  Conditional visibility and skip logic available per field.
+                </p>
+                <select className="w-full px-2 py-1.5 rounded-md bg-midnight border border-[var(--ghost-border)] text-xs text-steel-gray">
+                  <option value="">No condition</option>
+                  <option value="show_if">Show if...</option>
+                  <option value="hide_if">Hide if...</option>
+                  <option value="require_if">Require if...</option>
+                </select>
               </div>
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <Settings size={20} className="text-steel-gray/20 mb-2" />
               <p className="text-xs text-steel-gray/60">Select a field to inspect.</p>
+              <p className="text-[10px] text-steel-gray/40 mt-1">Configure label, validation, and logic.</p>
             </div>
           )}
         </div>
