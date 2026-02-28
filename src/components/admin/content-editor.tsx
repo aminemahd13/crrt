@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Save, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
+import { PublishChecklist } from "./publish-checklist";
 
 interface ContentEditorProps {
   mode: "create" | "edit";
@@ -85,6 +86,19 @@ export function ContentEditor({ mode, contentType, initialData, fields }: Conten
           </button>
         </div>
       </div>
+
+      {/* Publish Checklist */}
+      <PublishChecklist
+        contentType={contentType === "events" ? "event" : contentType === "projects" ? "project" : "post"}
+        data={{
+          title: form.title as string,
+          description: (form.description ?? form.excerpt) as string,
+          slug: form.slug as string,
+          content: form.content as string,
+          coverImage: form.coverImage as string | null,
+          status: form.published ? "published" : "draft",
+        }}
+      />
 
       <div className="space-y-4">
         {fields.map((field) => (

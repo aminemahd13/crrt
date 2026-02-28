@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Upload, Search, Grid, List, Trash2, Copy, Check, Image as ImageIcon } from "lucide-react";
+import { useState, useRef } from "react";
+import { Upload, Search, Grid, List, Trash2, Copy, Check, Image as ImageIcon, X } from "lucide-react";
 
 interface MediaItem {
   id: string;
@@ -14,10 +14,14 @@ interface MediaItem {
   createdAt: Date;
 }
 
-export function MediaStudioClient({ media }: { media: MediaItem[] }) {
+export function MediaStudioClient({ media: initialMedia }: { media: MediaItem[] }) {
+  const [media, setMedia] = useState<MediaItem[]>(initialMedia);
   const [search, setSearch] = useState("");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filtered = media.filter((m) =>
     m.filename.toLowerCase().includes(search.toLowerCase())
@@ -35,6 +39,42 @@ export function MediaStudioClient({ media }: { media: MediaItem[] }) {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setUploading(true);
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/admin/media", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (res.ok) {
+        const newMedia = await res.json();
+        setMedia((prev) => [newMedia, ...prev]);
+      }
+    }
+
+    setUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this file? This cannot be undone.")) return;
+    setDeleting(id);
+
+    const res = await fetch(`/api/admin/media?id=${id}`, { method: "DELETE" });
+    if (res.ok) {
+      setMedia((prev) => prev.filter((m) => m.id !== id));
+    }
+    setDeleting(null);
+  };
+
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -44,9 +84,25 @@ export function MediaStudioClient({ media }: { media: MediaItem[] }) {
             {media.length} files • Manage images and media assets.
           </p>
         </div>
-        <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-signal-orange text-white text-xs font-medium hover:bg-[var(--signal-orange-hover)] transition-colors">
-          <Upload size={14} /> Upload
-        </button>
+        <div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,video/*,.svg,.pdf"
+            multiple
+            onChange={handleUpload}
+            className="hidden"
+            id="media-upload"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-signal-orange text-white text-xs font-medium hover:bg-[var(--signal-orange-hover)] transition-colors disabled:opacity-50"
+          >
+            <Upload size={14} />
+            {uploading ? "Uploading..." : "Upload"}
+          </button>
+        </div>
       </div>
 
       {/* Toolbar */}
@@ -91,7 +147,12 @@ export function MediaStudioClient({ media }: { media: MediaItem[] }) {
       ) : view === "grid" ? (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {filtered.map((item) => (
-            <div key={item.id} className="glass-card overflow-hidden group">
+            <div key={item.id} className="glass-card overflow-hidden group relative">
+              {deleting === item.id && (
+                <div className="absolute inset-0 z-10 bg-midnight/80 flex items-center justify-center">
+                  <span className="text-xs text-steel-gray">Deleting...</span>
+                </div>
+              )}
               <div className="aspect-square bg-midnight flex items-center justify-center">
                 {item.mimeType.startsWith("image/") ? (
                   <img src={item.url} alt={item.alt ?? item.filename} className="w-full h-full object-cover" />
@@ -115,7 +176,10 @@ export function MediaStudioClient({ media }: { media: MediaItem[] }) {
                   {copiedId === item.id ? "Copied!" : "Copy URL"}
                 </button>
                 <div className="w-px h-4 bg-[var(--ghost-border)]" />
-                <button className="flex-1 py-2 text-[10px] text-steel-gray hover:text-red-400 hover:bg-red-500/5 flex items-center justify-center gap-1">
+                <button
+                  onClick={() => handleDelete(item.id)}
+                  className="flex-1 py-2 text-[10px] text-steel-gray hover:text-red-400 hover:bg-red-500/5 flex items-center justify-center gap-1"
+                >
                   <Trash2 size={10} /> Delete
                 </button>
               </div>
@@ -150,6 +214,12 @@ export function MediaStudioClient({ media }: { media: MediaItem[] }) {
                 className="p-1.5 rounded-md text-steel-gray hover:text-ice-white hover:bg-white/5"
               >
                 {copiedId === item.id ? <Check size={14} /> : <Copy size={14} />}
+              </button>
+              <button
+                onClick={() => handleDelete(item.id)}
+                className="p-1.5 rounded-md text-steel-gray hover:text-red-400 hover:bg-red-500/5"
+              >
+                <Trash2 size={14} />
               </button>
             </div>
           ))}

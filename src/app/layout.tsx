@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { getThemeCSS } from "@/lib/theme";
 
 export const metadata: Metadata = {
   title: "CRRT — Club Robotique & Recherche Technologique",
@@ -8,13 +9,23 @@ export const metadata: Metadata = {
   keywords: ["CRRT", "robotique", "ENSA Agadir", "robotics club", "Arduino", "AI"],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const themeCSS = await getThemeCSS();
+
   return (
     <html lang="fr" className="dark">
+      <head>
+        {themeCSS && (
+          <style
+            id="crrt-theme"
+            dangerouslySetInnerHTML={{ __html: themeCSS }}
+          />
+        )}
+      </head>
       <body className="antialiased gradient-wash noise-overlay min-h-screen">
         {children}
       </body>
