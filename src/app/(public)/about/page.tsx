@@ -10,6 +10,7 @@ export default async function AboutServerPage() {
   return (
     <AboutPage
       milestones={milestones.map((m) => ({
+        id: m.id,
         year: m.year,
         title: m.title,
         description: m.description,

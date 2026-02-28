@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 
 interface Milestone {
+  id: string;
   year: number;
   title: string;
   description?: string | null;
@@ -23,7 +24,7 @@ export function BlueprintTimeline({ milestones }: BlueprintTimelineProps) {
           const isLeft = i % 2 === 0;
           return (
             <motion.div
-              key={milestone.year}
+              key={milestone.id}
               className={`relative flex items-start gap-6 ${
                 isLeft ? "md:flex-row" : "md:flex-row-reverse"
               }`}

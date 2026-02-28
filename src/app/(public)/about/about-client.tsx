@@ -6,6 +6,7 @@ import { BlueprintTimeline } from "@/components/crrt/blueprint-timeline";
 import { LensCard } from "@/components/crrt/lens-card";
 
 interface Milestone {
+  id: string;
   year: number;
   title: string;
   description: string | null;

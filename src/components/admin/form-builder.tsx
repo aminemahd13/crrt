@@ -16,6 +16,8 @@ import {
   AlignLeft,
   ToggleLeft,
   Calendar,
+  Layers,
+  GitBranch
 } from "lucide-react";
 import Link from "next/link";
 
@@ -46,6 +48,12 @@ const fieldTypes = [
   { type: "date", label: "Date", icon: Calendar },
 ];
 
+const formStatuses = [
+  { value: "draft", label: "Draft" },
+  { value: "published", label: "Published" },
+  { value: "closed", label: "Closed" }
+];
+
 export function FormBuilderClient({
   formId,
   initialTitle = "",
@@ -57,6 +65,7 @@ export function FormBuilderClient({
   const [title, setTitle] = useState(initialTitle);
   const [slug, setSlug] = useState(initialSlug);
   const [fields, setFields] = useState<FormField[]>(initialFields);
+  const [status, setStatus] = useState(initialStatus);
   const [selectedField, setSelectedField] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -158,15 +167,39 @@ export function FormBuilderClient({
             <h4 className="text-[10px] font-semibold uppercase tracking-widest text-steel-gray/60 mb-2 px-1">
               Form Settings
             </h4>
-            <div className="px-1 space-y-2">
+            <div className="px-1 space-y-3">
               <div className="space-y-1">
                 <label className="text-[10px] text-steel-gray">Slug</label>
                 <input
                   type="text"
                   value={slug}
                   onChange={(e) => setSlug(e.target.value)}
-                  className="w-full px-2 py-1.5 rounded-md bg-midnight border border-[var(--ghost-border)] text-xs text-ice-white"
+                  className="w-full px-2 py-1.5 rounded-md bg-midnight border border-[var(--ghost-border)] text-xs text-ice-white focus:border-signal-orange/50 transition-colors"
                 />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-steel-gray">Status</label>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="w-full px-2 py-1.5 rounded-md bg-midnight border border-[var(--ghost-border)] text-xs text-ice-white focus:border-signal-orange/50 transition-colors"
+                >
+                  {formStatuses.map((s) => (
+                    <option key={s.value} value={s.value}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="p-2 mt-2 rounded-lg bg-ghost-white border border-ghost-border space-y-2">
+                 <div className="flex items-center gap-2 text-xs text-steel-gray">
+                    <Layers size={12} className="text-signal-orange"/>
+                    <span>Workflow Enabled</span>
+                 </div>
+                 <div className="flex items-center gap-2 text-xs text-steel-gray">
+                    <GitBranch size={12} className="text-signal-orange"/>
+                    <span>Version <span className="text-ice-white font-mono">v1</span></span>
+                 </div>
               </div>
             </div>
           </div>

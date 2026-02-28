@@ -106,13 +106,19 @@ export function EventDetail({ event }: EventDetailProps) {
                 Speakers
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
-                {event.speakers.map((speaker) => (
-                  <LensCard
+                {event.speakers.map((speaker, index) => (
+                  <motion.div
                     key={speaker.id}
-                    name={speaker.name}
-                    role={speaker.role}
-                    image={speaker.image}
-                  />
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                  >
+                     <LensCard
+                       name={speaker.name}
+                       role={speaker.role || "Speaker"}
+                       image={speaker.image || "/images/placeholder.svg"}
+                     />
+                  </motion.div>
                 ))}
               </div>
             </div>
@@ -128,13 +134,17 @@ export function EventDetail({ event }: EventDetailProps) {
             }
             if (images.length === 0) return null;
             return (
-              <div>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+              >
                 <h2 className="flex items-center gap-3 font-heading font-bold text-xl text-ice-white mb-6">
                   <div className="w-1 h-5 rounded-full bg-signal-orange" />
                   Gallery
                 </h2>
                 <LabGallery images={images} />
-              </div>
+              </motion.div>
             );
           })()}
         </div>
