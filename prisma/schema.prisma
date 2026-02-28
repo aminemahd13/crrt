@@ -155,6 +155,7 @@ model Media {
   mimeType  String
   size      Int
   alt       String?
+  usedIn    String?
   width     Int?
   height    Int?
   createdAt DateTime @default(now())
@@ -233,12 +234,13 @@ model HomeConfig {
 }
 
 model NavItem {
-  id       String @id @default(cuid())
+  id       String  @id @default(cuid())
   label    String
   href     String
-  order    Int    @default(0)
+  order    Int     @default(0)
   parentId String?
-  section  String @default("main") // main | footer
+  visible  Boolean @default(true)
+  section  String  @default("main") // main | footer | header
 }
 
 model TimelineMilestone {
