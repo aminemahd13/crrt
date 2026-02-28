@@ -169,10 +169,9 @@ export function EventDetail({ event }: EventDetailProps) {
                 )}
               </div>
 
-              {/* Tags */}
               {event.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 pt-2">
-                  {event.tags.map((tag) => (
+                  {Array.from(new Set(event.tags)).map((tag) => (
                     <span
                       key={tag}
                       className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--ghost-white)] border border-[var(--ghost-border)] text-steel-gray"

@@ -32,7 +32,7 @@ export default async function EventDetailPage({
           bio: s.bio,
           image: s.image,
         })),
-        tags: event.tags.map((ct) => ct.tag.name),
+        tags: Array.from(new Set(event.tags.map((ct) => ct.tag.name))),
       }}
     />
   );

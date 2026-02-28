@@ -20,7 +20,7 @@ export default async function ProjectsServerPage() {
         year: p.year,
         repoUrl: p.repoUrl,
         demoUrl: p.demoUrl,
-        tags: p.tags.map((ct) => ct.tag.name),
+        tags: Array.from(new Set(p.tags.map((ct) => ct.tag.name))),
       }))}
     />
   );

@@ -22,7 +22,7 @@ export default async function EventsServerPage() {
         endDate: e.endDate?.toISOString() ?? null,
         location: e.location,
         coverImage: e.coverImage,
-        tags: e.tags.map((ct) => ct.tag.name),
+        tags: Array.from(new Set(e.tags.map((ct) => ct.tag.name))),
       }))}
     />
   );

@@ -21,7 +21,7 @@ export default async function ProjectDetailPage({
       project={{
         ...project,
         stackTags: JSON.parse(project.stackTags) as string[],
-        tags: project.tags.map((ct) => ct.tag.name),
+        tags: Array.from(new Set(project.tags.map((ct) => ct.tag.name))),
       }}
     />
   );
