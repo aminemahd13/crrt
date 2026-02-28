@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { getThemeCSS } from "@/lib/theme";
+import { AuthProvider } from "@/components/auth-provider";
 
 export const metadata: Metadata = {
   title: "CRRT — Club Robotique & Recherche Technologique",
@@ -27,8 +28,9 @@ export default async function RootLayout({
         )}
       </head>
       <body className="antialiased gradient-wash noise-overlay min-h-screen">
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );
 }
+

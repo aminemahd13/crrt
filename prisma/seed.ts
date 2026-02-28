@@ -1,8 +1,25 @@
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
 async function main() {
+    // ═══════════════════════════════════════════════
+    // 0) ADMIN USER
+    // ═══════════════════════════════════════════════
+    const hashedPassword = await bcrypt.hash("crrt2026", 12);
+    await prisma.user.upsert({
+        where: { email: "admin@crrt.ma" },
+        update: {},
+        create: {
+            name: "CRRT Admin",
+            email: "admin@crrt.ma",
+            password: hashedPassword,
+            role: "admin",
+        },
+    });
+    console.log("  ✓ Admin user (admin@crrt.ma / crrt2026)");
+
     // ═══════════════════════════════════════════════
     // 1) THEME SETTINGS (singleton)
     // ═══════════════════════════════════════════════

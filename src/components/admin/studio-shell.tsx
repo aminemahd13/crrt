@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import {
   LayoutDashboard,
   Palette,
@@ -19,6 +20,8 @@ import {
   Command,
   ChevronLeft,
   ChevronRight,
+  LogOut,
+  User,
 } from "lucide-react";
 
 const navGroups = [
@@ -63,6 +66,7 @@ const navGroups = [
 
 export function StudioShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const [collapsed, setCollapsed] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
 
@@ -145,8 +149,30 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
-        {/* Back to site */}
-        <div className="p-3 border-t border-[var(--ghost-border)]">
+        {/* User + Logout */}
+        <div className="p-3 border-t border-[var(--ghost-border)] space-y-2">
+          {session?.user && !collapsed && (
+            <div className="px-2.5 py-2">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full bg-signal-orange/10 border border-signal-orange/20 flex items-center justify-center">
+                  <User size={12} className="text-signal-orange" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-ice-white truncate">{session.user.name || session.user.email}</p>
+                  <p className="text-[10px] text-signal-orange">{(session.user as unknown as { role: string }).role}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          <button
+            onClick={() => signOut({ callbackUrl: "/admin/login" })}
+            className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs text-steel-gray hover:text-red-400 hover:bg-red-500/5 transition-colors w-full ${
+              collapsed ? "justify-center" : ""
+            }`}
+          >
+            <LogOut size={14} />
+            {!collapsed && <span>Sign Out</span>}
+          </button>
           <Link
             href="/"
             className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs text-steel-gray hover:text-ice-white hover:bg-white/5 transition-colors ${

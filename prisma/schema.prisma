@@ -15,6 +15,7 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
+  password      String?   // hashed password for credentials login
   role          String    @default("member") // admin | editor | member
   accounts      Account[]
   sessions      Session[]
