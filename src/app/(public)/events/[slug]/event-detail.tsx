@@ -5,6 +5,7 @@ import { Calendar, MapPin, Users, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { LensCard } from "@/components/crrt/lens-card";
 import { BlueprintTimeline } from "@/components/crrt/blueprint-timeline";
+import { LabGallery } from "@/components/crrt/lab-gallery";
 
 interface Speaker {
   id: string;
@@ -116,6 +117,26 @@ export function EventDetail({ event }: EventDetailProps) {
               </div>
             </div>
           )}
+
+          {/* Gallery */}
+          {(() => {
+            const imgRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+            const images: { src: string; alt: string; caption?: string }[] = [];
+            let match;
+            while ((match = imgRegex.exec(event.content)) !== null) {
+              images.push({ src: match[2], alt: match[1] || event.title, caption: match[1] || undefined });
+            }
+            if (images.length === 0) return null;
+            return (
+              <div>
+                <h2 className="flex items-center gap-3 font-heading font-bold text-xl text-ice-white mb-6">
+                  <div className="w-1 h-5 rounded-full bg-signal-orange" />
+                  Gallery
+                </h2>
+                <LabGallery images={images} />
+              </div>
+            );
+          })()}
         </div>
 
         {/* Sticky Sidebar */}
