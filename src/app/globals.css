@@ -1,0 +1,465 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap');
+
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ─── CRRT Design Tokens ──────────────────────── */
+:root {
+  /* Brand Colors */
+  --midnight: #0B1120;
+  --midnight-light: #111827;
+  --slate-deep: #1E293B;
+  --slate-mid: #334155;
+  --signal-orange: #F97316;
+  --signal-orange-hover: #EA580C;
+  --signal-orange-glow: rgba(249, 115, 22, 0.25);
+  --ice-white: #F8FAFC;
+  --steel-gray: #94A3B8;
+  --ghost-white: rgba(248, 250, 252, 0.06);
+  --ghost-border: rgba(248, 250, 252, 0.08);
+
+  /* Typography */
+  --font-heading: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-arabic: 'Noto Sans Arabic', system-ui, sans-serif;
+
+  /* Radius */
+  --radius: 0.75rem;
+
+  /* Glass */
+  --glass-blur: 16px;
+  --glass-bg: rgba(15, 23, 42, 0.6);
+  --glass-border: rgba(248, 250, 252, 0.1);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+
+  /* Motion tokens */
+  --motion-duration-ui: 200ms;
+  --motion-duration-section: 400ms;
+  --motion-easing: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Noise */
+  --noise-opacity: 0.03;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px var(--signal-orange-glow);
+
+  /* shadcn/ui token mapping — dark theme by default */
+  --background: var(--midnight);
+  --foreground: var(--ice-white);
+  --card: var(--midnight-light);
+  --card-foreground: var(--ice-white);
+  --popover: var(--slate-deep);
+  --popover-foreground: var(--ice-white);
+  --primary: var(--signal-orange);
+  --primary-foreground: #ffffff;
+  --secondary: var(--slate-deep);
+  --secondary-foreground: var(--ice-white);
+  --muted: var(--slate-deep);
+  --muted-foreground: var(--steel-gray);
+  --accent: var(--slate-deep);
+  --accent-foreground: var(--ice-white);
+  --destructive: #EF4444;
+  --border: var(--ghost-border);
+  --input: rgba(248, 250, 252, 0.1);
+  --ring: var(--signal-orange);
+  --chart-1: var(--signal-orange);
+  --chart-2: #0ea5e9;
+  --chart-3: #8b5cf6;
+  --chart-4: #10b981;
+  --chart-5: #f59e0b;
+}
+
+/* ─── Tailwind Theme Extension ─────────────────── */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* CRRT custom colors */
+  --color-midnight: var(--midnight);
+  --color-midnight-light: var(--midnight-light);
+  --color-slate-deep: var(--slate-deep);
+  --color-signal-orange: var(--signal-orange);
+  --color-ice-white: var(--ice-white);
+  --color-steel-gray: var(--steel-gray);
+
+  /* Fonts */
+  --font-sans: var(--font-body);
+  --font-heading: var(--font-heading);
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Radii */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+}
+
+/* ─── Base Styles ──────────────────────────────── */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--midnight);
+    color: var(--ice-white);
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  /* RTL support */
+  [dir="rtl"] body {
+    font-family: var(--font-arabic);
+  }
+}
+
+/* ─── Glass Surfaces ───────────────────────────── */
+.glass-surface {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-surface-strong {
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(248, 250, 252, 0.12);
+  box-shadow: var(--shadow-lg);
+}
+
+.glass-card {
+  background: rgba(17, 24, 39, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--ghost-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  transition: all var(--motion-duration-ui) var(--motion-easing);
+}
+
+.glass-card:hover {
+  border-color: rgba(248, 250, 252, 0.15);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+/* ─── Blueprint Grid Background ────────────────── */
+.blueprint-grid {
+  position: relative;
+}
+
+.blueprint-grid::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(248, 250, 252, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(248, 250, 252, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ─── Gradient Wash (page background) ──────────── */
+.gradient-wash {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(249, 115, 22, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 80% 50%, rgba(14, 165, 233, 0.04) 0%, transparent 50%),
+    linear-gradient(180deg, var(--midnight) 0%, #0D1526 50%, var(--midnight-light) 100%);
+}
+
+/* ─── Noise Overlay ────────────────────────────── */
+.noise-overlay {
+  position: relative;
+}
+
+.noise-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: var(--noise-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.5'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  pointer-events: none;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+/* ─── Signal Pulse Animation ───────────────────── */
+@keyframes signal-pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--signal-orange-glow);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(249, 115, 22, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(249, 115, 22, 0);
+  }
+}
+
+.signal-pulse {
+  animation: signal-pulse 1.5s ease-out 1;
+}
+
+/* ─── Blueprint Reveal (section title trace) ───── */
+@keyframes trace-draw {
+  from {
+    width: 0;
+  }
+  to {
+    width: 60px;
+  }
+}
+
+.heading-trace {
+  position: relative;
+  display: inline-block;
+}
+
+.heading-trace::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--signal-orange), transparent);
+  animation: trace-draw 0.6s var(--motion-easing) forwards;
+  animation-play-state: paused;
+}
+
+.heading-trace.in-view::after {
+  animation-play-state: running;
+}
+
+/* ─── Circuit Trace SVG Animation ──────────────── */
+@keyframes circuit-pulse {
+  0% { stroke-dashoffset: 1000; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+
+.circuit-path {
+  stroke: var(--signal-orange);
+  stroke-width: 1;
+  fill: none;
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  opacity: 0;
+}
+
+.circuit-path.animate {
+  animation: circuit-pulse 3s var(--motion-easing) forwards;
+}
+
+/* ─── Lens Card (circular media frame) ─────────── */
+.lens-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 50%;
+  aspect-ratio: 1;
+}
+
+.lens-frame::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.15), transparent 60%);
+  opacity: 0;
+  transition: opacity var(--motion-duration-ui) var(--motion-easing);
+  pointer-events: none;
+}
+
+.lens-frame:hover::after {
+  opacity: 1;
+}
+
+/* ─── Float / Ambient Animations ───────────────── */
+@keyframes float-subtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.float-subtle {
+  animation: float-subtle 6s ease-in-out infinite;
+}
+
+/* ─── Staggered Entrance ───────────────────────── */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up var(--motion-duration-section) var(--motion-easing) forwards;
+  opacity: 0;
+}
+
+.stagger-1 { animation-delay: 100ms; }
+.stagger-2 { animation-delay: 200ms; }
+.stagger-3 { animation-delay: 300ms; }
+.stagger-4 { animation-delay: 400ms; }
+.stagger-5 { animation-delay: 500ms; }
+
+/* ─── Section Divider (subtle gradient line) ───── */
+.section-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--ghost-border) 20%,
+    rgba(249, 115, 22, 0.2) 50%,
+    var(--ghost-border) 80%,
+    transparent 100%
+  );
+}
+
+/* ─── Contact Sheet Gallery ────────────────────── */
+.lab-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 3px;
+}
+
+.lab-gallery-item {
+  aspect-ratio: 4/3;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+}
+
+.lab-gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--motion-duration-ui) var(--motion-easing);
+}
+
+.lab-gallery-item:hover img {
+  transform: scale(1.05);
+}
+
+/* ─── Track Chips ──────────────────────────────── */
+.track-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border: 1px solid var(--ghost-border);
+  background: var(--ghost-white);
+  color: var(--ice-white);
+  transition: all var(--motion-duration-ui) var(--motion-easing);
+  cursor: pointer;
+}
+
+.track-chip:hover {
+  background: rgba(248, 250, 252, 0.1);
+  border-color: rgba(248, 250, 252, 0.2);
+}
+
+.track-chip.active {
+  background: var(--signal-orange);
+  border-color: var(--signal-orange);
+  color: #fff;
+}
+
+/* ─── Scrollbar Styling ────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--midnight);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--slate-mid);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--steel-gray);
+}
+
+/* ─── Reduced Motion ───────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .float-subtle {
+    animation: none;
+  }
+
+  .glass-card:hover {
+    transform: none;
+  }
+
+  .lens-frame:hover img {
+    transform: none;
+  }
+}
+
+/* ─── Selection Color ──────────────────────────── */
+::selection {
+  background: rgba(249, 115, 22, 0.3);
+  color: var(--ice-white);
+}
