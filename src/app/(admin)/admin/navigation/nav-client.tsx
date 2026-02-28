@@ -1,0 +1,129 @@
+"use client";
+
+import { useState } from "react";
+import { Save, Check, Plus, Trash2, GripVertical, Eye, EyeOff } from "lucide-react";
+
+interface NavItem {
+  id: string;
+  label: string;
+  href: string;
+  order: number;
+  visible: boolean;
+  section: string;
+}
+
+export function NavigationStudioClient({ navItems }: { navItems: NavItem[] }) {
+  const [items, setItems] = useState<NavItem[]>(navItems);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const headerItems = items.filter((i) => i.section === "header").sort((a, b) => a.order - b.order);
+  const footerItems = items.filter((i) => i.section === "footer").sort((a, b) => a.order - b.order);
+
+  const updateItem = (id: string, key: keyof NavItem, value: string | boolean | number) => {
+    setItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, [key]: value } : item))
+    );
+    setSaved(false);
+  };
+
+  const addItem = (section: string) => {
+    const maxOrder = Math.max(0, ...items.filter((i) => i.section === section).map((i) => i.order));
+    setItems((prev) => [
+      ...prev,
+      {
+        id: `new-${Date.now()}`,
+        label: "",
+        href: "/",
+        order: maxOrder + 1,
+        visible: true,
+        section,
+      },
+    ]);
+  };
+
+  const removeItem = (id: string) => {
+    setItems((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    await fetch("/api/admin/navigation", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items }),
+    });
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const renderSection = (title: string, section: string, sectionItems: NavItem[]) => (
+    <div className="glass-card p-6 space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="font-heading font-semibold text-ice-white text-sm">{title}</h3>
+        <button onClick={() => addItem(section)} className="inline-flex items-center gap-1 text-xs text-signal-orange hover:underline">
+          <Plus size={12} /> Add Item
+        </button>
+      </div>
+
+      <div className="space-y-2">
+        {sectionItems.map((item) => (
+          <div key={item.id} className="flex items-center gap-2 py-1">
+            <GripVertical size={14} className="text-steel-gray/40 cursor-grab shrink-0" />
+            <input
+              type="text"
+              value={item.label}
+              onChange={(e) => updateItem(item.id, "label", e.target.value)}
+              placeholder="Label"
+              className="flex-1 px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white"
+            />
+            <input
+              type="text"
+              value={item.href}
+              onChange={(e) => updateItem(item.id, "href", e.target.value)}
+              placeholder="/path"
+              className="flex-1 px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white"
+            />
+            <button
+              onClick={() => updateItem(item.id, "visible", !item.visible)}
+              className={`p-2 rounded-md transition-colors ${
+                item.visible ? "text-emerald-400" : "text-steel-gray"
+              }`}
+            >
+              {item.visible ? <Eye size={14} /> : <EyeOff size={14} />}
+            </button>
+            <button onClick={() => removeItem(item.id)} className="p-2 text-steel-gray hover:text-red-400">
+              <Trash2 size={14} />
+            </button>
+          </div>
+        ))}
+        {sectionItems.length === 0 && (
+          <p className="text-sm text-steel-gray/60 py-4 text-center">No items. Click &ldquo;Add Item&rdquo; to get started.</p>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="p-8 max-w-4xl mx-auto space-y-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-heading font-bold text-ice-white">Navigation Studio</h1>
+          <p className="text-sm text-steel-gray mt-1">Manage header and footer navigation links.</p>
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-signal-orange text-white text-xs font-medium hover:bg-[var(--signal-orange-hover)] transition-colors disabled:opacity-50"
+        >
+          {saved ? <Check size={12} /> : <Save size={12} />}
+          {saving ? "Saving..." : saved ? "Saved!" : "Save"}
+        </button>
+      </div>
+
+      {renderSection("Header Navigation", "header", headerItems)}
+      {renderSection("Footer Navigation", "footer", footerItems)}
+    </div>
+  );
+}
