@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Save, Check, Shield, Database, Globe } from "lucide-react";
+import { Save, Check, Shield, Database, Globe, Mail, RotateCcw, AlertCircle, CheckCircle2 } from "lucide-react";
 
 export default function SettingsPage() {
   const [smtpHost, setSmtpHost] = useState("smtp.gmail.com");
@@ -12,13 +12,41 @@ export default function SettingsPage() {
   const [siteUrl, setSiteUrl] = useState("https://crrt.ensa-agadir.ac.ma");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [testEmail, setTestEmail] = useState("");
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   const handleSave = async () => {
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 500));
+    // Settings are env-based; this acknowledges the save
+    await new Promise((r) => setTimeout(r, 300));
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleTestEmail = async () => {
+    if (!testEmail) return;
+    setTesting(true);
+    setTestResult(null);
+
+    try {
+      const res = await fetch("/api/admin/email/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to: testEmail }),
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        setTestResult({ ok: true, message: "Test email sent! Check your inbox." });
+      } else {
+        setTestResult({ ok: false, message: data.error || "Failed to send test email" });
+      }
+    } catch {
+      setTestResult({ ok: false, message: "Network error — check your connection" });
+    }
+    setTesting(false);
   };
 
   return (
@@ -97,7 +125,8 @@ export default function SettingsPage() {
               type="text"
               value={smtpUser}
               onChange={(e) => setSmtpUser(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white"
+              placeholder="your@email.com"
+              className="w-full px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white placeholder:text-steel-gray"
             />
           </div>
           <div className="space-y-1">
@@ -110,9 +139,34 @@ export default function SettingsPage() {
             />
           </div>
         </div>
-        <button className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[var(--ghost-border)] text-xs text-steel-gray hover:text-ice-white hover:bg-white/5 transition-colors">
-          Send Test Email
-        </button>
+
+        {/* Test Email */}
+        <div className="border-t border-[var(--ghost-border)] pt-4 space-y-3">
+          <label className="text-xs text-steel-gray">Test Email Delivery</label>
+          <div className="flex items-center gap-2">
+            <input
+              type="email"
+              value={testEmail}
+              onChange={(e) => setTestEmail(e.target.value)}
+              placeholder="test@ensa-agadir.ac.ma"
+              className="flex-1 px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white placeholder:text-steel-gray"
+            />
+            <button
+              onClick={handleTestEmail}
+              disabled={testing || !testEmail}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[var(--ghost-border)] text-xs text-steel-gray hover:text-ice-white hover:bg-white/5 transition-colors disabled:opacity-50"
+            >
+              <Mail size={12} />
+              {testing ? "Sending..." : "Send Test Email"}
+            </button>
+          </div>
+          {testResult && (
+            <div className={`flex items-center gap-2 text-xs ${testResult.ok ? "text-emerald-400" : "text-red-400"}`}>
+              {testResult.ok ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+              {testResult.message}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Security */}

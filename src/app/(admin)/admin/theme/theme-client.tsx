@@ -279,6 +279,59 @@ export function ThemeStudioClient({ theme }: { theme: ThemeData & { id: string }
             />
           </div>
         </div>
+
+        {/* Logo & Favicon */}
+        <div className="glass-card p-6 space-y-4 md:col-span-2">
+          <h3 className="font-heading font-semibold text-ice-white text-sm">Logo & Favicon</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {(["logoLight", "logoDark", "favicon"] as const).map((field) => {
+              const labels: Record<string, string> = {
+                logoLight: "Logo (Light bg)",
+                logoDark: "Logo (Dark bg)",
+                favicon: "Favicon",
+              };
+              return (
+                <div key={field} className="space-y-2">
+                  <label className="text-xs text-steel-gray">{labels[field]}</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={(form[field] as string) ?? ""}
+                      onChange={(e) => update(field, e.target.value || null)}
+                      placeholder="/uploads/logo.svg"
+                      className="flex-1 px-3 py-1.5 rounded-lg bg-midnight border border-[var(--ghost-border)] text-xs text-ice-white placeholder:text-steel-gray"
+                    />
+                    <label className="px-3 py-1.5 rounded-lg border border-[var(--ghost-border)] text-xs text-steel-gray hover:text-ice-white hover:bg-white/5 cursor-pointer transition-colors">
+                      Upload
+                      <input
+                        type="file"
+                        accept="image/*,.svg,.ico"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const fd = new FormData();
+                          fd.append("file", file);
+                          fd.append("usedIn", `Theme (${labels[field]})`);
+                          const res = await fetch("/api/admin/media", { method: "POST", body: fd });
+                          if (res.ok) {
+                            const media = await res.json();
+                            update(field, media.url);
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+                  {form[field] && (
+                    <div className="w-12 h-12 rounded-lg bg-midnight border border-[var(--ghost-border)] flex items-center justify-center overflow-hidden">
+                      <img src={form[field] as string} alt={labels[field]} className="max-w-full max-h-full" />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {/* Preview swatch */}
