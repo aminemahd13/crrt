@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -68,10 +68,11 @@ export function FormBuilderClient({
   const [status, setStatus] = useState(initialStatus);
   const [selectedField, setSelectedField] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const fieldCounterRef = useRef(initialFields.length);
 
   const addField = (type: string) => {
     const newField: FormField = {
-      id: `field-${Date.now()}`,
+      id: `field-${fieldCounterRef.current}`,
       label: "",
       type,
       required: false,
@@ -79,6 +80,7 @@ export function FormBuilderClient({
       options: "",
       order: fields.length,
     };
+    fieldCounterRef.current += 1;
     setFields((prev) => [...prev, newField]);
     setSelectedField(newField.id);
   };
@@ -101,7 +103,7 @@ export function FormBuilderClient({
     await fetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, slug, fields, status: initialStatus }),
+      body: JSON.stringify({ title, slug, fields, status }),
     });
     setSaving(false);
     router.push("/admin/forms");

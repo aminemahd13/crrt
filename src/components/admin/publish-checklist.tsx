@@ -1,13 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import {
   CheckCircle2,
   AlertCircle,
   XCircle,
-  Image as ImageIcon,
-  FileText,
-  Link2,
   Search,
   ChevronDown,
   ChevronUp,
@@ -33,9 +30,8 @@ interface PublishChecklistProps {
 
 export function PublishChecklist({ contentType, data }: PublishChecklistProps) {
   const [open, setOpen] = useState(false);
-  const [checks, setChecks] = useState<CheckItem[]>([]);
 
-  useEffect(() => {
+  const checks = useMemo(() => {
     const items: CheckItem[] = [];
 
     // SEO: Title length
@@ -109,7 +105,7 @@ export function PublishChecklist({ contentType, data }: PublishChecklistProps) {
       }
     }
 
-    setChecks(items);
+    return items;
   }, [data, contentType]);
 
   const passCount = checks.filter((c) => c.status === "pass").length;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Download, Filter, ChevronDown, CheckCircle, Clock, XCircle, Eye } from "lucide-react";
+import { Search, Download, ChevronDown, CheckCircle, Clock, XCircle, Eye } from "lucide-react";
 
 interface Submission {
   id: string;

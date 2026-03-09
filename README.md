@@ -1,4 +1,4 @@
-# CRRT — Club Robotique & Recherche Technologique
+﻿# CRRT â€” Club Robotique & Recherche Technologique
 
 > **ENSA Agadir** | Since 2008 | "Our robots never sleep."
 
@@ -12,8 +12,8 @@ A full-stack platform for CRRT (Club Robotique & Recherche Technologique) at ENS
 # 1. Install dependencies
 npm install
 
-# 2. Initialize the database
-npx prisma db push
+# 2. Apply migrations
+npx prisma migrate dev
 
 # 3. Seed with realistic data
 npx tsx prisma/seed.ts
@@ -30,10 +30,10 @@ Open [http://localhost:3000](http://localhost:3000) for the public site and [htt
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | Next.js 15 (App Router, Turbopack) |
+| Framework | Next.js 16 (App Router, Turbopack) |
 | Language | TypeScript |
 | Styling | Tailwind CSS v4 + Custom CSS variables |
-| Database | Prisma 6 + SQLite |
+| Database | Prisma 6 + PostgreSQL |
 | Auth | NextAuth.js |
 | UI | shadcn/ui + custom CRRT components |
 | Animation | Framer Motion + IntersectionObserver |
@@ -46,62 +46,62 @@ Open [http://localhost:3000](http://localhost:3000) for the public site and [htt
 
 ```
 crrt/
-├── prisma/
-│   ├── schema.prisma         # 18 models (auth, content, forms, config)
-│   └── seed.ts               # Full seed with realistic CRRT data
-├── src/
-│   ├── app/
-│   │   ├── (public)/         # Public site pages
-│   │   │   ├── page.tsx      # Home (hero, tracks, projects, posts, partners)
-│   │   │   ├── events/       # Events index + [slug] detail
-│   │   │   ├── projects/     # Projects index + [slug] detail
-│   │   │   ├── blog/         # Blog index + [slug] detail
-│   │   │   ├── about/        # Mission, team, timeline
-│   │   │   └── forms/        # Public form rendering + submission
-│   │   ├── (admin)/admin/    # Admin panel
-│   │   │   ├── page.tsx      # Dashboard
-│   │   │   ├── theme/        # Theme Studio
-│   │   │   ├── home/         # Home Studio
-│   │   │   ├── navigation/   # Navigation Studio
-│   │   │   ├── events/       # Events CRUD
-│   │   │   ├── projects/     # Projects CRUD
-│   │   │   ├── posts/        # Posts CRUD
-│   │   │   ├── media/        # Media Studio
-│   │   │   ├── forms/        # Form Builder + templates
-│   │   │   ├── inbox/        # Unified submissions
-│   │   │   ├── email-templates/ # Email templates
-│   │   │   └── settings/     # Platform settings
-│   │   ├── api/              # API routes
-│   │   ├── globals.css       # Design system + tokens
-│   │   └── layout.tsx        # Root layout
-│   ├── components/
-│   │   ├── crrt/             # Signature components
-│   │   │   ├── blueprint-timeline.tsx
-│   │   │   ├── circuit-trace.tsx
-│   │   │   ├── lab-gallery.tsx
-│   │   │   ├── lens-card.tsx
-│   │   │   ├── next-event-panel.tsx
-│   │   │   ├── signal-cta.tsx
-│   │   │   └── track-chips.tsx
-│   │   ├── admin/            # Admin components
-│   │   │   ├── studio-shell.tsx
-│   │   │   ├── content-editor.tsx
-│   │   │   ├── content-list.tsx
-│   │   │   ├── form-builder.tsx
-│   │   │   └── live-preview-split.tsx
-│   │   └── layout/           # Shell components
-│   │       ├── glass-nav.tsx
-│   │       └── site-footer.tsx
-│   └── lib/
-│       └── prisma.ts         # Prisma singleton
-├── Dockerfile                # Multi-stage production build
-├── docker-compose.yml        # Deployment config
-└── .env                      # Environment variables
+â”œâ”€â”€ prisma/
+â”‚   â”œâ”€â”€ schema.prisma         # 18 models (auth, content, forms, config)
+â”‚   â””â”€â”€ seed.ts               # Full seed with realistic CRRT data
+â”œâ”€â”€ src/
+â”‚   â”œâ”€â”€ app/
+â”‚   â”‚   â”œâ”€â”€ (public)/         # Public site pages
+â”‚   â”‚   â”‚   â”œâ”€â”€ page.tsx      # Home (hero, tracks, projects, posts, partners)
+â”‚   â”‚   â”‚   â”œâ”€â”€ events/       # Events index + [slug] detail
+â”‚   â”‚   â”‚   â”œâ”€â”€ projects/     # Projects index + [slug] detail
+â”‚   â”‚   â”‚   â”œâ”€â”€ blog/         # Blog index + [slug] detail
+â”‚   â”‚   â”‚   â”œâ”€â”€ about/        # Mission, team, timeline
+â”‚   â”‚   â”‚   â””â”€â”€ forms/        # Public form rendering + submission
+â”‚   â”‚   â”œâ”€â”€ (admin)/admin/    # Admin panel
+â”‚   â”‚   â”‚   â”œâ”€â”€ page.tsx      # Dashboard
+â”‚   â”‚   â”‚   â”œâ”€â”€ theme/        # Theme Studio
+â”‚   â”‚   â”‚   â”œâ”€â”€ home/         # Home Studio
+â”‚   â”‚   â”‚   â”œâ”€â”€ navigation/   # Navigation Studio
+â”‚   â”‚   â”‚   â”œâ”€â”€ events/       # Events CRUD
+â”‚   â”‚   â”‚   â”œâ”€â”€ projects/     # Projects CRUD
+â”‚   â”‚   â”‚   â”œâ”€â”€ posts/        # Posts CRUD
+â”‚   â”‚   â”‚   â”œâ”€â”€ media/        # Media Studio
+â”‚   â”‚   â”‚   â”œâ”€â”€ forms/        # Form Builder + templates
+â”‚   â”‚   â”‚   â”œâ”€â”€ inbox/        # Unified submissions
+â”‚   â”‚   â”‚   â”œâ”€â”€ email-templates/ # Email templates
+â”‚   â”‚   â”‚   â””â”€â”€ settings/     # Platform settings
+â”‚   â”‚   â”œâ”€â”€ api/              # API routes
+â”‚   â”‚   â”œâ”€â”€ globals.css       # Design system + tokens
+â”‚   â”‚   â””â”€â”€ layout.tsx        # Root layout
+â”‚   â”œâ”€â”€ components/
+â”‚   â”‚   â”œâ”€â”€ crrt/             # Signature components
+â”‚   â”‚   â”‚   â”œâ”€â”€ blueprint-timeline.tsx
+â”‚   â”‚   â”‚   â”œâ”€â”€ circuit-trace.tsx
+â”‚   â”‚   â”‚   â”œâ”€â”€ lab-gallery.tsx
+â”‚   â”‚   â”‚   â”œâ”€â”€ lens-card.tsx
+â”‚   â”‚   â”‚   â”œâ”€â”€ next-event-panel.tsx
+â”‚   â”‚   â”‚   â”œâ”€â”€ signal-cta.tsx
+â”‚   â”‚   â”‚   â””â”€â”€ track-chips.tsx
+â”‚   â”‚   â”œâ”€â”€ admin/            # Admin components
+â”‚   â”‚   â”‚   â”œâ”€â”€ studio-shell.tsx
+â”‚   â”‚   â”‚   â”œâ”€â”€ content-editor.tsx
+â”‚   â”‚   â”‚   â”œâ”€â”€ content-list.tsx
+â”‚   â”‚   â”‚   â”œâ”€â”€ form-builder.tsx
+â”‚   â”‚   â”‚   â””â”€â”€ live-preview-split.tsx
+â”‚   â”‚   â””â”€â”€ layout/           # Shell components
+â”‚   â”‚       â”œâ”€â”€ glass-nav.tsx
+â”‚   â”‚       â””â”€â”€ site-footer.tsx
+â”‚   â””â”€â”€ lib/
+â”‚       â””â”€â”€ prisma.ts         # Prisma singleton
+â”œâ”€â”€ Dockerfile                # Multi-stage production build
+â”œâ”€â”€ docker-compose.yml        # Deployment config
+â””â”€â”€ .env                      # Environment variables
 ```
 
 ---
 
-## Design System — "Mature Glass Lab"
+## Design System â€” "Mature Glass Lab"
 
 ### Colors
 
@@ -117,15 +117,15 @@ crrt/
 
 ### Typography
 
-- **Headings**: Space Grotesk (400–700)
-- **Body**: Inter (400–600)
-- **Arabic/RTL**: Noto Sans Arabic (400–700)
+- **Headings**: Space Grotesk (400â€“700)
+- **Body**: Inter (400â€“600)
+- **Arabic/RTL**: Noto Sans Arabic (400â€“700)
 
 ### Glass Utilities
 
 ```css
-.glass-surface  /* header/nav glass — blurred, clipped */
-.glass-card     /* content card — frosted glass border */
+.glass-surface  /* header/nav glass â€” blurred, clipped */
+.glass-card     /* content card â€” frosted glass border */
 ```
 
 ### Motion
@@ -144,7 +144,7 @@ All animations respect `prefers-reduced-motion`:
 
 | Component | Description |
 |-----------|-------------|
-| `GlassNav` | Sticky header → compact pill on scroll |
+| `GlassNav` | Sticky header â†’ compact pill on scroll |
 | `NextEventPanel` | Glass countdown to next event |
 | `BlueprintTimeline` | Alternating timeline with signal trace |
 | `SignalCTA` | Button with one-time pulse animation |
@@ -157,11 +157,11 @@ All animations respect `prefers-reduced-motion`:
 
 | Component | Description |
 |-----------|-------------|
-| `StudioShell` | Sidebar + ⌘K command palette |
+| `StudioShell` | Sidebar + âŒ˜K command palette |
 | `LivePreviewSplit` | Editor + preview (desktop/tablet/mobile/RTL) |
 | `ContentListClient` | Search + filter + action table |
 | `ContentEditor` | Dynamic field renderer + publish toggle |
-| `FormBuilderClient` | 3-pane: library → canvas → inspector |
+| `FormBuilderClient` | 3-pane: library â†’ canvas â†’ inspector |
 
 ---
 
@@ -207,7 +207,7 @@ The seed (`prisma/seed.ts`) populates the database with realistic CRRT content:
 | Projects | 6 | Detailed markdown with code, tables, specs |
 | Posts | 6 | Technical tutorials (Arduino, PID, CV, ESP32, 3D printing, ROS2) |
 | Content Tags | 20 | Cross-references between content and tags |
-| Milestones | 10 | 2008–2025 timeline |
+| Milestones | 10 | 2008â€“2025 timeline |
 | Team Members | 12 | 8 current bureau + 4 alumni with LinkedIn |
 | Partners | 6 | ENSA, OCP, Arduino, UM6P, IAM, JLCPCB |
 | Navigation | 9 | 5 header + 4 footer items |
@@ -219,7 +219,7 @@ The seed (`prisma/seed.ts`) populates the database with realistic CRRT content:
 
 ```bash
 # Reset and re-seed
-npx prisma db push --force-reset
+npx prisma migrate reset --skip-seed
 npx tsx prisma/seed.ts
 ```
 
@@ -250,35 +250,49 @@ npx tsx prisma/seed.ts
 ### Docker Compose
 
 ```bash
-docker compose up -d
+cp .env.production.example .env.production
+docker compose --env-file .env.production --profile production up -d --build
 ```
 
-This starts the app on port 3000 with:
-- SQLite persistent volume
-- Health check every 30s
-- Environment variable passthrough
+This starts:
+- `postgres` with persistent storage
+- `migrate` one-shot container (`prisma migrate deploy`)
+- `app` on port 3000 with `/api/health` health checks
 
 ### Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DATABASE_URL` | `file:./dev.db` | SQLite path |
-| `NEXTAUTH_SECRET` | — | Auth secret (required for production) |
-| `NEXTAUTH_URL` | `http://localhost:3000` | Base URL |
-| `SMTP_HOST` | `smtp.gmail.com` | Email server |
-| `SMTP_PORT` | `587` | Email port |
-| `SMTP_USER` | — | Email username |
-| `SMTP_PASS` | — | Email password |
+| Variable | Description |
+|----------|-------------|
+| `POSTGRES_DB` | PostgreSQL database name |
+| `POSTGRES_USER` | PostgreSQL username |
+| `POSTGRES_PASSWORD` | PostgreSQL password |
+| `DATABASE_URL` | Prisma connection string (`postgresql://...`) |
+| `NEXTAUTH_SECRET` | NextAuth secret (required) |
+| `NEXTAUTH_URL` | Public base URL (required) |
+| `SMTP_HOST` | SMTP server hostname |
+| `SMTP_PORT` | SMTP server port |
+| `SMTP_USER` | SMTP username |
+| `SMTP_PASS` | SMTP password |
+| `SMTP_FROM` | Sender address used by outbound email |
+| `ADMIN_EMAIL` | Optional recipient for admin notifications |
+
+### External Reverse Proxy (TLS)
+
+Production TLS is expected to be terminated by an external reverse proxy (Nginx, Caddy, Traefik, etc.).
+Forward traffic to `app:3000` and preserve standard headers:
+- `Host`
+- `X-Forwarded-Proto`
+- `X-Forwarded-For`
 
 ---
-
 ## Scripts
 
 ```bash
 npm run dev       # Start dev server (Turbopack)
 npm run build     # Production build
 npm run start     # Start production server
-npm run db:push   # Push schema to database
+npm run db:migrate # Create/apply local migrations in development
+npm run db:deploy # Apply migrations in production
 npm run db:seed   # Run seed script
 npm run db:reset  # Reset + migrate + seed
 npm run db:studio # Open Prisma Studio
@@ -288,4 +302,6 @@ npm run db:studio # Open Prisma Studio
 
 ## License
 
-Built for CRRT — Club Robotique & Recherche Technologique, ENSA Agadir.
+Built for CRRT â€” Club Robotique & Recherche Technologique, ENSA Agadir.
+
+

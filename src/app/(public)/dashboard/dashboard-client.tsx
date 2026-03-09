@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { User, Mail, Calendar, LogOut, CheckCircle, Clock, XCircle } from "lucide-react";
 import { signOut } from "next-auth/react";
+import Link from "next/link";
 
 interface UserProfile {
   name: string;
@@ -99,7 +100,7 @@ export function DashboardClient({ user, submissions }: DashboardClientProps) {
           <div className="glass-card p-6">
             {submissions.length === 0 ? (
               <div className="text-center py-10">
-                <p className="text-steel-gray text-sm">You haven't submitted any applications yet.</p>
+                <p className="text-steel-gray text-sm">You haven&apos;t submitted any applications yet.</p>
               </div>
             ) : (
               <ul className="space-y-4">
@@ -131,15 +132,15 @@ export function DashboardClient({ user, submissions }: DashboardClientProps) {
         <div className="space-y-6">
           <h2 className="text-xl font-heading font-bold text-ice-white">Quick Links</h2>
           <div className="glass-card p-4 space-y-2">
-            <a href="/resources" className="block px-4 py-3 rounded-lg text-sm text-steel-gray hover:text-ice-white hover:bg-white/5 transition-colors">
+            <Link href="/resources" className="block px-4 py-3 rounded-lg text-sm text-steel-gray hover:text-ice-white hover:bg-white/5 transition-colors">
               Browse Resource Library
-            </a>
-            <a href="/events" className="block px-4 py-3 rounded-lg text-sm text-steel-gray hover:text-ice-white hover:bg-white/5 transition-colors">
+            </Link>
+            <Link href="/events" className="block px-4 py-3 rounded-lg text-sm text-steel-gray hover:text-ice-white hover:bg-white/5 transition-colors">
               Upcoming Events
-            </a>
-            <a href="/projects" className="block px-4 py-3 rounded-lg text-sm text-steel-gray hover:text-ice-white hover:bg-white/5 transition-colors">
+            </Link>
+            <Link href="/projects" className="block px-4 py-3 rounded-lg text-sm text-steel-gray hover:text-ice-white hover:bg-white/5 transition-colors">
               Explore Our Projects
-            </a>
+            </Link>
           </div>
         </div>
       </div>

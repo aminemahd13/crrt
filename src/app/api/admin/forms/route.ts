@@ -3,11 +3,19 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
     const body = await request.json();
+    const baseSlug = (body.slug ?? body.title ?? "form")
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
+    const slug = `${baseSlug || "form"}-${crypto.randomUUID().slice(0, 8)}`;
 
     const form = await prisma.form.create({
         data: {
             title: body.title,
-            slug: body.slug ?? body.title.toLowerCase().replace(/\s+/g, "-"),
+            slug,
             status: body.status ?? "draft",
             version: 1,
             fields: {

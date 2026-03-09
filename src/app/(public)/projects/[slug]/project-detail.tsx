@@ -166,7 +166,7 @@ export function ProjectDetailView({ project }: ProjectDetailViewProps) {
             Interested in joining this project?
           </h3>
           <p className="text-sm text-steel-gray mb-6 max-w-md mx-auto">
-            We're always looking for motivated team members. Fill out our membership application to get involved.
+            We&apos;re always looking for motivated team members. Fill out our membership application to get involved.
           </p>
           <Link
             href="/forms/membership-application"

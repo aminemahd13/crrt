@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { Calendar as CalendarIcon, MapPin, ArrowUpRight, Grid, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getEventThemeStyles } from "@/lib/event-config";
 
 interface EventItem {
   id: string;
@@ -16,16 +17,13 @@ interface EventItem {
   endDate: string | null;
   location: string | null;
   coverImage: string | null;
+  themePreset?: string | null;
+  themeAccent?: string | null;
+  registrationMode?: string | null;
+  registrationLabel?: string | null;
+  registrationUrl?: string | null;
   tags: string[];
 }
-
-const typeColors: Record<string, string> = {
-  training: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  conference: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-  competition: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-  workshop: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  hackathon: "bg-pink-500/10 text-pink-400 border-pink-500/20",
-};
 
 export function EventsPage({ events }: { events: EventItem[] }) {
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
@@ -180,17 +178,19 @@ export function EventsPage({ events }: { events: EventItem[] }) {
                     {day}
                   </span>
                   <div className="mt-1 space-y-0.5">
-                    {dayEvents.slice(0, 2).map((ev) => (
+                    {dayEvents.slice(0, 2).map((ev) => {
+                      const theme = getEventThemeStyles(ev.themePreset, ev.themeAccent);
+                      return (
                       <Link
                         key={ev.id}
                         href={`/events/${ev.slug}`}
-                        className={`block text-[9px] px-1 py-0.5 rounded truncate border ${
-                          typeColors[ev.type] || typeColors.workshop
-                        }`}
+                        style={{ ...theme.scopeStyle, ...theme.badgeStyle }}
+                        className="block text-[9px] px-1 py-0.5 rounded truncate border"
                       >
                         {ev.title}
                       </Link>
-                    ))}
+                      );
+                    })}
                     {dayEvents.length > 2 && (
                       <span className="text-[9px] text-steel-gray">+{dayEvents.length - 2} more</span>
                     )}
@@ -215,11 +215,13 @@ export function EventsPage({ events }: { events: EventItem[] }) {
                   month: "short",
                   day: "numeric",
                 });
+                const theme = getEventThemeStyles(event.themePreset, event.themeAccent);
 
                 return (
                   <motion.div
                     key={event.id}
                     className="glass-card overflow-hidden group"
+                    style={theme.scopeStyle}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.06, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
@@ -227,9 +229,8 @@ export function EventsPage({ events }: { events: EventItem[] }) {
                     <div className="relative p-6 pb-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <span
-                          className={`inline-flex items-center text-[11px] font-medium px-2.5 py-0.5 rounded-full border ${
-                            typeColors[event.type] || typeColors.workshop
-                          }`}
+                          style={theme.badgeStyle}
+                          className="inline-flex items-center text-[11px] font-medium px-2.5 py-0.5 rounded-full border"
                         >
                           {event.type}
                         </span>
@@ -239,7 +240,7 @@ export function EventsPage({ events }: { events: EventItem[] }) {
                       </div>
 
                       <Link href={`/events/${event.slug}`}>
-                        <h3 className="font-heading font-semibold text-lg text-ice-white group-hover:text-signal-orange transition-colors leading-snug">
+                        <h3 className="font-heading font-semibold text-lg text-ice-white group-hover:text-[var(--event-accent)] transition-colors leading-snug">
                           {event.title}
                         </h3>
                       </Link>
@@ -250,14 +251,15 @@ export function EventsPage({ events }: { events: EventItem[] }) {
 
                       {event.location && (
                         <div className="flex items-center gap-1.5 text-xs text-steel-gray">
-                          <MapPin size={12} className="text-signal-orange" />
+                          <MapPin size={12} style={theme.iconStyle} />
                           {event.location}
                         </div>
                       )}
 
                       <Link
                         href={`/events/${event.slug}`}
-                        className="inline-flex items-center gap-1 text-xs text-signal-orange hover:underline pt-1"
+                        style={theme.iconStyle}
+                        className="inline-flex items-center gap-1 text-xs hover:underline pt-1"
                       >
                         View details <ArrowUpRight size={12} />
                       </Link>

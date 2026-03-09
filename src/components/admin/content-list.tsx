@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Plus, Search, MoreHorizontal, Pencil, Trash2, ExternalLink } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, ExternalLink } from "lucide-react";
 import { useState } from "react";
 
 interface ContentItem {

@@ -13,6 +13,8 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
         ...event,
         startDate: event.startDate.toISOString().slice(0, 16),
         endDate: event.endDate?.toISOString().slice(0, 16) ?? "",
+        publishStart: event.publishStart?.toISOString().slice(0, 16) ?? "",
+        publishEnd: event.publishEnd?.toISOString().slice(0, 16) ?? "",
       }}
     />
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowRight, Users, Trophy, BookOpen, Handshake } from "lucide-react";
 
 const templates = [
@@ -62,6 +62,8 @@ const templates = [
 ];
 
 export default function FormTemplatesPage() {
+  const router = useRouter();
+
   const handleUseTemplate = async (templateId: string) => {
     const template = templates.find((t) => t.id === templateId);
     if (!template) return;
@@ -71,12 +73,11 @@ export default function FormTemplatesPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: template.title,
-        slug: template.id + "-" + Date.now(),
         fields: template.fields,
       }),
     });
     const form = await res.json();
-    window.location.href = `/admin/forms/${form.id}`;
+    router.push(`/admin/forms/${form.id}`);
   };
 
   return (
@@ -84,7 +85,7 @@ export default function FormTemplatesPage() {
       <div>
         <h1 className="text-2xl font-heading font-bold text-ice-white">CRRT Form Templates</h1>
         <p className="text-sm text-steel-gray mt-1">
-          Start from a pre-built template matching CRRT's real activity patterns.
+          Start from a pre-built template matching CRRT&apos;s real activity patterns.
         </p>
       </div>
 

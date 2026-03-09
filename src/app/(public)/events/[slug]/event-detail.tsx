@@ -6,6 +6,7 @@ import Link from "next/link";
 import { LensCard } from "@/components/crrt/lens-card";
 import { BlueprintTimeline } from "@/components/crrt/blueprint-timeline";
 import { LabGallery } from "@/components/crrt/lab-gallery";
+import { getEventRegistrationConfig, getEventThemeStyles } from "@/lib/event-config";
 
 interface Speaker {
   id: string;
@@ -26,6 +27,11 @@ interface EventDetailProps {
     endDate: string | null;
     location: string | null;
     capacity: number | null;
+    themePreset?: string | null;
+    themeAccent?: string | null;
+    registrationMode?: string | null;
+    registrationLabel?: string | null;
+    registrationUrl?: string | null;
     speakers: Speaker[];
     tags: string[];
   };
@@ -42,6 +48,11 @@ export function EventDetail({ event }: EventDetailProps) {
     hour: "2-digit",
     minute: "2-digit",
   });
+  const theme = getEventThemeStyles(event.themePreset, event.themeAccent);
+  const registration = getEventRegistrationConfig({
+    ...event,
+    defaultHref: "/dashboard",
+  });
 
   // Parse content sections for timeline
   const sections = event.content
@@ -53,7 +64,7 @@ export function EventDetail({ event }: EventDetailProps) {
     });
 
   return (
-    <section className="max-w-7xl mx-auto px-6 py-12">
+    <section className="max-w-7xl mx-auto px-6 py-12" style={theme.scopeStyle}>
       {/* Back */}
       <Link
         href="/events"
@@ -70,7 +81,10 @@ export function EventDetail({ event }: EventDetailProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
           >
-            <span className="inline-flex items-center text-xs font-medium px-3 py-1 rounded-full bg-signal-orange/10 border border-signal-orange/20 text-signal-orange uppercase tracking-wider mb-4">
+            <span
+              style={theme.badgeStyle}
+              className="inline-flex items-center text-xs font-medium px-3 py-1 rounded-full border uppercase tracking-wider mb-4"
+            >
               {event.type}
             </span>
             <h1 className="text-3xl md:text-4xl font-heading font-bold text-ice-white mb-4">
@@ -158,7 +172,7 @@ export function EventDetail({ event }: EventDetailProps) {
 
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
-                  <Calendar size={16} className="text-signal-orange mt-0.5" />
+                  <Calendar size={16} className="mt-0.5" style={theme.iconStyle} />
                   <div>
                     <p className="text-sm text-ice-white">{dateStr}</p>
                     <p className="text-xs text-steel-gray">{timeStr}</p>
@@ -167,14 +181,14 @@ export function EventDetail({ event }: EventDetailProps) {
 
                 {event.location && (
                   <div className="flex items-start gap-3">
-                    <MapPin size={16} className="text-signal-orange mt-0.5" />
+                    <MapPin size={16} className="mt-0.5" style={theme.iconStyle} />
                     <p className="text-sm text-ice-white">{event.location}</p>
                   </div>
                 )}
 
                 {event.capacity && (
                   <div className="flex items-start gap-3">
-                    <Users size={16} className="text-signal-orange mt-0.5" />
+                    <Users size={16} className="mt-0.5" style={theme.iconStyle} />
                     <p className="text-sm text-ice-white">{event.capacity} spots</p>
                   </div>
                 )}
@@ -193,9 +207,34 @@ export function EventDetail({ event }: EventDetailProps) {
                 </div>
               )}
 
-              <button className="w-full py-3 rounded-xl bg-signal-orange text-white font-medium text-sm hover:bg-[var(--signal-orange-hover)] transition-colors">
-                Register Now
-              </button>
+              {registration.disabled || !registration.href ? (
+                <button
+                  type="button"
+                  disabled
+                  style={theme.buttonSubtleStyle}
+                  className="w-full py-3 rounded-xl border font-medium text-sm opacity-80 cursor-not-allowed"
+                >
+                  {registration.label}
+                </button>
+              ) : registration.external ? (
+                <a
+                  href={registration.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={theme.buttonStyle}
+                  className="block w-full py-3 rounded-xl text-white font-medium text-sm text-center hover:opacity-90 transition-opacity"
+                >
+                  {registration.label}
+                </a>
+              ) : (
+                <Link
+                  href={registration.href}
+                  style={theme.buttonStyle}
+                  className="block w-full py-3 rounded-xl text-white font-medium text-sm text-center hover:opacity-90 transition-opacity"
+                >
+                  {registration.label}
+                </Link>
+              )}
             </div>
           </div>
         </div>

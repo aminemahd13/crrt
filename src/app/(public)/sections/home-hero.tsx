@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { NextEventPanel } from "@/components/crrt/next-event-panel";
 import { CircuitTrace } from "@/components/crrt/circuit-trace";
 
@@ -15,6 +16,11 @@ interface HomeHeroProps {
     location?: string | null;
     type: string;
     description: string;
+    themePreset?: string | null;
+    themeAccent?: string | null;
+    registrationMode?: string | null;
+    registrationLabel?: string | null;
+    registrationUrl?: string | null;
   } | null;
 }
 
@@ -74,18 +80,18 @@ export function HomeHero({ missionText, tagline, nextEvent }: HomeHeroProps) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
             >
-              <a
+              <Link
                 href="/events"
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-signal-orange text-white font-medium text-sm hover:bg-[var(--signal-orange-hover)] transition-colors"
               >
                 Explore Events
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/projects"
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-[var(--ghost-border)] text-ice-white font-medium text-sm hover:bg-white/5 transition-colors"
               >
                 View Projects
-              </a>
+              </Link>
             </motion.div>
 
             {/* Stats row */}

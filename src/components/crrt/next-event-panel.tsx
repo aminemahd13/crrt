@@ -4,6 +4,7 @@ import { useRef, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Calendar, MapPin, ArrowRight, Clock } from "lucide-react";
 import Link from "next/link";
+import { getEventRegistrationConfig, getEventThemeStyles } from "@/lib/event-config";
 
 interface NextEventPanelProps {
   event: {
@@ -14,6 +15,11 @@ interface NextEventPanelProps {
     location?: string | null;
     type: string;
     description: string;
+    themePreset?: string | null;
+    themeAccent?: string | null;
+    registrationMode?: string | null;
+    registrationLabel?: string | null;
+    registrationUrl?: string | null;
   } | null;
 }
 
@@ -67,20 +73,32 @@ export function NextEventPanel({ event }: NextEventPanelProps) {
     day: "numeric",
     year: "numeric",
   });
+  const theme = getEventThemeStyles(event.themePreset, event.themeAccent);
+  const registration = getEventRegistrationConfig({
+    ...event,
+    defaultHref: `/events/${event.slug}`,
+  });
 
   return (
     <motion.div
       ref={ref}
       className="glass-card p-6 md:p-8 space-y-5 relative overflow-hidden"
+      style={theme.scopeStyle}
       initial={{ opacity: 0, x: 30 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
     >
       {/* Glow accent */}
-      <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-signal-orange/10 blur-3xl pointer-events-none" />
+      <div
+        className="absolute -top-12 -right-12 w-32 h-32 rounded-full blur-3xl pointer-events-none"
+        style={theme.glowStyle}
+      />
 
       {/* Type badge */}
-      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-signal-orange/10 border border-signal-orange/20 text-signal-orange text-xs font-medium uppercase tracking-wider">
+      <div
+        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-medium uppercase tracking-wider"
+        style={theme.badgeStyle}
+      >
         <Clock size={12} />
         Next {event.type}
       </div>
@@ -93,12 +111,12 @@ export function NextEventPanel({ event }: NextEventPanelProps) {
       {/* Meta */}
       <div className="space-y-2">
         <div className="flex items-center gap-2 text-sm text-steel-gray">
-          <Calendar size={14} className="text-signal-orange" />
+          <Calendar size={14} style={theme.iconStyle} />
           {dateStr}
         </div>
         {event.location && (
           <div className="flex items-center gap-2 text-sm text-steel-gray">
-            <MapPin size={14} className="text-signal-orange" />
+            <MapPin size={14} style={theme.iconStyle} />
             {event.location}
           </div>
         )}
@@ -116,13 +134,36 @@ export function NextEventPanel({ event }: NextEventPanelProps) {
       </div>
 
       {/* CTA */}
-      <Link
-        href={`/events/${event.slug}`}
-        className="inline-flex items-center gap-2 w-full justify-center px-5 py-2.5 rounded-xl bg-signal-orange text-white font-medium text-sm hover:bg-[var(--signal-orange-hover)] transition-colors group"
-      >
-        Register Now
-        <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-      </Link>
+      {registration.disabled || !registration.href ? (
+        <button
+          type="button"
+          disabled
+          style={theme.buttonSubtleStyle}
+          className="inline-flex items-center gap-2 w-full justify-center px-5 py-2.5 rounded-xl border font-medium text-sm opacity-80 cursor-not-allowed"
+        >
+          {registration.label}
+        </button>
+      ) : registration.external ? (
+        <a
+          href={registration.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={theme.buttonStyle}
+          className="inline-flex items-center gap-2 w-full justify-center px-5 py-2.5 rounded-xl text-white font-medium text-sm hover:opacity-90 transition-opacity group"
+        >
+          {registration.label}
+          <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+        </a>
+      ) : (
+        <Link
+          href={registration.href}
+          style={theme.buttonStyle}
+          className="inline-flex items-center gap-2 w-full justify-center px-5 py-2.5 rounded-xl text-white font-medium text-sm hover:opacity-90 transition-opacity group"
+        >
+          {registration.label}
+          <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+        </Link>
+      )}
     </motion.div>
   );
 }

@@ -1,9 +1,11 @@
 import { prisma } from "@/lib/prisma";
+import { getVisibleEventsWhere } from "@/lib/event-config";
 import { EventsPage } from "./events-client";
 
 export default async function EventsServerPage() {
+  const now = new Date();
   const events = await prisma.event.findMany({
-    where: { published: true },
+    where: getVisibleEventsWhere(now),
     orderBy: { startDate: "desc" },
     include: {
       tags: { include: { tag: true } },
@@ -22,6 +24,11 @@ export default async function EventsServerPage() {
         endDate: e.endDate?.toISOString() ?? null,
         location: e.location,
         coverImage: e.coverImage,
+        themePreset: e.themePreset,
+        themeAccent: e.themeAccent,
+        registrationMode: e.registrationMode,
+        registrationLabel: e.registrationLabel,
+        registrationUrl: e.registrationUrl,
         tags: Array.from(new Set(e.tags.map((ct) => ct.tag.name))),
       }))}
     />

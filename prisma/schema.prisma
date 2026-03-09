@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -65,13 +65,20 @@ model Event {
   slug        String   @unique
   description String
   content     String   @default("")
-  type        String   @default("workshop") // training | conference | competition | workshop
+  type        String   @default("workshop") // training | conference | competition | workshop | hackathon
   status      String   @default("draft") // draft | published | archived
   coverImage  String?
   location    String?
   startDate   DateTime
   endDate     DateTime?
   capacity    Int?
+  themePreset String   @default("default") // default | ocean | forest | sunset | slate
+  themeAccent String?
+  registrationMode  String   @default("internal") // closed | internal | external
+  registrationLabel String?
+  registrationUrl   String?
+  publishStart DateTime?
+  publishEnd   DateTime?
   published   Boolean  @default(false)
   tags        ContentTag[]
   speakers    EventSpeaker[]

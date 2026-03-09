@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Save, Check, Shield, Database, Globe, Mail, RotateCcw, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Save, Check, Shield, Database, Globe, Mail, AlertCircle, CheckCircle2 } from "lucide-react";
 
 export default function SettingsPage() {
   const [smtpHost, setSmtpHost] = useState("smtp.gmail.com");
@@ -183,7 +183,7 @@ export default function SettingsPage() {
             NEXTAUTH_SECRET: ••••••••
           </span>
           <span className="px-3 py-1.5 rounded-lg bg-midnight border border-[var(--ghost-border)]">
-            DATABASE_URL: file:./dev.db
+            DATABASE_URL: postgresql://...
           </span>
         </div>
       </div>

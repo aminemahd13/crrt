@@ -8,6 +8,7 @@ export default async function EventDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+  const now = new Date();
 
   const event = await prisma.event.findUnique({
     where: { slug },
@@ -17,7 +18,13 @@ export default async function EventDetailPage({
     },
   });
 
-  if (!event || !event.published) return notFound();
+  if (!event) return notFound();
+
+  const isVisible =
+    event.published &&
+    (!event.publishStart || event.publishStart <= now) &&
+    (!event.publishEnd || event.publishEnd >= now);
+  if (!isVisible) return notFound();
 
   return (
     <EventDetail
@@ -25,6 +32,11 @@ export default async function EventDetailPage({
         ...event,
         startDate: event.startDate.toISOString(),
         endDate: event.endDate?.toISOString() ?? null,
+        themePreset: event.themePreset,
+        themeAccent: event.themeAccent,
+        registrationMode: event.registrationMode,
+        registrationLabel: event.registrationLabel,
+        registrationUrl: event.registrationUrl,
         speakers: event.speakers.map((s) => ({
           id: s.id,
           name: s.name,

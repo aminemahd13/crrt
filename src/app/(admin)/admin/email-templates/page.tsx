@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Save, Check, Plus, Trash2, Eye } from "lucide-react";
+import { Save, Check, Plus, Eye } from "lucide-react";
 
 interface EmailTemplate {
   id: string;
