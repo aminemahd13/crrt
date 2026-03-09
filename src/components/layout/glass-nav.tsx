@@ -4,11 +4,13 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
+import { useSession } from "next-auth/react";
 
 const navLinks = [
   { label: "Home", href: "/" },
   { label: "Events", href: "/events" },
   { label: "Projects", href: "/projects" },
+  { label: "Resources", href: "/resources" },
   { label: "Blog", href: "/blog" },
   { label: "About", href: "/about" },
 ];
@@ -16,6 +18,7 @@ const navLinks = [
 export function GlassNav() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { status } = useSession();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 80);
@@ -28,7 +31,7 @@ export function GlassNav() {
       <motion.header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           scrolled
-            ? "top-3 mx-auto max-w-3xl rounded-full px-6 py-2 glass-surface-strong"
+            ? "top-3 mx-auto max-w-4xl rounded-full px-6 py-2 glass-surface-strong"
             : "px-6 py-4 glass-surface"
         }`}
         initial={{ y: -100, opacity: 0 }}
@@ -63,12 +66,21 @@ export function GlassNav() {
 
           {/* CTA + Mobile Toggle */}
           <div className="flex items-center gap-3">
-            <Link
-              href="/events"
-              className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-signal-orange text-white text-sm font-medium hover:bg-[var(--signal-orange-hover)] transition-colors"
-            >
-              Register
-            </Link>
+            {status === "authenticated" ? (
+              <Link
+                href="/dashboard"
+                className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-signal-orange text-white text-sm font-medium hover:bg-[var(--signal-orange-hover)] transition-colors"
+              >
+                Dashboard
+              </Link>
+            ) : (
+              <Link
+                href="/api/auth/signin"
+                className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[var(--ghost-border)] text-steel-gray text-sm font-medium hover:text-ice-white hover:bg-white/5 transition-colors"
+              >
+                Log In
+              </Link>
+            )}
 
             <button
               onClick={() => setMobileOpen(!mobileOpen)}

@@ -162,6 +162,32 @@ model Media {
   createdAt DateTime @default(now())
 }
 
+// ─── Resources ─────────────────────────────────────
+
+model ResourceCategory {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  slug        String     @unique
+  description String?
+  color       String?
+  icon        String?
+  resources   Resource[]
+}
+
+model Resource {
+  id          String           @id @default(cuid())
+  title       String
+  slug        String           @unique
+  description String
+  url         String           // External link or internal media URL
+  type        String           @default("document") // document | video | link | repository
+  isPublic    Boolean          @default(true) // If false, only logged-in members can view
+  categoryId  String
+  category    ResourceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
 // ─── Forms ───────────────────────────────────────
 
 model Form {

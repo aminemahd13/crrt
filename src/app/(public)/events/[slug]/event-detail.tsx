@@ -49,7 +49,7 @@ export function EventDetail({ event }: EventDetailProps) {
     .filter(Boolean)
     .map((s, i) => {
       const lines = s.trim().split("\n");
-      return { year: i + 1, title: lines[0], description: lines.slice(1).join("\n").trim() };
+      return { id: `agenda-${i}`, year: i + 1, title: lines[0], description: lines.slice(1).join("\n").trim() };
     });
 
   return (
@@ -90,6 +90,7 @@ export function EventDetail({ event }: EventDetailProps) {
               </h2>
               <BlueprintTimeline
                 milestones={sections.map((s) => ({
+                  id: s.id,
                   year: s.year,
                   title: s.title,
                   description: s.description,

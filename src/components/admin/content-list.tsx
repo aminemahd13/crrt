@@ -12,6 +12,7 @@ interface ContentItem {
   type?: string;
   date: string;
   editHref: string;
+  viewHref?: string;
 }
 
 interface ContentListClientProps {
@@ -131,7 +132,7 @@ export function ContentListClient({
                       <Pencil size={14} />
                     </Link>
                     <Link
-                      href={`/${contentType === "posts" ? "blog" : contentType}/${item.slug}`}
+                      href={item.viewHref || `/${contentType === "posts" ? "blog" : contentType}/${item.slug}`}
                       target="_blank"
                       className="p-1.5 rounded-md text-steel-gray hover:text-ice-white hover:bg-white/5 transition-colors"
                       title="View"

@@ -47,6 +47,8 @@ const navGroups = [
       { label: "Projects", href: "/admin/projects", icon: FolderOpen },
       { label: "Posts", href: "/admin/posts", icon: FileText },
       { label: "Media", href: "/admin/media", icon: Image },
+      { label: "Resources", href: "/admin/resources", icon: FileText },
+      { label: "Resource Categories", href: "/admin/resource-categories", icon: FolderOpen },
     ],
   },
   {
