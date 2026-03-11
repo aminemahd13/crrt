@@ -24,13 +24,74 @@ test("health endpoint and key public pages load", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /events/i })).toBeVisible();
 });
 
-test("admin routes are protected and admin can sign in", async ({ page }) => {
+test("admin routes are protected and admin event tabs work", async ({ page }) => {
   await page.goto("/admin");
   await expect(page).toHaveURL(/\/login\?callbackUrl=%2Fadmin/);
 
   await loginFromAdminPage(page, adminEmail, adminPassword);
   await expect(page).toHaveURL(/\/admin$/);
   await expect(page.getByText(/studio|dashboard|default seeded admin password/i).first()).toBeVisible();
+
+  await page.goto("/admin/events");
+  await expect(page.getByRole("tab", { name: /^events$/i })).toBeVisible();
+  await expect(page.getByRole("tab", { name: /^applicants$/i })).toBeVisible();
+  await expect(page.getByRole("tab", { name: /^review queue$/i })).toBeVisible();
+
+  await page.getByRole("tab", { name: /^applicants$/i }).click();
+  await expect(page).toHaveURL(/\/admin\/events\?tab=applicants/);
+
+  await page.getByRole("tab", { name: /^review queue$/i }).click();
+  await expect(page).toHaveURL(/\/admin\/events\?tab=review-queue/);
+
+  await page.getByRole("tab", { name: /^events$/i }).click();
+  const deepLink = page.getByRole("link", { name: /open applicants/i }).first();
+  if (await deepLink.count()) {
+    await deepLink.click();
+    await expect(page).toHaveURL(/\/admin\/events\/.+\?tab=applicants/);
+    await expect(page.getByRole("tab", { name: /^applicants$/i })).toBeVisible();
+  }
+
+  await page.goto("/admin/events?tab=review-queue");
+  const firstReviewRow = page.locator("[data-testid='review-row']").first();
+  if (await firstReviewRow.count()) {
+    const registrationBefore = (await firstReviewRow.locator("td").nth(4).innerText()).trim();
+    const currentStatus = (await firstReviewRow.getAttribute("data-status")) ?? "new";
+    const nextStatus = currentStatus === "accepted" ? "rejected" : "accepted";
+
+    await firstReviewRow.getByRole("button", { name: new RegExp(`set ${nextStatus}`, "i") }).click();
+    await expect(firstReviewRow).toHaveAttribute("data-status", nextStatus);
+
+    await page.reload();
+    const rowAfterReload = page.locator("[data-testid='review-row']").first();
+    await expect(rowAfterReload).toHaveAttribute("data-status", nextStatus);
+    const registrationAfter = (await rowAfterReload.locator("td").nth(4).innerText()).trim();
+    expect(registrationAfter).toBe(registrationBefore);
+  } else {
+    await expect(page.getByText(/no review items found/i)).toBeVisible();
+  }
+
+  const uniqueSuffix = Date.now();
+  const slug = `e2e-tabbed-event-${uniqueSuffix}`;
+
+  await page.goto("/admin/events/new");
+  await expect(page.getByRole("tab", { name: /^details$/i })).toBeVisible();
+  await expect(page.getByRole("tab", { name: /^registration$/i })).toBeVisible();
+  await expect(page.getByRole("tab", { name: /^form builder$/i })).toBeVisible();
+  await page.getByTestId("event-field-title").fill(`E2E Tabbed Event ${uniqueSuffix}`);
+  await page.getByTestId("event-field-slug").fill(slug);
+  await page.getByTestId("event-field-description").fill("E2E event created from tabbed editor.");
+  await page.getByTestId("event-field-startDate").fill("2026-12-31T10:00");
+  await page.getByRole("button", { name: /^save$/i }).click();
+  await expect(page).toHaveURL(/\/admin\/events(?:\?.*)?$/);
+
+  const createdRow = page.locator("tr", { hasText: slug }).first();
+  await expect(createdRow).toBeVisible();
+  await createdRow.locator("a[title='Edit']").click();
+  await expect(page).toHaveURL(/\/admin\/events\/.+/);
+  await expect(page.getByRole("tab", { name: /^applicants$/i })).toBeVisible();
+  await expect(page.getByRole("tab", { name: /^review queue$/i })).toBeVisible();
+  await page.getByRole("button", { name: /^save$/i }).click();
+  await expect(page).toHaveURL(/\/admin\/events(?:\?.*)?$/);
 });
 
 test("member can register for an event and view private resources", async ({ page }) => {

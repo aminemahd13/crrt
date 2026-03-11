@@ -7,6 +7,9 @@ const prismaMock = {
   event: {
     findUnique: vi.fn(),
   },
+  form: {
+    findUnique: vi.fn(),
+  },
   eventRegistration: {
     count: vi.fn(),
     findUnique: vi.fn(),
@@ -73,8 +76,8 @@ describe("event registration APIs", () => {
       registrationMode: "internal",
       registrationReviewMode: "auto",
       capacity: 1,
-      form: { id: "form-1", fields: [] },
     });
+    prismaMock.form.findUnique.mockResolvedValueOnce(null);
     prismaMock.eventRegistration.count.mockResolvedValueOnce(1);
     prismaMock.eventRegistration.findUnique.mockResolvedValueOnce(null);
     prismaMock.eventRegistration.create.mockResolvedValueOnce({
