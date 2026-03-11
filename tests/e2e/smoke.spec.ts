@@ -26,7 +26,7 @@ test("health endpoint and key public pages load", async ({ page }) => {
 
 test("admin routes are protected and admin can sign in", async ({ page }) => {
   await page.goto("/admin");
-  await expect(page).toHaveURL(/\/admin\/login/);
+  await expect(page).toHaveURL(/\/login\?callbackUrl=%2Fadmin/);
 
   await loginFromAdminPage(page, adminEmail, adminPassword);
   await expect(page).toHaveURL(/\/admin$/);

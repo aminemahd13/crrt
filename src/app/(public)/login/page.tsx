@@ -1,22 +1,50 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useMemo, useState } from "react";
-import { signIn } from "next-auth/react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { getSession, signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
+
+function normalizeCallbackUrl(value: string | null): string | null {
+  if (!value || !value.startsWith("/")) return null;
+  if (value.startsWith("/admin/login")) return "/admin";
+  if (value.startsWith("/login")) return null;
+  return value;
+}
+
+function defaultRouteForRole(role: string | null | undefined): string {
+  return role === "admin" || role === "editor" ? "/admin" : "/dashboard";
+}
+
+function resolvePostLoginRoute(callbackUrl: string | null, role: string | null | undefined): string {
+  const fallback = defaultRouteForRole(role);
+  if (!callbackUrl) return fallback;
+  if (callbackUrl.startsWith("/admin") && role !== "admin" && role !== "editor") {
+    return fallback;
+  }
+  return callbackUrl;
+}
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = useMemo(() => {
-    const raw = searchParams.get("callbackUrl");
-    return raw && raw.startsWith("/") ? raw : "/dashboard";
-  }, [searchParams]);
+  const { data: session, status } = useSession();
+
+  const callbackUrl = useMemo(
+    () => normalizeCallbackUrl(searchParams.get("callbackUrl")),
+    [searchParams]
+  );
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
+
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    const role = (session?.user as { role?: string } | undefined)?.role ?? null;
+    router.replace(resolvePostLoginRoute(callbackUrl, role));
+  }, [callbackUrl, router, session, status]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -27,7 +55,6 @@ export default function LoginPage() {
       const result = await signIn("credentials", {
         email: email.trim(),
         password,
-        callbackUrl,
         redirect: false,
       });
 
@@ -36,7 +63,11 @@ export default function LoginPage() {
         return;
       }
 
-      router.push(result?.url ?? callbackUrl);
+      const nextSession = await getSession();
+      const role = (nextSession?.user as { role?: string } | undefined)?.role ?? null;
+      const target = resolvePostLoginRoute(callbackUrl, role);
+
+      router.push(target);
       router.refresh();
     } catch {
       setError("Unable to sign in right now.");
@@ -45,11 +76,17 @@ export default function LoginPage() {
     }
   };
 
+  if (status === "authenticated") {
+    return null;
+  }
+
+  const signupCallback = callbackUrl ?? "/dashboard";
+
   return (
     <section className="max-w-md mx-auto px-6 py-16">
       <div className="glass-card p-8">
         <h1 className="font-heading text-3xl text-ice-white mb-2">Sign In</h1>
-        <p className="text-steel-gray text-sm mb-6">Access your dashboard and event registrations.</p>
+        <p className="text-steel-gray text-sm mb-6">One login portal for members, editors, and admins.</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
@@ -98,7 +135,7 @@ export default function LoginPage() {
         <p className="text-sm text-steel-gray mt-5">
           No account yet?{" "}
           <Link
-            href={`/signup?callbackUrl=${encodeURIComponent(callbackUrl)}`}
+            href={`/signup?callbackUrl=${encodeURIComponent(signupCallback)}`}
             className="text-signal-orange hover:underline"
           >
             Create one

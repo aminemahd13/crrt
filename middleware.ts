@@ -69,14 +69,16 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isAdminPage = pathname === "/admin" || pathname.startsWith("/admin/");
   const isAdminApi = pathname.startsWith("/api/admin");
-  const isLoginPage = pathname === "/admin/login";
+  const isAdminLoginAlias = pathname === "/admin/login";
 
   if (isMutatingMethod(request.method) && isCsrfProtectedPath(pathname) && !hasValidOrigin(request)) {
     if (pathname.startsWith("/api/")) {
       return apiError(403, "Invalid origin for state-changing request.", requestId);
     }
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("callbackUrl", "/admin");
     return applySecurityHeaders(
-      NextResponse.redirect(new URL("/admin/login", request.url)),
+      NextResponse.redirect(loginUrl),
       requestId
     );
   }
@@ -85,7 +87,7 @@ export async function middleware(request: NextRequest) {
     const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
     const role = token?.role;
 
-    if (isLoginPage) {
+    if (isAdminLoginAlias) {
       if (canAccessAdmin(role)) {
         return applySecurityHeaders(NextResponse.redirect(new URL("/admin", request.url)), requestId);
       }
@@ -99,10 +101,8 @@ export async function middleware(request: NextRequest) {
       if (isAdminApi) {
         return apiError(401, "Authentication required.", requestId);
       }
-      const loginUrl = new URL("/admin/login", request.url);
-      if (!isLoginPage) {
-        loginUrl.searchParams.set("callbackUrl", request.nextUrl.pathname);
-      }
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("callbackUrl", request.nextUrl.pathname);
       return applySecurityHeaders(NextResponse.redirect(loginUrl), requestId);
     }
 

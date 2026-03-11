@@ -14,7 +14,9 @@ export default function SignupPage() {
   const searchParams = useSearchParams();
   const callbackUrl = useMemo(() => {
     const raw = searchParams.get("callbackUrl");
-    return raw && raw.startsWith("/") ? raw : "/dashboard";
+    if (!raw || !raw.startsWith("/")) return "/dashboard";
+    if (raw.startsWith("/admin")) return "/dashboard";
+    return raw;
   }, [searchParams]);
 
   const [name, setName] = useState("");

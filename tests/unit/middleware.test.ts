@@ -21,7 +21,7 @@ describe("middleware auth and security guards", () => {
     const response = await middleware(new NextRequest("http://localhost/admin"));
 
     expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toContain("/admin/login");
+    expect(response.headers.get("location")).toContain("/login?callbackUrl=%2Fadmin");
   });
 
   it("allows anonymous access to /admin/login", async () => {
@@ -66,4 +66,3 @@ describe("middleware auth and security guards", () => {
     expect(response.status).toBe(200);
   });
 });
-

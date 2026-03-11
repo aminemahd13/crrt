@@ -36,7 +36,7 @@ If you use PowerShell, step 2 is:
 Copy-Item .env.example .env
 ```
 
-Open [http://localhost:3000](http://localhost:3000) for the public site and [http://localhost:3000/admin/login](http://localhost:3000/admin/login) for the admin.
+Open [http://localhost:3000](http://localhost:3000) for the public site and [http://localhost:3000/login](http://localhost:3000/login) for sign-in (members, editors, and admins).
 
 Seeded credentials:
 - `admin@crrt.ma / crrt2026`
@@ -170,7 +170,7 @@ curl -fsS http://127.0.0.1:3000/api/metrics
 
 Then verify in browser:
 - `https://your-domain.com/`
-- `https://your-domain.com/admin/login`
+- `https://your-domain.com/login`
 - Sign in as admin and rotate password at `/admin/settings`.
 
 
@@ -230,7 +230,7 @@ curl -fsS https://your-domain.com/api/metrics
 ```
 
 Manual checks:
-- Admin routes reject anonymous users (`/admin` redirects to `/admin/login`).
+- Admin routes reject anonymous users (`/admin` redirects to `/login?callbackUrl=/admin`).
 - Member can register for an event and sees it in `/dashboard`.
 - Private resources show in member dashboard and are blocked when anonymous.
 

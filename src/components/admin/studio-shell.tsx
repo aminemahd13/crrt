@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
+import { requiresAdminRole } from "@/lib/access-control";
 import {
   LayoutDashboard,
   Palette,
@@ -71,6 +72,18 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
   const [collapsed, setCollapsed] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
+  const role = (session?.user as { role?: string } | undefined)?.role ?? null;
+
+  const visibleNavGroups = useMemo(
+    () =>
+      navGroups
+        .map((group) => ({
+          ...group,
+          items: group.items.filter((item) => !requiresAdminRole(item.href) || role === "admin"),
+        }))
+        .filter((group) => group.items.length > 0),
+    [role]
+  );
 
   return (
     <div className="flex h-screen bg-midnight overflow-hidden">
@@ -117,7 +130,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
 
         {/* Nav groups */}
         <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-4">
-          {navGroups.map((group) => (
+          {visibleNavGroups.map((group) => (
             <div key={group.label}>
               {!collapsed && (
                 <h4 className="px-2 mb-1 text-[10px] font-semibold uppercase tracking-widest text-steel-gray/60">
@@ -167,7 +180,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
             </div>
           )}
           <button
-            onClick={() => signOut({ callbackUrl: "/admin/login" })}
+            onClick={() => signOut({ callbackUrl: "/login" })}
             className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs text-steel-gray hover:text-red-400 hover:bg-red-500/5 transition-colors w-full ${
               collapsed ? "justify-center" : ""
             }`}
@@ -189,7 +202,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
 
       {/* Main */}
       <main className="flex-1 overflow-y-auto">
-        {session?.user?.mustRotatePassword && (
+        {session?.user?.mustRotatePassword && role === "admin" && (
           <div className="mx-6 mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-300">
             Default seeded admin password is still active. Change it from Settings for production safety.
           </div>
@@ -213,7 +226,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
               className="w-full bg-transparent border-b border-[var(--ghost-border)] pb-3 text-sm text-ice-white placeholder:text-steel-gray focus:outline-none"
             />
             <div className="space-y-1">
-              {navGroups.flatMap((g) => g.items).map((item) => (
+              {visibleNavGroups.flatMap((g) => g.items).map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}

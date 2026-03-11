@@ -22,10 +22,10 @@ export async function requireSessionUser() {
 export async function requireAdminSession() {
   const user = await getSessionUser();
   if (!user) {
-    redirect("/admin/login");
+    redirect("/login?callbackUrl=/admin");
   }
   if (!["admin", "editor"].includes(user.role)) {
-    redirect("/admin/login");
+    redirect("/login?callbackUrl=/admin");
   }
   return user;
 }
