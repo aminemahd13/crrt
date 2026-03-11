@@ -19,15 +19,16 @@ export default async function EventDetailPage({
     include: {
       speakers: { orderBy: { order: "asc" } },
       tags: { include: { tag: true } },
-      form: {
-        include: {
-          fields: { orderBy: { order: "asc" } },
-        },
-      },
     },
   });
 
   if (!event) return notFound();
+  const form = await prisma.form.findUnique({
+    where: { eventId: event.id },
+    include: {
+      fields: { orderBy: { order: "asc" } },
+    },
+  });
 
   const isVisible =
     event.published &&
@@ -101,7 +102,7 @@ export default async function EventDetailPage({
           image: s.image,
         })),
         tags: Array.from(new Set(event.tags.map((ct) => ct.tag.name))),
-        formFields: event.form?.fields.map((f) => ({
+        formFields: form?.fields.map((f) => ({
           id: f.id,
           label: f.label,
           type: f.type,

@@ -4,13 +4,18 @@ import { EditEventClient } from "./edit-client";
 
 export default async function EditEventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const event = await prisma.event.findUnique({
-    where: { id },
-    include: { form: { include: { fields: { orderBy: { order: "asc" } } } } },
-  });
+  const [event, form] = await Promise.all([
+    prisma.event.findUnique({
+      where: { id },
+    }),
+    prisma.form.findUnique({
+      where: { eventId: id },
+      include: { fields: { orderBy: { order: "asc" } } },
+    }),
+  ]);
   if (!event) return notFound();
 
-  const registrationFields = (event.form?.fields ?? []).map((f) => ({
+  const registrationFields = (form?.fields ?? []).map((f) => ({
     id: f.id,
     label: f.label,
     type: f.type,

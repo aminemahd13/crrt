@@ -27,36 +27,39 @@ export async function POST(
       : null;
 
     const { eventId } = await params;
-    const event = await prisma.event.findUnique({
-      where: { id: eventId },
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        registrationMode: true,
-        registrationReviewMode: true,
-        capacity: true,
-        form: {
-          select: {
-            id: true,
-            status: true,
-            fields: { select: { id: true, label: true, type: true, required: true }, orderBy: { order: "asc" } },
-          },
+    const [event, form] = await Promise.all([
+      prisma.event.findUnique({
+        where: { id: eventId },
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          registrationMode: true,
+          registrationReviewMode: true,
+          capacity: true,
         },
-      },
-    });
+      }),
+      prisma.form.findUnique({
+        where: { eventId },
+        select: {
+          id: true,
+          status: true,
+          fields: { select: { id: true, label: true, type: true, required: true }, orderBy: { order: "asc" } },
+        },
+      }),
+    ]);
     if (!event || event.registrationMode !== "internal") {
       return NextResponse.json({ error: "Event does not support internal registration" }, { status: 400 });
     }
 
     // If event has a form, require form data
-    if (event.form && event.form.fields.length > 0) {
+    if (form && form.fields.length > 0) {
       if (!formData) {
         return NextResponse.json({ error: "Registration form data is required" }, { status: 400 });
       }
       // Validate required fields
       const missingFields: string[] = [];
-      for (const field of event.form.fields) {
+      for (const field of form.fields) {
         if (field.required) {
           const value = formData[field.label];
           if (value === undefined || value === null || (typeof value === "string" && !value.trim())) {
@@ -117,7 +120,7 @@ export async function POST(
         });
 
     // Create linked FormSubmission if form exists and data was provided
-    if (event.form && formData) {
+    if (form && formData) {
       const sanitizedData = JSON.parse(JSON.stringify(formData)) as Prisma.InputJsonObject;
       // Delete old submission for this registration if re-registering
       if (existing) {
@@ -127,7 +130,7 @@ export async function POST(
       }
       await prisma.formSubmission.create({
         data: {
-          formId: event.form.id,
+          formId: form.id,
           eventRegistrationId: registration.id,
           data: sanitizedData,
           status: isManualReview ? "in_review" : "new",
