@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:docker": "docker compose -f docker-compose.dev.yml up --build",
+    "dev:docker": "docker compose -f docker-compose.dev.yml up --build --watch",
+    "dev:docker:up": "docker compose -f docker-compose.dev.yml up --build",
     "dev:docker:down": "docker compose -f docker-compose.dev.yml down",
     "dev:docker:logs": "docker compose -f docker-compose.dev.yml logs -f app postgres",
     "dev:docker:seed": "docker compose -f docker-compose.dev.yml run --rm app npm run db:seed",

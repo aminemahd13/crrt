@@ -48,7 +48,7 @@ Seeded credentials:
 If you want Postgres + app fully inside Docker for development:
 
 ```bash
-# Start postgres + app (Next.js dev server with hot reload)
+# Start postgres + app in Docker Compose watch mode
 npm run dev:docker
 ```
 
@@ -61,6 +61,7 @@ npm run dev:docker:seed
 Useful helpers:
 
 ```bash
+npm run dev:docker:up    # Start Docker dev stack without Compose watch
 npm run dev:docker:logs  # Follow app + postgres logs
 npm run dev:docker:down  # Stop dev stack
 npm run dev:docker:reset # Reset database + reseed
@@ -69,6 +70,7 @@ npm run dev:docker:reset # Reset database + reseed
 Notes:
 - App URL remains `http://localhost:3000`.
 - The dev stack uses an internal Docker DB URL (`postgres:5432`) and does not require local Postgres on your host.
+- `npm run dev:docker` uses Docker Compose watch mode, so dependency/config changes can rebuild or restart automatically.
 - Docker dev reads `NEXTAUTH_SECRET` from your project `.env`, so keep it stable across `npm run dev` and `npm run dev:docker`.
 - If you rotate `NEXTAUTH_SECRET`, clear your `localhost` cookies or sign out/in to avoid one-time `next-auth` `JWEDecryptionFailed` session warnings.
 
@@ -269,7 +271,8 @@ npm run test:e2e
 
 ```bash
 npm run dev         # Start dev server
-npm run dev:docker  # Start Docker dev stack (app + postgres, hot reload)
+npm run dev:docker  # Start Docker dev stack with Compose watch (auto rebuild/restart)
+npm run dev:docker:up # Start Docker dev stack without Compose watch
 npm run dev:docker:logs # Follow Docker dev logs
 npm run dev:docker:seed # Seed Docker dev database
 npm run dev:docker:reset # Reset + migrate + seed Docker dev database

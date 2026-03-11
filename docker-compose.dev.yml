@@ -28,6 +28,9 @@ services:
     environment:
       NODE_ENV: development
       NEXT_TELEMETRY_DISABLED: "1"
+      NPM_CONFIG_AUDIT: "false"
+      NPM_CONFIG_FUND: "false"
+      NPM_CONFIG_UPDATE_NOTIFIER: "false"
       DATABASE_URL: postgresql://crrt:crrt@postgres:5432/crrt?schema=public
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-crrt-dev-secret-change-in-production}
       NEXTAUTH_URL: http://localhost:3000
@@ -46,8 +49,34 @@ services:
       - .:/app
       - dev-node-modules:/app/node_modules
       - dev-next-cache:/app/.next
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./package.json
+          target: /app/package.json
+        - action: sync+restart
+          path: ./package-lock.json
+          target: /app/package-lock.json
+        - action: sync+restart
+          path: ./.env
+          target: /app/.env
+        - action: sync+restart
+          path: ./prisma/schema.prisma
+          target: /app/prisma/schema.prisma
+        - action: sync+restart
+          path: ./prisma/migrations
+          target: /app/prisma/migrations
+        - action: rebuild
+          path: ./Dockerfile
     command: >
-      sh -c "npm install &&
+      sh -c "LOCK_HASH_FILE=/app/node_modules/.package-lock.hash;
+      LOCK_HASH=$$(sha256sum /app/package-lock.json | awk '{print $$1}');
+      STORED_HASH=$$(cat $$LOCK_HASH_FILE 2>/dev/null || true);
+      if [ ! -d /app/node_modules ] || [ -z \"$$(ls -A /app/node_modules 2>/dev/null)\" ] || [ \"$$LOCK_HASH\" != \"$$STORED_HASH\" ]; then
+        echo 'Installing dependencies from lockfile...';
+        npm ci --no-audit --no-fund &&
+        echo \"$$LOCK_HASH\" > \"$$LOCK_HASH_FILE\";
+      fi &&
       npx prisma generate &&
       npx prisma migrate deploy &&
       npm run dev -- --hostname 0.0.0.0 --port 3000"
