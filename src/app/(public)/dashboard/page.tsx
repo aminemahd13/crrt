@@ -9,7 +9,7 @@ export default async function DashboardServerPage() {
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {
-    redirect("/api/auth/signin?callbackUrl=/dashboard");
+    redirect("/login?callbackUrl=/dashboard");
   }
 
   const user = await prisma.user.findUnique({

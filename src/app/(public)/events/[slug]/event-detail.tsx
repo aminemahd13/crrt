@@ -310,13 +310,22 @@ export function EventDetail({ event }: EventDetailProps) {
               ) : isInternalRegistration ? (
                 <div className="space-y-2">
                   {!event.isAuthenticated ? (
-                    <Link
-                      href={`/api/auth/signin?callbackUrl=/events/${event.slug}`}
-                      style={theme.buttonStyle}
-                      className="block w-full py-3 rounded-xl text-white font-medium text-sm text-center hover:opacity-90 transition-opacity"
-                    >
-                      Sign in to Register
-                    </Link>
+                    <div className="space-y-2">
+                      <Link
+                        href={`/signup?callbackUrl=${encodeURIComponent(`/events/${event.slug}`)}`}
+                        style={theme.buttonStyle}
+                        className="block w-full py-3 rounded-xl text-white font-medium text-sm text-center hover:opacity-90 transition-opacity"
+                      >
+                        Create Account to Register
+                      </Link>
+                      <Link
+                        href={`/login?callbackUrl=${encodeURIComponent(`/events/${event.slug}`)}`}
+                        style={theme.buttonSubtleStyle}
+                        className="block w-full py-2.5 rounded-xl border font-medium text-sm text-center"
+                      >
+                        Already a member? Sign In
+                      </Link>
+                    </div>
                   ) : hasActiveRegistration ? (
                     <>
                       <button

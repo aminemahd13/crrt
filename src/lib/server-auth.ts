@@ -14,7 +14,7 @@ export async function getSessionUser() {
 export async function requireSessionUser() {
   const user = await getSessionUser();
   if (!user) {
-    redirect("/api/auth/signin?callbackUrl=/dashboard");
+    redirect("/login?callbackUrl=/dashboard");
   }
   return user;
 }

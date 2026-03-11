@@ -75,7 +75,7 @@ export function GlassNav() {
               </Link>
             ) : (
               <Link
-                href="/api/auth/signin"
+                href="/login"
                 className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[var(--ghost-border)] text-steel-gray text-sm font-medium hover:text-ice-white hover:bg-white/5 transition-colors"
               >
                 Log In
