@@ -28,7 +28,7 @@ const navGroups = [
     label: "Operate",
     items: [
       { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
-      { label: "Inbox", href: "/admin/inbox", icon: Inbox },
+      { label: "Applications", href: "/admin/applications", icon: Inbox },
     ],
   },
   {

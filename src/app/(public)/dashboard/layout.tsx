@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, UserCircle, CalendarDays, LogOut } from "lucide-react";
+import { LayoutDashboard, UserCircle, CalendarDays, ClipboardCheck, LogOut } from "lucide-react";
 import { signOut } from "next-auth/react";
 
 const navItems = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  { href: "/dashboard/applications", label: "Applications", icon: ClipboardCheck },
   { href: "/dashboard/events", label: "My Events", icon: CalendarDays },
   { href: "/dashboard/profile", label: "Profile", icon: UserCircle },
 ];

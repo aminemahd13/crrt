@@ -2,10 +2,7 @@ export type EventAdminTab =
   | "details"
   | "registration"
   | "form-builder"
-  | "applicants"
-  | "review-queue";
-
-export type EventHubTab = "events" | "applicants" | "review-queue";
+  | "applications";
 
 export type RegistrationStatus =
   | "registered"
@@ -36,31 +33,51 @@ export interface EventListRow {
   registrationsCount: number;
 }
 
-export interface ApplicantRow {
+export interface EventFilterOption {
+  eventId: string;
+  eventTitle: string;
+  eventSlug: string;
+}
+
+export interface ApplicationRow {
   id: string;
+  registrationId: string | null;
+  submissionId: string | null;
   eventId: string;
   eventTitle: string;
   eventSlug: string;
   userId: string;
   userName: string | null;
   userEmail: string | null;
-  status: RegistrationStatus;
+  registrationStatus: RegistrationStatus | null;
+  reviewStatus: ReviewSubmissionStatus | null;
   note: string | null;
+  submissionData: Record<string, string>;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface ReviewQueueRow {
-  id: string;
-  eventId: string;
-  eventTitle: string;
-  eventSlug: string;
-  status: ReviewSubmissionStatus;
-  createdAt: string;
-  updatedAt: string;
-  data: Record<string, string>;
-  registrationId: string | null;
-  registrationStatus: RegistrationStatus | null;
-  applicantName: string | null;
-  applicantEmail: string | null;
+export interface ApplicationFilters {
+  q?: string;
+  eventId?: string;
+  registrationStatus?: RegistrationStatus;
+  reviewStatus?: ReviewSubmissionStatus;
+  dateFrom?: string;
+  dateTo?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ApplicationUpdatePayload {
+  status?: ReviewSubmissionStatus;
+  data?: Record<string, string>;
+}
+
+export interface ApplicationsResponse {
+  items: ApplicationRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+  events: EventFilterOption[];
+  truncated: boolean;
 }

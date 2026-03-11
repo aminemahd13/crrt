@@ -22,6 +22,16 @@ export function recordRegistrationCreated(status: string) {
   inc(`event_registrations_status_total{status="${status}"}`);
 }
 
+export function recordApplicationAction(action: string) {
+  inc("admin_application_actions_total");
+  inc(`admin_application_actions_total{action="${action}"}`);
+}
+
+export function recordApplicationFailure(action: string) {
+  inc("admin_application_failures_total");
+  inc(`admin_application_failures_total{action="${action}"}`);
+}
+
 export function getMetricsSnapshot() {
   return {
     startedAt,

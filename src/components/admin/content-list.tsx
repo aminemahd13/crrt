@@ -1,8 +1,13 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Plus, Search, Pencil, Trash2, ExternalLink } from "lucide-react";
-import { useState } from "react";
+import { ExternalLink, Pencil, Plus, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { AdminDataTable } from "@/components/admin/admin-data-table";
+import { AdminFiltersBar } from "@/components/admin/admin-filters-bar";
+import { ConfirmActionModal } from "@/components/admin/confirm-action-modal";
+import { AdminToastViewport, useAdminToast } from "@/components/admin/admin-toast";
 
 interface ContentItem {
   id: string;
@@ -30,18 +35,47 @@ export function ContentListClient({
   items,
   contentType,
 }: ContentListClientProps) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
-  const [deleting, setDeleting] = useState<string | null>(null);
+  const [rows, setRows] = useState<ContentItem[]>(items);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { toasts, dismissToast, pushToast } = useAdminToast();
 
-  const filtered = items.filter((item) =>
-    item.title.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    if (!needle) return rows;
+    return rows.filter((item) => {
+      const haystack = `${item.title} ${item.slug} ${item.type ?? ""}`.toLowerCase();
+      return haystack.includes(needle);
+    });
+  }, [rows, search]);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this item?")) return;
-    setDeleting(id);
-    await fetch(`/api/admin/${contentType}/${id}`, { method: "DELETE" });
-    window.location.reload();
+  const deleteTarget = rows.find((item) => item.id === confirmDeleteId) ?? null;
+  const hasTypeColumn = rows.some((item) => Boolean(item.type));
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+
+    setDeletingId(deleteTarget.id);
+
+    try {
+      const response = await fetch(`/api/admin/${contentType}/${deleteTarget.id}`, { method: "DELETE" });
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => ({}))) as { error?: string };
+        pushToast("error", payload.error ?? "Failed to delete item.");
+        return;
+      }
+
+      setRows((prev) => prev.filter((item) => item.id !== deleteTarget.id));
+      setConfirmDeleteId(null);
+      pushToast("success", "Item deleted.");
+      router.refresh();
+    } catch {
+      pushToast("error", "Failed to delete item.");
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -59,108 +93,105 @@ export function ContentListClient({
         </Link>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-steel-gray" />
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={`Search ${title.toLowerCase()}...`}
-          className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-midnight-light border border-[var(--ghost-border)] text-sm text-ice-white placeholder:text-steel-gray focus:border-signal-orange/30 focus:outline-none transition-colors"
-        />
-      </div>
+      <AdminFiltersBar
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder={`Search ${title.toLowerCase()}...`}
+      />
 
-      {/* Table */}
-      <div className="glass-card overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-[var(--ghost-border)]">
-              <th className="text-left px-4 py-3 text-xs font-semibold text-steel-gray uppercase tracking-wider">Title</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-steel-gray uppercase tracking-wider">Status</th>
-              {items.some((i) => i.type) && (
-                <th className="text-left px-4 py-3 text-xs font-semibold text-steel-gray uppercase tracking-wider">Type</th>
-              )}
-              <th className="text-left px-4 py-3 text-xs font-semibold text-steel-gray uppercase tracking-wider">Date</th>
-              <th className="text-right px-4 py-3 text-xs font-semibold text-steel-gray uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((item) => (
-              <tr
-                key={item.id}
-                className="border-b border-[var(--ghost-border)] last:border-0 hover:bg-white/[0.02] transition-colors"
+      <AdminDataTable
+        columns={[
+          { key: "title", label: "Title" },
+          { key: "status", label: "Status" },
+          ...(hasTypeColumn ? [{ key: "type", label: "Type" }] : []),
+          { key: "date", label: "Date" },
+          { key: "actions", label: "Actions", className: "text-right" },
+        ]}
+        empty={filtered.length === 0}
+        emptyMessage="No items found."
+      >
+        {filtered.map((item) => (
+          <tr
+            key={item.id}
+            className="border-b border-[var(--ghost-border)] last:border-0 hover:bg-white/[0.02] transition-colors"
+          >
+            <td className="px-4 py-3">
+              <div>
+                <p className="text-sm text-ice-white font-medium">{item.title}</p>
+                <p className="text-xs text-steel-gray">{item.slug}</p>
+              </div>
+            </td>
+            <td className="px-4 py-3">
+              <span
+                className={`inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                  item.status === "published"
+                    ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                    : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                }`}
               >
-                <td className="px-4 py-3">
-                  <div>
-                    <p className="text-sm text-ice-white font-medium">{item.title}</p>
-                    <p className="text-xs text-steel-gray">{item.slug}</p>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                      item.status === "published"
-                        ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                        : "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                    }`}
-                  >
-                    {item.status}
-                  </span>
-                </td>
-                {items.some((i) => i.type) && (
-                  <td className="px-4 py-3">
-                    <span className="text-xs text-steel-gray">{item.type ?? "—"}</span>
-                  </td>
-                )}
-                <td className="px-4 py-3">
-                  <span className="text-xs text-steel-gray">
-                    {new Date(item.date).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center justify-end gap-1">
-                    <Link
-                      href={item.editHref}
-                      className="p-1.5 rounded-md text-steel-gray hover:text-ice-white hover:bg-white/5 transition-colors"
-                      title="Edit"
-                    >
-                      <Pencil size={14} />
-                    </Link>
-                    <Link
-                      href={item.viewHref || `/${contentType === "posts" ? "blog" : contentType}/${item.slug}`}
-                      target="_blank"
-                      className="p-1.5 rounded-md text-steel-gray hover:text-ice-white hover:bg-white/5 transition-colors"
-                      title="View"
-                    >
-                      <ExternalLink size={14} />
-                    </Link>
-                    <button
-                      onClick={() => handleDelete(item.id)}
-                      disabled={deleting === item.id}
-                      className="p-1.5 rounded-md text-steel-gray hover:text-red-400 hover:bg-red-500/5 transition-colors disabled:opacity-50"
-                      title="Delete"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-sm text-steel-gray">
-                  No items found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+                {item.status}
+              </span>
+            </td>
+            {hasTypeColumn ? (
+              <td className="px-4 py-3">
+                <span className="text-xs text-steel-gray">{item.type ?? "-"}</span>
+              </td>
+            ) : null}
+            <td className="px-4 py-3">
+              <span className="text-xs text-steel-gray">
+                {new Date(item.date).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </span>
+            </td>
+            <td className="px-4 py-3">
+              <div className="flex items-center justify-end gap-1">
+                <Link
+                  href={item.editHref}
+                  className="p-1.5 rounded-md text-steel-gray hover:text-ice-white hover:bg-white/5 transition-colors"
+                  title="Edit"
+                >
+                  <Pencil size={14} />
+                </Link>
+                <Link
+                  href={item.viewHref || `/${contentType === "posts" ? "blog" : contentType}/${item.slug}`}
+                  target="_blank"
+                  className="p-1.5 rounded-md text-steel-gray hover:text-ice-white hover:bg-white/5 transition-colors"
+                  title="View"
+                >
+                  <ExternalLink size={14} />
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setConfirmDeleteId(item.id)}
+                  className="p-1.5 rounded-md text-steel-gray hover:text-red-400 hover:bg-red-500/5 transition-colors"
+                  title="Delete"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </td>
+          </tr>
+        ))}
+      </AdminDataTable>
+
+      <ConfirmActionModal
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) setConfirmDeleteId(null);
+        }}
+        title="Delete Item"
+        description="This action is permanent."
+        confirmLabel="Delete"
+        loading={Boolean(deleteTarget && deletingId === deleteTarget.id)}
+        onConfirm={async () => {
+          await handleDelete();
+        }}
+      />
+
+      <AdminToastViewport toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 }

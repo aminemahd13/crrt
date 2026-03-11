@@ -106,11 +106,11 @@ export function DashboardClient({
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Recent Registrations */}
+        {/* Recent Applications */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-heading font-bold text-ice-white">Recent Registrations</h2>
-            <Link href="/dashboard/events" className="text-xs text-signal-orange hover:underline">
+            <h2 className="text-lg font-heading font-bold text-ice-white">Recent Applications</h2>
+            <Link href="/dashboard/applications" className="text-xs text-signal-orange hover:underline">
               View all
             </Link>
           </div>

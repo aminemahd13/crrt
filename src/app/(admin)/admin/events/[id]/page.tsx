@@ -12,7 +12,8 @@ export default async function EditEventPage({
 }) {
   const { id } = await params;
   const { tab } = await searchParams;
-  const [event, form, registrations, submissions] = await Promise.all([
+
+  const [event, form, registrations, orphanSubmissions] = await Promise.all([
     prisma.event.findUnique({
       where: { id },
     }),
@@ -24,20 +25,31 @@ export default async function EditEventPage({
       where: { eventId: id },
       include: {
         user: { select: { id: true, name: true, email: true } },
+        formSubmission: {
+          select: {
+            id: true,
+            status: true,
+            data: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
     }),
     prisma.formSubmission.findMany({
       where: {
         form: { eventId: id },
+        eventRegistrationId: null,
       },
       include: {
-        eventRegistration: {
+        form: {
           include: {
-            user: {
+            event: {
               select: {
-                name: true,
-                email: true,
+                id: true,
+                title: true,
+                slug: true,
               },
             },
           },
@@ -46,17 +58,74 @@ export default async function EditEventPage({
       orderBy: { createdAt: "desc" },
     }),
   ]);
+
   if (!event) return notFound();
 
-  const registrationFields = (form?.fields ?? []).map((f) => ({
-    id: f.id,
-    label: f.label,
-    type: f.type,
-    required: f.required,
-    placeholder: f.placeholder ?? "",
-    options: typeof f.options === "string" ? f.options : Array.isArray(f.options) ? (f.options as string[]).join(", ") : "",
-    order: f.order,
+  const registrationFields = (form?.fields ?? []).map((field) => ({
+    id: field.id,
+    label: field.label,
+    type: field.type,
+    required: field.required,
+    placeholder: field.placeholder ?? "",
+    options:
+      typeof field.options === "string"
+        ? field.options
+        : Array.isArray(field.options)
+          ? (field.options as string[]).join(", ")
+          : "",
+    order: field.order,
   }));
+
+  const registrationRows = registrations.map((registration) => {
+    const submission = registration.formSubmission;
+    const createdAt = submission?.createdAt ?? registration.createdAt;
+    const updatedAt = submission?.updatedAt ?? registration.updatedAt;
+
+    return {
+      id: `reg:${registration.id}`,
+      registrationId: registration.id,
+      submissionId: submission?.id ?? null,
+      eventId: event.id,
+      eventTitle: event.title,
+      eventSlug: event.slug,
+      userId: registration.userId,
+      userName: registration.user.name,
+      userEmail: registration.user.email,
+      registrationStatus: registration.status,
+      reviewStatus: submission?.status
+        ? (submission.status as "new" | "in_review" | "accepted" | "rejected")
+        : null,
+      note: registration.note,
+      submissionData: toStringRecord(submission?.data),
+      createdAt: createdAt.toISOString(),
+      updatedAt: updatedAt.toISOString(),
+    };
+  });
+
+  const orphanRows = orphanSubmissions.flatMap((submission) => {
+    const linkedEvent = submission.form.event;
+    if (!linkedEvent) return [];
+
+    return [
+      {
+        id: `sub:${submission.id}`,
+        registrationId: null,
+        submissionId: submission.id,
+        eventId: linkedEvent.id,
+        eventTitle: linkedEvent.title,
+        eventSlug: linkedEvent.slug,
+        userId: "",
+        userName: null,
+        userEmail: null,
+        registrationStatus: null,
+        reviewStatus: submission.status as "new" | "in_review" | "accepted" | "rejected",
+        note: null,
+        submissionData: toStringRecord(submission.data),
+        createdAt: submission.createdAt.toISOString(),
+        updatedAt: submission.updatedAt.toISOString(),
+      },
+    ];
+  });
 
   return (
     <EditEventClient
@@ -68,33 +137,9 @@ export default async function EditEventPage({
         publishEnd: event.publishEnd?.toISOString().slice(0, 16) ?? "",
       }}
       initialRegistrationFields={registrationFields}
-      initialRegistrations={registrations.map((r) => ({
-        id: r.id,
-        eventId: r.eventId,
-        eventTitle: event.title,
-        eventSlug: event.slug,
-        userId: r.userId,
-        userName: r.user.name,
-        userEmail: r.user.email,
-        status: r.status,
-        note: r.note,
-        createdAt: r.createdAt.toISOString(),
-        updatedAt: r.updatedAt.toISOString(),
-      }))}
-      initialReviewQueue={submissions.map((submission) => ({
-        id: submission.id,
-        eventId: event.id,
-        eventTitle: event.title,
-        eventSlug: event.slug,
-        status: submission.status as "new" | "in_review" | "accepted" | "rejected",
-        createdAt: submission.createdAt.toISOString(),
-        updatedAt: submission.updatedAt.toISOString(),
-        data: toStringRecord(submission.data),
-        registrationId: submission.eventRegistrationId ?? null,
-        registrationStatus: submission.eventRegistration?.status ?? null,
-        applicantName: submission.eventRegistration?.user.name ?? null,
-        applicantEmail: submission.eventRegistration?.user.email ?? null,
-      }))}
+      initialApplications={[...registrationRows, ...orphanRows].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )}
       initialTab={tab}
     />
   );

@@ -17,7 +17,7 @@ export default async function AdminDashboard() {
     { label: "Events", value: eventCount, icon: Calendar, color: "text-blue-400", href: "/admin/events" },
     { label: "Projects", value: projectCount, icon: FolderOpen, color: "text-emerald-400", href: "/admin/projects" },
     { label: "Posts", value: postCount, icon: FileText, color: "text-purple-400", href: "/admin/blog" },
-    { label: "Registrations", value: registrationCount, icon: Ticket, color: "text-amber-400", href: "/admin/events" },
+    { label: "Registrations", value: registrationCount, icon: Ticket, color: "text-amber-400", href: "/admin/applications" },
     { label: "Users", value: userCount, icon: UserCheck, color: "text-pink-400", href: "/admin/home" },
     { label: "Team", value: memberCount, icon: Users, color: "text-cyan-400", href: "/admin/home" },
   ];

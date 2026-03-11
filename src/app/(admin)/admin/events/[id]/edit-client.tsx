@@ -2,22 +2,19 @@
 
 import { EventAdminWorkspace } from "@/components/admin/event-admin-workspace";
 import type {
-  ApplicantRow,
+  ApplicationRow,
   RegistrationField,
-  ReviewQueueRow,
 } from "@/components/admin/events-admin-types";
 
 export function EditEventClient({
   event,
   initialRegistrationFields = [],
-  initialRegistrations = [],
-  initialReviewQueue = [],
+  initialApplications = [],
   initialTab,
 }: {
   event: Record<string, unknown>;
   initialRegistrationFields?: RegistrationField[];
-  initialRegistrations?: ApplicantRow[];
-  initialReviewQueue?: ReviewQueueRow[];
+  initialApplications?: ApplicationRow[];
   initialTab?: string | null;
 }) {
   return (
@@ -25,8 +22,7 @@ export function EditEventClient({
       mode="edit"
       initialData={event}
       initialRegistrationFields={initialRegistrationFields}
-      initialRegistrations={initialRegistrations}
-      initialReviewQueue={initialReviewQueue}
+      initialApplications={initialApplications}
       initialTab={initialTab}
     />
   );

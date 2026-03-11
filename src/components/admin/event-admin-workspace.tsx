@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -15,28 +15,24 @@ import {
   List,
   Plus,
   Save,
-  Search,
   ToggleLeft,
   Trash2,
   Type,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PublishChecklist } from "@/components/admin/publish-checklist";
+import { ApplicationsPanel } from "@/components/admin/applications-panel";
 import type {
-  ApplicantRow,
+  ApplicationRow,
   EventAdminTab,
   RegistrationField,
-  RegistrationStatus,
-  ReviewQueueRow,
-  ReviewSubmissionStatus,
 } from "@/components/admin/events-admin-types";
 
 interface EventAdminWorkspaceProps {
   mode: "create" | "edit";
   initialData: Record<string, unknown>;
   initialRegistrationFields?: RegistrationField[];
-  initialRegistrations?: ApplicantRow[];
-  initialReviewQueue?: ReviewQueueRow[];
+  initialApplications?: ApplicationRow[];
   initialTab?: string | null;
 }
 
@@ -150,48 +146,16 @@ const FORM_FIELD_TYPE_OPTIONS = [
   { type: "date", label: "Date", icon: Calendar },
 ];
 
-const REGISTRATION_STATUS_OPTIONS: RegistrationStatus[] = [
-  "registered",
-  "waitlisted",
-  "approved",
-  "rejected",
-  "cancelled",
-];
-
-const REGISTRATION_STATUS_LABELS: Record<RegistrationStatus, string> = {
-  registered: "Registered",
-  waitlisted: "Waitlisted",
-  approved: "Approved",
-  rejected: "Rejected",
-  cancelled: "Cancelled",
-};
-
-const REVIEW_STATUS_OPTIONS: ReviewSubmissionStatus[] = [
-  "new",
-  "in_review",
-  "accepted",
-  "rejected",
-];
-
-const REVIEW_STATUS_LABELS: Record<ReviewSubmissionStatus, string> = {
-  new: "New",
-  in_review: "In Review",
-  accepted: "Accepted",
-  rejected: "Rejected",
-};
-
 function normalizeEventAdminTab(value: string | null | undefined, mode: "create" | "edit"): EventAdminTab {
   const fallback: EventAdminTab = "details";
   if (!value) return fallback;
 
-  if (
-    value === "details" ||
-    value === "registration" ||
-    value === "form-builder" ||
-    value === "applicants" ||
-    value === "review-queue"
-  ) {
-    if (mode === "create" && (value === "applicants" || value === "review-queue")) {
+  if (value === "applicants" || value === "review-queue") {
+    return mode === "edit" ? "applications" : fallback;
+  }
+
+  if (value === "details" || value === "registration" || value === "form-builder" || value === "applications") {
+    if (mode === "create" && value === "applications") {
       return fallback;
     }
     return value;
@@ -199,20 +163,11 @@ function normalizeEventAdminTab(value: string | null | undefined, mode: "create"
   return fallback;
 }
 
-function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
 export function EventAdminWorkspace({
   mode,
   initialData,
   initialRegistrationFields = [],
-  initialRegistrations = [],
-  initialReviewQueue = [],
+  initialApplications = [],
   initialTab,
 }: EventAdminWorkspaceProps) {
   const router = useRouter();
@@ -222,36 +177,11 @@ export function EventAdminWorkspace({
   const [saving, setSaving] = useState(false);
   const [fields, setFields] = useState<RegistrationField[]>(initialRegistrationFields);
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
-  const [applicants, setApplicants] = useState<ApplicantRow[]>(initialRegistrations);
-  const [reviewQueue, setReviewQueue] = useState<ReviewQueueRow[]>(initialReviewQueue);
-  const [applicantQuery, setApplicantQuery] = useState("");
-  const [applicantStatusFilter, setApplicantStatusFilter] = useState<RegistrationStatus | "all">("all");
-  const [noteDraft, setNoteDraft] = useState<Record<string, string>>({});
-  const [updatingApplicantId, setUpdatingApplicantId] = useState<string | null>(null);
-  const [reviewQuery, setReviewQuery] = useState("");
-  const [reviewStatusFilter, setReviewStatusFilter] = useState<ReviewSubmissionStatus | "all">("all");
-  const [updatingSubmissionId, setUpdatingSubmissionId] = useState<string | null>(null);
+  const [applications, setApplications] = useState<ApplicationRow[]>(initialApplications);
   const counterRef = useRef(initialRegistrationFields.length);
   const isEditMode = mode === "edit";
   const eventId = typeof form.id === "string" ? form.id : "";
   const activeTab = normalizeEventAdminTab(searchParams.get("tab") ?? initialTab, mode);
-
-  const filteredApplicants = useMemo(() => {
-    return applicants.filter((item) => {
-      if (applicantStatusFilter !== "all" && item.status !== applicantStatusFilter) return false;
-      const haystack = `${item.userName ?? ""} ${item.userEmail ?? ""}`.toLowerCase();
-      return haystack.includes(applicantQuery.toLowerCase());
-    });
-  }, [applicantQuery, applicantStatusFilter, applicants]);
-
-  const filteredReviewQueue = useMemo(() => {
-    return reviewQueue.filter((item) => {
-      if (reviewStatusFilter !== "all" && item.status !== reviewStatusFilter) return false;
-      const dataText = Object.values(item.data).join(" ");
-      const haystack = `${item.eventTitle} ${item.applicantName ?? ""} ${item.applicantEmail ?? ""} ${dataText}`.toLowerCase();
-      return haystack.includes(reviewQuery.toLowerCase());
-    });
-  }, [reviewQuery, reviewQueue, reviewStatusFilter]);
 
   const update = (key: string, value: unknown) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -308,77 +238,6 @@ export function EventAdminWorkspace({
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleApplicantStatusUpdate = async (registrationId: string, status: RegistrationStatus) => {
-    if (!eventId) return;
-    setUpdatingApplicantId(registrationId);
-
-    const note = noteDraft[registrationId] ?? "";
-    const response = await fetch(`/api/admin/events/${eventId}/registrations/${registrationId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, note }),
-    });
-
-    if (response.ok) {
-      const updated = (await response.json()) as {
-        id: string;
-        status: RegistrationStatus;
-        note: string | null;
-        updatedAt: string;
-      };
-
-      setApplicants((prev) =>
-        prev.map((item) =>
-          item.id === registrationId
-            ? {
-                ...item,
-                status: updated.status,
-                note: updated.note,
-                updatedAt: updated.updatedAt,
-              }
-            : item
-        )
-      );
-    }
-
-    setUpdatingApplicantId(null);
-  };
-
-  const handleSubmissionStatusUpdate = async (
-    submissionId: string,
-    status: ReviewSubmissionStatus
-  ) => {
-    setUpdatingSubmissionId(submissionId);
-
-    const response = await fetch(`/api/admin/submissions/${submissionId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-
-    if (response.ok) {
-      const updated = (await response.json()) as {
-        id: string;
-        status: ReviewSubmissionStatus;
-        updatedAt?: string;
-      };
-      setReviewQueue((prev) =>
-        prev.map((item) =>
-          item.id === submissionId
-            ? {
-                ...item,
-                status: updated.status,
-                updatedAt:
-                  typeof updated.updatedAt === "string" ? updated.updatedAt : item.updatedAt,
-              }
-            : item
-        )
-      );
-    }
-
-    setUpdatingSubmissionId(null);
   };
 
   const handleTabChange = (value: string) => {
@@ -547,18 +406,10 @@ export function EventAdminWorkspace({
           </TabsTrigger>
           {isEditMode && (
             <TabsTrigger
-              value="applicants"
+              value="applications"
               className="data-[state=active]:bg-signal-orange data-[state=active]:text-white"
             >
-              Applicants
-            </TabsTrigger>
-          )}
-          {isEditMode && (
-            <TabsTrigger
-              value="review-queue"
-              className="data-[state=active]:bg-signal-orange data-[state=active]:text-white"
-            >
-              Review Queue
+              Applications
             </TabsTrigger>
           )}
         </TabsList>
@@ -689,9 +540,9 @@ export function EventAdminWorkspace({
         </TabsContent>
 
         {isEditMode && (
-          <TabsContent value="applicants" className="mt-4 space-y-4">
+          <TabsContent value="applications" className="mt-4 space-y-4">
             <div className="flex items-center justify-between gap-3">
-              <div className="text-sm text-steel-gray">{applicants.length} applicants</div>
+              <div className="text-sm text-steel-gray">{applications.length} applications</div>
               {csvHref && (
                 <a
                   href={csvHref}
@@ -702,215 +553,12 @@ export function EventAdminWorkspace({
               )}
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="relative flex-1">
-                <Search
-                  size={14}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-steel-gray"
-                />
-                <input
-                  type="text"
-                  value={applicantQuery}
-                  onChange={(e) => setApplicantQuery(e.target.value)}
-                  placeholder="Search by member name or email..."
-                  className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-midnight-light border border-[var(--ghost-border)] text-sm text-ice-white"
-                />
-              </div>
-              <select
-                value={applicantStatusFilter}
-                onChange={(e) =>
-                  setApplicantStatusFilter(e.target.value as RegistrationStatus | "all")
-                }
-                className="px-3 py-2.5 rounded-lg bg-midnight-light border border-[var(--ghost-border)] text-xs text-ice-white"
-              >
-                <option value="all">All statuses</option>
-                {REGISTRATION_STATUS_OPTIONS.map((status) => (
-                  <option key={status} value={status}>
-                    {REGISTRATION_STATUS_LABELS[status]}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="glass-card overflow-hidden">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-[var(--ghost-border)] text-left text-xs text-steel-gray uppercase tracking-wider">
-                    <th className="px-4 py-3">Member</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Note</th>
-                    <th className="px-4 py-3">Created</th>
-                    <th className="px-4 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredApplicants.map((item) => (
-                    <tr key={item.id} className="border-b border-[var(--ghost-border)] last:border-0">
-                      <td className="px-4 py-3">
-                        <p className="text-sm text-ice-white">{item.userName || "Unnamed Member"}</p>
-                        <p className="text-xs text-steel-gray">{item.userEmail || "No email"}</p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-xs text-ice-white">
-                          {REGISTRATION_STATUS_LABELS[item.status]}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <input
-                          type="text"
-                          value={noteDraft[item.id] ?? item.note ?? ""}
-                          onChange={(e) =>
-                            setNoteDraft((prev) => ({ ...prev, [item.id]: e.target.value }))
-                          }
-                          placeholder="Optional moderation note"
-                          className="w-full px-2 py-1.5 rounded-md bg-midnight border border-[var(--ghost-border)] text-xs text-ice-white"
-                        />
-                      </td>
-                      <td className="px-4 py-3 text-xs text-steel-gray">{formatDate(item.createdAt)}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex justify-end gap-1">
-                          {REGISTRATION_STATUS_OPTIONS.map((status) => (
-                            <button
-                              key={status}
-                              onClick={() => handleApplicantStatusUpdate(item.id, status)}
-                              disabled={updatingApplicantId === item.id || item.status === status}
-                              className={`text-[10px] px-2 py-1 rounded-md border transition-colors ${
-                                item.status === status
-                                  ? "bg-signal-orange/10 border-signal-orange/30 text-signal-orange"
-                                  : "border-[var(--ghost-border)] text-steel-gray hover:text-ice-white hover:bg-white/5"
-                              }`}
-                            >
-                              {REGISTRATION_STATUS_LABELS[status]}
-                            </button>
-                          ))}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {filteredApplicants.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="px-4 py-8 text-center text-sm text-steel-gray">
-                        No applicants found.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </TabsContent>
-        )}
-
-        {isEditMode && (
-          <TabsContent value="review-queue" className="mt-4 space-y-4">
-            <div className="text-sm text-steel-gray">{reviewQueue.length} submissions</div>
-
-            <div className="flex items-center gap-3">
-              <div className="relative flex-1">
-                <Search
-                  size={14}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-steel-gray"
-                />
-                <input
-                  type="text"
-                  value={reviewQuery}
-                  onChange={(e) => setReviewQuery(e.target.value)}
-                  placeholder="Search submissions..."
-                  className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-midnight-light border border-[var(--ghost-border)] text-sm text-ice-white"
-                />
-              </div>
-              <select
-                value={reviewStatusFilter}
-                onChange={(e) =>
-                  setReviewStatusFilter(e.target.value as ReviewSubmissionStatus | "all")
-                }
-                className="px-3 py-2.5 rounded-lg bg-midnight-light border border-[var(--ghost-border)] text-xs text-ice-white"
-              >
-                <option value="all">All statuses</option>
-                {REVIEW_STATUS_OPTIONS.map((status) => (
-                  <option key={status} value={status}>
-                    {REVIEW_STATUS_LABELS[status]}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="glass-card overflow-hidden">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-[var(--ghost-border)] text-left text-xs text-steel-gray uppercase tracking-wider">
-                    <th className="px-4 py-3">Applicant</th>
-                    <th className="px-4 py-3">Submission</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Registration</th>
-                    <th className="px-4 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredReviewQueue.map((item) => {
-                    const preview = Object.entries(item.data)
-                      .slice(0, 2)
-                      .map(([key, value]) => `${key}: ${value}`)
-                      .join(" | ");
-
-                    return (
-                      <tr
-                        key={item.id}
-                        data-testid="review-row"
-                        data-status={item.status}
-                        className="border-b border-[var(--ghost-border)] last:border-0"
-                      >
-                        <td className="px-4 py-3">
-                          <p className="text-sm text-ice-white">{item.applicantName || "Unknown user"}</p>
-                          <p className="text-xs text-steel-gray">{item.applicantEmail || "No email"}</p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <p className="text-xs text-ice-white">{preview || "No fields submitted"}</p>
-                          <p className="text-[10px] text-steel-gray mt-1">
-                            Submitted: {formatDate(item.createdAt)}
-                          </p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-xs text-ice-white">{REVIEW_STATUS_LABELS[item.status]}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-xs text-steel-gray">
-                            {item.registrationStatus
-                              ? REGISTRATION_STATUS_LABELS[item.registrationStatus]
-                              : "No registration"}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex justify-end gap-1">
-                            {REVIEW_STATUS_OPTIONS.map((status) => (
-                              <button
-                                key={status}
-                                aria-label={`Set ${status}`}
-                                onClick={() => handleSubmissionStatusUpdate(item.id, status)}
-                                disabled={updatingSubmissionId === item.id || item.status === status}
-                                className={`text-[10px] px-2 py-1 rounded-md border transition-colors ${
-                                  item.status === status
-                                    ? "bg-signal-orange/10 border-signal-orange/30 text-signal-orange"
-                                    : "border-[var(--ghost-border)] text-steel-gray hover:text-ice-white hover:bg-white/5"
-                                }`}
-                              >
-                                {REVIEW_STATUS_LABELS[status]}
-                              </button>
-                            ))}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {filteredReviewQueue.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="px-4 py-8 text-center text-sm text-steel-gray">
-                        No review items found.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <ApplicationsPanel
+              initialRows={applications}
+              showEventColumn={false}
+              onRowsChange={setApplications}
+              emptyMessage="No applications found for this event."
+            />
           </TabsContent>
         )}
       </Tabs>

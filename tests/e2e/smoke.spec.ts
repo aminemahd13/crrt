@@ -24,7 +24,7 @@ test("health endpoint and key public pages load", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /events/i })).toBeVisible();
 });
 
-test("admin routes are protected and admin event tabs work", async ({ page }) => {
+test("admin routes are protected and applications center flow works", async ({ page }) => {
   await page.goto("/admin");
   await expect(page).toHaveURL(/\/login\?callbackUrl=%2Fadmin/);
 
@@ -33,41 +33,36 @@ test("admin routes are protected and admin event tabs work", async ({ page }) =>
   await expect(page.getByText(/studio|dashboard|default seeded admin password/i).first()).toBeVisible();
 
   await page.goto("/admin/events");
-  await expect(page.getByRole("tab", { name: /^events$/i })).toBeVisible();
-  await expect(page.getByRole("tab", { name: /^applicants$/i })).toBeVisible();
-  await expect(page.getByRole("tab", { name: /^review queue$/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /^events$/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: /applications center/i })).toBeVisible();
 
-  await page.getByRole("tab", { name: /^applicants$/i }).click();
-  await expect(page).toHaveURL(/\/admin\/events\?tab=applicants/);
-
-  await page.getByRole("tab", { name: /^review queue$/i }).click();
-  await expect(page).toHaveURL(/\/admin\/events\?tab=review-queue/);
-
-  await page.getByRole("tab", { name: /^events$/i }).click();
-  const deepLink = page.getByRole("link", { name: /open applicants/i }).first();
+  const deepLink = page.getByRole("link", { name: /^applications$/i }).first();
   if (await deepLink.count()) {
     await deepLink.click();
-    await expect(page).toHaveURL(/\/admin\/events\/.+\?tab=applicants/);
-    await expect(page.getByRole("tab", { name: /^applicants$/i })).toBeVisible();
+    await expect(page).toHaveURL(/\/admin\/applications\?eventId=/);
   }
 
-  await page.goto("/admin/events?tab=review-queue");
-  const firstReviewRow = page.locator("[data-testid='review-row']").first();
+  await page.goto("/admin/applications");
+  const firstReviewRow = page.locator("[data-testid='application-row']").first();
   if (await firstReviewRow.count()) {
-    const registrationBefore = (await firstReviewRow.locator("td").nth(4).innerText()).trim();
-    const currentStatus = (await firstReviewRow.getAttribute("data-status")) ?? "new";
+    const registrationBefore = (await firstReviewRow.getAttribute("data-registration-status")) ?? "";
+    const currentStatus = (await firstReviewRow.getAttribute("data-review-status")) ?? "new";
     const nextStatus = currentStatus === "accepted" ? "rejected" : "accepted";
 
-    await firstReviewRow.getByRole("button", { name: new RegExp(`set ${nextStatus}`, "i") }).click();
-    await expect(firstReviewRow).toHaveAttribute("data-status", nextStatus);
+    await firstReviewRow
+      .locator("td")
+      .nth(3)
+      .getByRole("button", { name: new RegExp(`^${nextStatus.replace("_", " ")}$`, "i") })
+      .click();
+    await expect(firstReviewRow).toHaveAttribute("data-review-status", nextStatus);
 
     await page.reload();
-    const rowAfterReload = page.locator("[data-testid='review-row']").first();
-    await expect(rowAfterReload).toHaveAttribute("data-status", nextStatus);
-    const registrationAfter = (await rowAfterReload.locator("td").nth(4).innerText()).trim();
+    const rowAfterReload = page.locator("[data-testid='application-row']").first();
+    await expect(rowAfterReload).toHaveAttribute("data-review-status", nextStatus);
+    const registrationAfter = (await rowAfterReload.getAttribute("data-registration-status")) ?? "";
     expect(registrationAfter).toBe(registrationBefore);
   } else {
-    await expect(page.getByText(/no review items found/i)).toBeVisible();
+    await expect(page.getByText(/no applications match|no applications found/i)).toBeVisible();
   }
 
   const uniqueSuffix = Date.now();
@@ -88,8 +83,7 @@ test("admin routes are protected and admin event tabs work", async ({ page }) =>
   await expect(createdRow).toBeVisible();
   await createdRow.locator("a[title='Edit']").click();
   await expect(page).toHaveURL(/\/admin\/events\/.+/);
-  await expect(page.getByRole("tab", { name: /^applicants$/i })).toBeVisible();
-  await expect(page.getByRole("tab", { name: /^review queue$/i })).toBeVisible();
+  await expect(page.getByRole("tab", { name: /^applications$/i })).toBeVisible();
   await page.getByRole("button", { name: /^save$/i }).click();
   await expect(page).toHaveURL(/\/admin\/events(?:\?.*)?$/);
 });
@@ -115,7 +109,7 @@ test("member can register for an event and view private resources", async ({ pag
   }
 
   await page.goto("/dashboard");
-  await expect(page.getByRole("heading", { name: /event registrations/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /recent applications/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /private resources/i })).toBeVisible();
 
   const privateAfter = await page.request.get("/api/resources/private");
