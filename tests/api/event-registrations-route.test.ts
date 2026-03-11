@@ -13,6 +13,10 @@ const prismaMock = {
     create: vi.fn(),
     update: vi.fn(),
   },
+  formSubmission: {
+    deleteMany: vi.fn(),
+    create: vi.fn(),
+  },
 };
 
 vi.mock("next-auth", () => ({
@@ -47,7 +51,11 @@ describe("event registration APIs", () => {
     getServerSessionMock.mockResolvedValueOnce(null);
     const { POST } = await import("@/app/api/events/[eventId]/registrations/route");
 
-    const response = await POST(new Request("http://localhost/api/events/a/registrations", { method: "POST" }), {
+    const response = await POST(new Request("http://localhost/api/events/a/registrations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    }), {
       params: Promise.resolve({ eventId: "event-1" }),
     });
 
@@ -63,7 +71,9 @@ describe("event registration APIs", () => {
       title: "Event 1",
       slug: "event-1",
       registrationMode: "internal",
+      registrationReviewMode: "auto",
       capacity: 1,
+      form: { id: "form-1", fields: [] },
     });
     prismaMock.eventRegistration.count.mockResolvedValueOnce(1);
     prismaMock.eventRegistration.findUnique.mockResolvedValueOnce(null);
@@ -75,7 +85,11 @@ describe("event registration APIs", () => {
     });
 
     const { POST } = await import("@/app/api/events/[eventId]/registrations/route");
-    const response = await POST(new Request("http://localhost/api/events/event-1/registrations", { method: "POST" }), {
+    const response = await POST(new Request("http://localhost/api/events/event-1/registrations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    }), {
       params: Promise.resolve({ eventId: "event-1" }),
     });
     const payload = await response.json();

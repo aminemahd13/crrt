@@ -11,6 +11,8 @@ interface ContentEditorProps {
   contentType: "events" | "projects" | "posts";
   initialData?: Record<string, unknown>;
   fields: FieldDef[];
+  extraPayload?: Record<string, unknown>;
+  children?: React.ReactNode;
 }
 
 interface FieldDef {
@@ -22,7 +24,7 @@ interface FieldDef {
   placeholder?: string;
 }
 
-export function ContentEditor({ mode, contentType, initialData, fields }: ContentEditorProps) {
+export function ContentEditor({ mode, contentType, initialData, fields, extraPayload, children }: ContentEditorProps) {
   const router = useRouter();
   const [form, setForm] = useState<Record<string, unknown>>(initialData ?? {});
   const [saving, setSaving] = useState(false);
@@ -41,7 +43,7 @@ export function ContentEditor({ mode, contentType, initialData, fields }: Conten
     await fetch(url, {
       method: mode === "create" ? "POST" : "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, ...extraPayload }),
     });
     setSaving(false);
     router.push(`/admin/${contentType}`);
@@ -170,6 +172,8 @@ export function ContentEditor({ mode, contentType, initialData, fields }: Conten
           </div>
         ))}
       </div>
+
+      {children}
     </div>
   );
 }

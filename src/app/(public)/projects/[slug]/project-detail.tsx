@@ -166,13 +166,13 @@ export function ProjectDetailView({ project }: ProjectDetailViewProps) {
             Interested in joining this project?
           </h3>
           <p className="text-sm text-steel-gray mb-6 max-w-md mx-auto">
-            We&apos;re always looking for motivated team members. Fill out our membership application to get involved.
+            We&apos;re always looking for motivated team members. Create an account to get involved.
           </p>
           <Link
-            href="/forms/membership-application"
+            href="/signup"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-signal-orange text-white text-sm font-medium hover:bg-[var(--signal-orange-hover)] transition-colors"
           >
-            Apply to Join
+            Join CRRT
           </Link>
         </motion.div>
       )}

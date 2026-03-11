@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { DashboardClient } from "./dashboard-client";
-import { toStringRecord } from "@/lib/json";
 
 export default async function DashboardServerPage() {
   const session = await getServerSession(authOptions);
@@ -19,7 +18,7 @@ export default async function DashboardServerPage() {
     redirect("/");
   }
 
-  const [registrations, privateResources, submissionsRaw] = await Promise.all([
+  const [registrations, privateResources] = await Promise.all([
     prisma.eventRegistration.findMany({
       where: { userId: user.id },
       include: {
@@ -33,7 +32,7 @@ export default async function DashboardServerPage() {
         },
       },
       orderBy: { createdAt: "desc" },
-      take: 8,
+      take: 5,
     }),
     prisma.resource.findMany({
       where: { isPublic: false },
@@ -48,19 +47,7 @@ export default async function DashboardServerPage() {
       orderBy: { createdAt: "desc" },
       take: 8,
     }),
-    prisma.formSubmission.findMany({
-      include: { form: true },
-      orderBy: { createdAt: "desc" },
-      take: 40,
-    }),
   ]);
-
-  const submissions = submissionsRaw
-    .filter((submission) => {
-      const values = Object.values(toStringRecord(submission.data));
-      return values.some((value) => value.toLowerCase().includes((user.email || "").toLowerCase()));
-    })
-    .slice(0, 5);
 
   return (
     <DashboardClient
@@ -71,12 +58,6 @@ export default async function DashboardServerPage() {
         image: user.image || "",
         joinedAt: user.createdAt.toISOString(),
       }}
-      submissions={submissions.map((item) => ({
-        id: item.id,
-        formTitle: item.form.title,
-        status: item.status,
-        date: item.createdAt.toISOString(),
-      }))}
       registrations={registrations.map((item) => ({
         id: item.id,
         status: item.status,

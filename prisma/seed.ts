@@ -24,20 +24,6 @@ async function main() {
     console.log("  ✓ Admin user (admin@crrt.ma / crrt2026)");
 
     await prisma.user.upsert({
-        where: { email: "editor@crrt.ma" },
-        update: {
-            role: "editor",
-        },
-        create: {
-            name: "CRRT Editor",
-            email: "editor@crrt.ma",
-            password: hashedPassword,
-            role: "editor",
-        },
-    });
-    console.log("  ✓ Editor user (editor@crrt.ma / crrt2026)");
-
-    await prisma.user.upsert({
         where: { email: "member@crrt.ma" },
         update: {
             role: "member",
@@ -47,6 +33,10 @@ async function main() {
             email: "member@crrt.ma",
             password: hashedPassword,
             role: "member",
+            phone: "+212600000000",
+            bio: "Passionate about robotics and embedded systems",
+            organization: "ENSA Agadir",
+            city: "Agadir",
         },
     });
     console.log("  ✓ Member user (member@crrt.ma / crrt2026)");

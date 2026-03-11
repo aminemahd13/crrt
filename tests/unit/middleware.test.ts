@@ -48,21 +48,21 @@ describe("middleware auth and security guards", () => {
     expect(response.status).toBe(403);
   });
 
-  it("blocks editor role from admin-only API route", async () => {
-    getTokenMock.mockResolvedValueOnce({ role: "editor" });
+  it("blocks non-admin roles from admin API routes", async () => {
+    getTokenMock.mockResolvedValueOnce({ role: "member" });
     const { middleware } = await import("../../middleware");
 
     const response = await middleware(new NextRequest("http://localhost/api/admin/settings"));
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(401);
   });
 
-  it("allows editor role to access non-admin-only admin API route", async () => {
+  it("blocks former editor role from admin routes", async () => {
     getTokenMock.mockResolvedValueOnce({ role: "editor" });
     const { middleware } = await import("../../middleware");
 
     const response = await middleware(new NextRequest("http://localhost/api/admin/posts"));
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(401);
   });
 });

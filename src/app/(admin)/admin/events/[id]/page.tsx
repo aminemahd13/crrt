@@ -4,8 +4,21 @@ import { EditEventClient } from "./edit-client";
 
 export default async function EditEventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const event = await prisma.event.findUnique({ where: { id } });
+  const event = await prisma.event.findUnique({
+    where: { id },
+    include: { form: { include: { fields: { orderBy: { order: "asc" } } } } },
+  });
   if (!event) return notFound();
+
+  const registrationFields = (event.form?.fields ?? []).map((f) => ({
+    id: f.id,
+    label: f.label,
+    type: f.type,
+    required: f.required,
+    placeholder: f.placeholder ?? "",
+    options: typeof f.options === "string" ? f.options : Array.isArray(f.options) ? (f.options as string[]).join(", ") : "",
+    order: f.order,
+  }));
 
   return (
     <EditEventClient
@@ -16,6 +29,7 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
         publishStart: event.publishStart?.toISOString().slice(0, 16) ?? "",
         publishEnd: event.publishEnd?.toISOString().slice(0, 16) ?? "",
       }}
+      initialRegistrationFields={registrationFields}
     />
   );
 }

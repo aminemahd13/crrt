@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import type { NextRequest } from "next/server";
-import { canAccessAdmin, requiresAdminRole } from "@/lib/access-control";
+import { canAccessAdmin } from "@/lib/access-control";
 
 const SECURITY_HEADERS: Record<string, string> = {
   "x-content-type-options": "nosniff",
@@ -104,16 +104,6 @@ export async function middleware(request: NextRequest) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("callbackUrl", request.nextUrl.pathname);
       return applySecurityHeaders(NextResponse.redirect(loginUrl), requestId);
-    }
-
-    if (requiresAdminRole(pathname) && role !== "admin") {
-      if (isAdminApi) {
-        return apiError(403, "Insufficient permissions.", requestId);
-      }
-      return applySecurityHeaders(
-        NextResponse.redirect(new URL("/admin?forbidden=1", request.url)),
-        requestId
-      );
     }
 
   }

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Calendar, MapPin, Users, ArrowLeft } from "lucide-react";
+import { Calendar, MapPin, Users, ArrowLeft, ClipboardCheck } from "lucide-react";
 import Link from "next/link";
 import { LensCard } from "@/components/crrt/lens-card";
 import { BlueprintTimeline } from "@/components/crrt/blueprint-timeline";
@@ -25,6 +25,15 @@ interface Speaker {
   image: string | null;
 }
 
+interface FormFieldDef {
+  id: string;
+  label: string;
+  type: string;
+  required: boolean;
+  placeholder: string | null;
+  options: unknown;
+}
+
 interface EventDetailProps {
   event: {
     id: string;
@@ -42,12 +51,27 @@ interface EventDetailProps {
     registrationMode?: string | null;
     registrationLabel?: string | null;
     registrationUrl?: string | null;
+    registrationReviewMode?: string | null;
     activeRegistrationCount: number;
     isAuthenticated: boolean;
     userRegistration: UserRegistrationSummary | null;
     speakers: Speaker[];
     tags: string[];
+    formFields: FormFieldDef[];
+    userProfile: { name?: string; email?: string; phone?: string; organization?: string; city?: string } | null;
   };
+}
+
+function getProfilePrefill(label: string, profile: EventDetailProps["event"]["userProfile"]): string {
+  if (!profile) return "";
+  const key = label.toLowerCase();
+  if (key.includes("name") && !key.includes("last")) return profile.name ?? "";
+  if (key.includes("email") || key.includes("e-mail")) return profile.email ?? "";
+  if (key.includes("phone") || key.includes("tel")) return profile.phone ?? "";
+  if (key.includes("organi") || key.includes("school") || key.includes("university") || key.includes("institution"))
+    return profile.organization ?? "";
+  if (key.includes("city") || key.includes("ville")) return profile.city ?? "";
+  return "";
 }
 
 export function EventDetail({ event }: EventDetailProps) {
@@ -55,6 +79,15 @@ export function EventDetail({ event }: EventDetailProps) {
   const [activeRegistrationCount, setActiveRegistrationCount] = useState(event.activeRegistrationCount);
   const [isPending, setIsPending] = useState(false);
   const [registrationError, setRegistrationError] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [formValues, setFormValues] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {};
+    for (const field of event.formFields) {
+      initial[field.label] = getProfilePrefill(field.label, event.userProfile);
+    }
+    return initial;
+  });
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const dateStr = new Date(event.startDate).toLocaleDateString("en-US", {
     weekday: "long",
@@ -77,13 +110,41 @@ export function EventDetail({ event }: EventDetailProps) {
     registration &&
     registration.status !== "cancelled" &&
     registration.status !== "rejected";
+  const hasFormFields = event.formFields.length > 0;
+
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+    for (const field of event.formFields) {
+      if (field.required && (!formValues[field.label] || !formValues[field.label].trim())) {
+        errors[field.label] = `${field.label} is required`;
+      }
+    }
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleRegister = async () => {
     setRegistrationError(null);
+
+    // If there are form fields and form is not shown yet, show it
+    if (hasFormFields && !showForm) {
+      setShowForm(true);
+      return;
+    }
+
+    // Validate form if fields exist
+    if (hasFormFields && !validateForm()) {
+      return;
+    }
+
     setIsPending(true);
     try {
       const response = await fetch(`/api/events/${event.id}/registrations`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          formData: hasFormFields ? formValues : undefined,
+        }),
       });
       const payload = await response.json();
       if (!response.ok) {
@@ -93,6 +154,7 @@ export function EventDetail({ event }: EventDetailProps) {
 
       const previousStatus = registration?.status ?? null;
       setRegistration({ id: payload.id as string, status: payload.status as RegistrationStatus });
+      setShowForm(false);
 
       const wasActive = previousStatus === "registered" || previousStatus === "approved";
       const nowActive = payload.status === "registered" || payload.status === "approved";
@@ -131,6 +193,12 @@ export function EventDetail({ event }: EventDetailProps) {
     } finally {
       setIsPending(false);
     }
+  };
+
+  const getFieldOptions = (field: FormFieldDef): string[] => {
+    if (Array.isArray(field.options)) return field.options.map(String);
+    if (typeof field.options === "string") return field.options.split(",").map((o: string) => o.trim()).filter(Boolean);
+    return [];
   };
 
   // Parse content sections for timeline
@@ -336,6 +404,11 @@ export function EventDetail({ event }: EventDetailProps) {
                       >
                         {registrationStatusLabel(registration.status)}
                       </button>
+                      {event.registrationReviewMode === "manual" && registration.status === "registered" && (
+                        <p className="text-xs text-steel-gray text-center flex items-center justify-center gap-1">
+                          <ClipboardCheck size={12} /> Your registration is pending review
+                        </p>
+                      )}
                       <button
                         type="button"
                         onClick={handleCancel}
@@ -345,6 +418,95 @@ export function EventDetail({ event }: EventDetailProps) {
                         {isPending ? "Updating..." : "Cancel Registration"}
                       </button>
                     </>
+                  ) : showForm && hasFormFields ? (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                      className="space-y-3"
+                    >
+                      <h4 className="text-sm font-medium text-ice-white">Registration Form</h4>
+                      {event.formFields.map((field) => (
+                        <div key={field.id} className="space-y-1">
+                          <label className="text-xs text-steel-gray">
+                            {field.label}
+                            {field.required && <span className="text-signal-orange ml-0.5">*</span>}
+                          </label>
+                          {field.type === "textarea" ? (
+                            <textarea
+                              rows={3}
+                              placeholder={field.placeholder ?? ""}
+                              value={formValues[field.label] ?? ""}
+                              onChange={(e) =>
+                                setFormValues((prev) => ({ ...prev, [field.label]: e.target.value }))
+                              }
+                              className="w-full rounded-lg bg-[var(--ghost-white)] border border-[var(--ghost-border)] px-3 py-2 text-sm text-ice-white placeholder:text-steel-gray/50 focus:outline-none focus:ring-1 focus:ring-signal-orange/50 resize-none"
+                            />
+                          ) : field.type === "select" ? (
+                            <select
+                              value={formValues[field.label] ?? ""}
+                              onChange={(e) =>
+                                setFormValues((prev) => ({ ...prev, [field.label]: e.target.value }))
+                              }
+                              className="w-full rounded-lg bg-[var(--ghost-white)] border border-[var(--ghost-border)] px-3 py-2 text-sm text-ice-white focus:outline-none focus:ring-1 focus:ring-signal-orange/50"
+                            >
+                              <option value="">{field.placeholder || "Select..."}</option>
+                              {getFieldOptions(field).map((opt) => (
+                                <option key={opt} value={opt}>
+                                  {opt}
+                                </option>
+                              ))}
+                            </select>
+                          ) : field.type === "checkbox" ? (
+                            <label className="flex items-center gap-2 text-sm text-ice-white cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={formValues[field.label] === "true"}
+                                onChange={(e) =>
+                                  setFormValues((prev) => ({
+                                    ...prev,
+                                    [field.label]: e.target.checked ? "true" : "",
+                                  }))
+                                }
+                                className="rounded border-[var(--ghost-border)] bg-[var(--ghost-white)] accent-signal-orange"
+                              />
+                              {field.placeholder}
+                            </label>
+                          ) : (
+                            <input
+                              type={field.type === "number" ? "number" : field.type === "date" ? "date" : field.type === "email" ? "email" : "text"}
+                              placeholder={field.placeholder ?? ""}
+                              value={formValues[field.label] ?? ""}
+                              onChange={(e) =>
+                                setFormValues((prev) => ({ ...prev, [field.label]: e.target.value }))
+                              }
+                              className="w-full rounded-lg bg-[var(--ghost-white)] border border-[var(--ghost-border)] px-3 py-2 text-sm text-ice-white placeholder:text-steel-gray/50 focus:outline-none focus:ring-1 focus:ring-signal-orange/50"
+                            />
+                          )}
+                          {fieldErrors[field.label] && (
+                            <p className="text-xs text-red-400">{fieldErrors[field.label]}</p>
+                          )}
+                        </div>
+                      ))}
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => { setShowForm(false); setFieldErrors({}); }}
+                          className="flex-1 py-2.5 rounded-xl border border-[var(--ghost-border)] text-steel-gray text-sm hover:text-ice-white hover:bg-white/5"
+                        >
+                          Back
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleRegister}
+                          disabled={isPending}
+                          style={theme.buttonStyle}
+                          className="flex-1 py-2.5 rounded-xl text-white font-medium text-sm hover:opacity-90 transition-opacity disabled:opacity-60"
+                        >
+                          {isPending ? "Submitting..." : "Submit"}
+                        </button>
+                      </div>
+                    </motion.div>
                   ) : (
                     <button
                       type="button"

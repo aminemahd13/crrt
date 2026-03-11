@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { Prisma } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logError, logInfo } from "@/lib/logger";
@@ -20,6 +21,11 @@ export async function POST(
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     }
 
+    const body = await request.json().catch(() => ({}));
+    const formData = body.formData && typeof body.formData === "object" && !Array.isArray(body.formData)
+      ? (body.formData as Record<string, unknown>)
+      : null;
+
     const { eventId } = await params;
     const event = await prisma.event.findUnique({
       where: { id: eventId },
@@ -28,11 +34,42 @@ export async function POST(
         title: true,
         slug: true,
         registrationMode: true,
+        registrationReviewMode: true,
         capacity: true,
+        form: {
+          select: {
+            id: true,
+            status: true,
+            fields: { select: { id: true, label: true, type: true, required: true }, orderBy: { order: "asc" } },
+          },
+        },
       },
     });
     if (!event || event.registrationMode !== "internal") {
       return NextResponse.json({ error: "Event does not support internal registration" }, { status: 400 });
+    }
+
+    // If event has a form, require form data
+    if (event.form && event.form.fields.length > 0) {
+      if (!formData) {
+        return NextResponse.json({ error: "Registration form data is required" }, { status: 400 });
+      }
+      // Validate required fields
+      const missingFields: string[] = [];
+      for (const field of event.form.fields) {
+        if (field.required) {
+          const value = formData[field.label];
+          if (value === undefined || value === null || (typeof value === "string" && !value.trim())) {
+            missingFields.push(field.label);
+          }
+        }
+      }
+      if (missingFields.length > 0) {
+        return NextResponse.json(
+          { error: "Missing required fields", missingFields },
+          { status: 400 }
+        );
+      }
     }
 
     const activeCount = await prisma.eventRegistration.count({
@@ -41,7 +78,12 @@ export async function POST(
         status: { in: ACTIVE_REGISTRATION_STATUSES },
       },
     });
-    const status = nextRegistrationStatus(event.capacity, activeCount);
+
+    // Determine registration status based on review mode
+    const isManualReview = event.registrationReviewMode === "manual";
+    const status = isManualReview
+      ? "registered" // pending admin review
+      : nextRegistrationStatus(event.capacity, activeCount);
     const now = new Date();
 
     const existing = await prisma.eventRegistration.findUnique({
@@ -74,12 +116,40 @@ export async function POST(
           },
         });
 
+    // Create linked FormSubmission if form exists and data was provided
+    if (event.form && formData) {
+      const sanitizedData = JSON.parse(JSON.stringify(formData)) as Prisma.InputJsonObject;
+      // Delete old submission for this registration if re-registering
+      if (existing) {
+        await prisma.formSubmission.deleteMany({
+          where: { eventRegistrationId: registration.id },
+        });
+      }
+      await prisma.formSubmission.create({
+        data: {
+          formId: event.form.id,
+          eventRegistrationId: registration.id,
+          data: sanitizedData,
+          status: isManualReview ? "in_review" : "new",
+        },
+      });
+    }
+
     recordRegistrationCreated(status);
 
     if (session.user.email) {
-      const statusLabel = status === "waitlisted" ? "waitlisted" : "confirmed";
+      const templateKey = isManualReview
+        ? "registration-confirmed"
+        : status === "waitlisted"
+          ? "registration-waitlisted"
+          : "registration-confirmed";
+      const statusLabel = isManualReview
+        ? "pending review"
+        : status === "waitlisted"
+          ? "waitlisted"
+          : "confirmed";
       await sendTemplatedEmail({
-        key: status === "waitlisted" ? "registration-waitlisted" : "registration-confirmed",
+        key: templateKey,
         to: session.user.email,
         variables: {
           name: session.user.name || session.user.email,

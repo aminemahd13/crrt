@@ -1,10 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { requiresAdminRole } from "@/lib/access-control";
 import {
   LayoutDashboard,
   Palette,
@@ -14,7 +13,6 @@ import {
   FileText,
   Image,
   Inbox,
-  FormInput,
   Navigation,
   Mail,
   Settings,
@@ -53,12 +51,6 @@ const navGroups = [
     ],
   },
   {
-    label: "Forms",
-    items: [
-      { label: "Form Builder", href: "/admin/forms", icon: FormInput },
-    ],
-  },
-  {
     label: "System",
     items: [
       { label: "Email Templates", href: "/admin/email-templates", icon: Mail },
@@ -72,18 +64,8 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
   const [collapsed, setCollapsed] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
-  const role = (session?.user as { role?: string } | undefined)?.role ?? null;
 
-  const visibleNavGroups = useMemo(
-    () =>
-      navGroups
-        .map((group) => ({
-          ...group,
-          items: group.items.filter((item) => !requiresAdminRole(item.href) || role === "admin"),
-        }))
-        .filter((group) => group.items.length > 0),
-    [role]
-  );
+  const visibleNavGroups = navGroups;
 
   return (
     <div className="flex h-screen bg-midnight overflow-hidden">
@@ -174,7 +156,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-ice-white truncate">{session.user.name || session.user.email}</p>
-                  <p className="text-[10px] text-signal-orange">{(session.user as unknown as { role: string }).role}</p>
+                  <p className="text-[10px] text-signal-orange">{session.user.role}</p>
                 </div>
               </div>
             </div>
@@ -202,7 +184,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
 
       {/* Main */}
       <main className="flex-1 overflow-y-auto">
-        {session?.user?.mustRotatePassword && role === "admin" && (
+        {session?.user?.mustRotatePassword && session.user.role === "admin" && (
           <div className="mx-6 mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-300">
             Default seeded admin password is still active. Change it from Settings for production safety.
           </div>

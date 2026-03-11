@@ -6,7 +6,7 @@ export default async function InboxPage() {
   const submissions = await prisma.formSubmission.findMany({
     orderBy: { createdAt: "desc" },
     include: {
-      form: { select: { title: true } },
+      form: { select: { title: true, event: { select: { title: true, slug: true } } } },
     },
   });
 
@@ -14,7 +14,7 @@ export default async function InboxPage() {
     <InboxClient
       submissions={submissions.map((s) => ({
         id: s.id,
-        formTitle: s.form.title,
+        formTitle: s.form.event ? s.form.event.title : s.form.title,
         data: toStringRecord(s.data),
         status: s.status,
         createdAt: s.createdAt.toISOString(),

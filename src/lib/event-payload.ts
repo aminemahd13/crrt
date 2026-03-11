@@ -26,6 +26,7 @@ export interface NormalizedEventPayload {
   registrationMode: string;
   registrationLabel: string | null;
   registrationUrl: string | null;
+  registrationReviewMode: string;
   publishStart: Date | null;
   publishEnd: Date | null;
 }
@@ -168,6 +169,11 @@ export function normalizeEventPayload(payload: unknown): NormalizedEventPayload 
 
   const capacity = parseOptionalInt(body.capacity, "capacity", issues);
 
+  const registrationReviewModeRaw = (parseOptionalString(body.registrationReviewMode) ?? "auto").toLowerCase();
+  const registrationReviewMode = ["auto", "manual"].includes(registrationReviewModeRaw)
+    ? registrationReviewModeRaw
+    : "auto";
+
   if (issues.length) {
     throw new EventPayloadValidationError(issues);
   }
@@ -189,6 +195,7 @@ export function normalizeEventPayload(payload: unknown): NormalizedEventPayload 
     registrationMode: registrationMode as string,
     registrationLabel,
     registrationUrl,
+    registrationReviewMode,
     publishStart,
     publishEnd,
   };

@@ -16,8 +16,12 @@ model User {
   emailVerified DateTime?
   image         String?
   password      String?   // hashed password for credentials login
-  role          String    @default("member") // admin | editor | member
+  role          String    @default("member") // admin | member
   mustRotatePassword Boolean @default(false)
+  phone         String?
+  bio           String?
+  organization  String?
+  city          String?
   accounts      Account[]
   sessions      Session[]
   registrations EventRegistration[]
@@ -79,12 +83,14 @@ model Event {
   registrationMode  String   @default("internal") // closed | internal | external
   registrationLabel String?
   registrationUrl   String?
+  registrationReviewMode String @default("auto") // auto | manual
   publishStart DateTime?
   publishEnd   DateTime?
   published   Boolean  @default(false)
   tags        ContentTag[]
   speakers    EventSpeaker[]
   registrations EventRegistration[]
+  form        Form?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -210,6 +216,8 @@ model Form {
   template        String?          // training | competition | membership | sponsor | null
   emailTemplateId String?
   spamProtection  Boolean          @default(false)
+  eventId         String?          @unique
+  event           Event?           @relation(fields: [eventId], references: [id], onDelete: Cascade)
   fields          FormField[]
   submissions     FormSubmission[]
   createdAt       DateTime         @default(now())
@@ -231,13 +239,15 @@ model FormField {
 }
 
 model FormSubmission {
-  id        String                @id @default(cuid())
-  formId    String
-  form      Form                  @relation(fields: [formId], references: [id], onDelete: Cascade)
-  status    String                @default("new") // new | in_review | accepted | rejected
-  data      Json                  @default("{}")
-  createdAt DateTime              @default(now())
-  updatedAt DateTime              @updatedAt
+  id                    String              @id @default(cuid())
+  formId                String
+  form                  Form                @relation(fields: [formId], references: [id], onDelete: Cascade)
+  eventRegistrationId   String?             @unique
+  eventRegistration     EventRegistration?  @relation(fields: [eventRegistrationId], references: [id], onDelete: SetNull)
+  status                String              @default("new") // new | in_review | accepted | rejected
+  data                  Json                @default("{}")
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
 }
 
 // ─── Config Singletons ───────────────────────────
@@ -316,6 +326,7 @@ model EventRegistration {
   cancelledAt  DateTime?
   event       Event                   @relation(fields: [eventId], references: [id], onDelete: Cascade)
   user        User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  formSubmission FormSubmission?
 
   @@unique([eventId, userId])
   @@index([eventId, status])

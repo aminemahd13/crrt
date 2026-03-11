@@ -24,7 +24,7 @@ export async function requireAdminSession() {
   if (!user) {
     redirect("/login?callbackUrl=/admin");
   }
-  if (!["admin", "editor"].includes(user.role)) {
+  if (user.role !== "admin") {
     redirect("/login?callbackUrl=/admin");
   }
   return user;

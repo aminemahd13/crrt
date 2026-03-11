@@ -51,7 +51,7 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        if (!["admin", "editor", "member"].includes(user.role)) {
+        if (!["admin", "member"].includes(user.role)) {
           return null;
         }
 

@@ -25,7 +25,7 @@ export default withAuth(
 
             // Check role
             const role = token.role as string;
-            if (!["admin", "editor"].includes(role)) {
+            if (!["admin"].includes(role)) {
                 return NextResponse.redirect(new URL("/admin/login", req.url));
             }
         }
