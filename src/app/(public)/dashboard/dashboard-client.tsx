@@ -1,7 +1,18 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { User, Mail, Calendar, LogOut, CheckCircle, Clock, XCircle } from "lucide-react";
+import {
+  User,
+  Mail,
+  Calendar,
+  LogOut,
+  CheckCircle,
+  Clock,
+  XCircle,
+  Ticket,
+  ShieldCheck,
+  ExternalLink,
+} from "lucide-react";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 
@@ -23,9 +34,36 @@ interface SubmissionItem {
 interface DashboardClientProps {
   user: UserProfile;
   submissions: SubmissionItem[];
+  registrations: RegistrationItem[];
+  privateResources: PrivateResourceItem[];
 }
 
-export function DashboardClient({ user, submissions }: DashboardClientProps) {
+interface RegistrationItem {
+  id: string;
+  status: "registered" | "waitlisted" | "approved" | "rejected" | "cancelled";
+  createdAt: string;
+  eventTitle: string;
+  eventSlug: string;
+  eventDate: string;
+  eventLocation: string | null;
+}
+
+interface PrivateResourceItem {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  url: string;
+  type: string;
+  category: string;
+}
+
+export function DashboardClient({
+  user,
+  submissions,
+  registrations,
+  privateResources,
+}: DashboardClientProps) {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "accepted": return <CheckCircle size={14} className="text-emerald-500" />;
@@ -39,6 +77,21 @@ export function DashboardClient({ user, submissions }: DashboardClientProps) {
       case "accepted": return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
       case "rejected": return "bg-red-500/10 text-red-400 border-red-500/20";
       default: return "bg-amber-500/10 text-amber-400 border-amber-500/20";
+    }
+  };
+
+  const registrationBadge = (status: RegistrationItem["status"]) => {
+    switch (status) {
+      case "approved":
+      case "registered":
+        return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+      case "waitlisted":
+        return "bg-amber-500/10 text-amber-400 border-amber-500/20";
+      case "rejected":
+        return "bg-red-500/10 text-red-400 border-red-500/20";
+      case "cancelled":
+      default:
+        return "bg-slate-500/10 text-slate-300 border-slate-500/20";
     }
   };
 
@@ -91,8 +144,54 @@ export function DashboardClient({ user, submissions }: DashboardClientProps) {
       </motion.div>
 
       {/* Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="md:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-6">
+          <h2 className="text-xl font-heading font-bold text-ice-white flex items-center gap-2">
+            Event Registrations
+          </h2>
+          <div className="glass-card p-6">
+            {registrations.length === 0 ? (
+              <div className="text-center py-10">
+                <p className="text-steel-gray text-sm">No event registrations yet.</p>
+                <Link href="/events" className="inline-flex mt-3 text-xs text-signal-orange hover:underline">
+                  Browse events
+                </Link>
+              </div>
+            ) : (
+              <ul className="space-y-3">
+                {registrations.map((registration) => (
+                  <li
+                    key={registration.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg bg-midnight-light border border-[var(--ghost-border)]"
+                  >
+                    <div>
+                      <Link
+                        href={`/events/${registration.eventSlug}`}
+                        className="text-ice-white font-medium text-sm hover:text-signal-orange transition-colors"
+                      >
+                        {registration.eventTitle}
+                      </Link>
+                      <p className="text-xs text-steel-gray mt-1">
+                        {new Date(registration.eventDate).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                        {registration.eventLocation ? ` • ${registration.eventLocation}` : ""}
+                      </p>
+                    </div>
+                    <span
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs capitalize ${registrationBadge(registration.status)}`}
+                    >
+                      <Ticket size={12} />
+                      {registration.status}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
           <h2 className="text-xl font-heading font-bold text-ice-white flex items-center gap-2">
             Recent Applications & Submissions
           </h2>
@@ -130,6 +229,34 @@ export function DashboardClient({ user, submissions }: DashboardClientProps) {
         </div>
 
         <div className="space-y-6">
+          <h2 className="text-xl font-heading font-bold text-ice-white flex items-center gap-2">
+            <ShieldCheck size={18} className="text-signal-orange" />
+            Private Resources
+          </h2>
+          <div className="glass-card p-4 space-y-2">
+            {privateResources.length === 0 ? (
+              <p className="text-sm text-steel-gray px-2 py-3">No private resources published yet.</p>
+            ) : (
+              privateResources.map((resource) => (
+                <a
+                  key={resource.id}
+                  href={resource.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block px-3 py-3 rounded-lg border border-[var(--ghost-border)] hover:bg-white/5 transition-colors"
+                >
+                  <p className="text-sm text-ice-white flex items-center justify-between">
+                    {resource.title}
+                    <ExternalLink size={12} className="text-steel-gray" />
+                  </p>
+                  <p className="text-[11px] text-steel-gray mt-1">
+                    {resource.category} • {resource.type}
+                  </p>
+                </a>
+              ))
+            )}
+          </div>
+
           <h2 className="text-xl font-heading font-bold text-ice-white">Quick Links</h2>
           <div className="glass-card p-4 space-y-2">
             <Link href="/resources" className="block px-4 py-3 rounded-lg text-sm text-steel-gray hover:text-ice-white hover:bg-white/5 transition-colors">

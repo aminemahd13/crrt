@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { PublicFormClient } from "./form-client";
+import { toSelectOptions } from "@/lib/json";
 
 export default async function PublicFormPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -25,7 +26,7 @@ export default async function PublicFormPage({ params }: { params: Promise<{ slu
           type: f.type,
           required: f.required,
           placeholder: f.placeholder,
-          options: f.options,
+          options: toSelectOptions(f.options),
         })),
       }}
     />

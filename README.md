@@ -1,4 +1,4 @@
-﻿# CRRT â€” Club Robotique & Recherche Technologique
+# CRRT - Club Robotique & Recherche Technologique
 
 > **ENSA Agadir** | Since 2008 | "Our robots never sleep."
 
@@ -8,300 +8,285 @@ A full-stack platform for CRRT (Club Robotique & Recherche Technologique) at ENS
 
 ## Quick Start
 
+Prerequisites:
+- Node.js 20+
+- PostgreSQL running locally (or reachable from `DATABASE_URL`)
+- Docker (optional, for fully containerized dev with hot reload)
+
 ```bash
 # 1. Install dependencies
 npm install
 
-# 2. Apply migrations
-npx prisma migrate dev
+# 2. Create local environment file
+cp .env.example .env
 
-# 3. Seed with realistic data
-npx tsx prisma/seed.ts
+# 3. Apply migrations
+npm run db:migrate
 
-# 4. Start the dev server
+# 4. Seed with realistic data
+npm run db:seed
+
+# 5. Start the dev server
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) for the public site and [http://localhost:3000/admin](http://localhost:3000/admin) for the admin.
+If you use PowerShell, step 2 is:
 
----
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Framework | Next.js 16 (App Router, Turbopack) |
-| Language | TypeScript |
-| Styling | Tailwind CSS v4 + Custom CSS variables |
-| Database | Prisma 6 + PostgreSQL |
-| Auth | NextAuth.js |
-| UI | shadcn/ui + custom CRRT components |
-| Animation | Framer Motion + IntersectionObserver |
-| Icons | Lucide React |
-| Deploy | Docker Compose |
-
----
-
-## Project Structure
-
-```
-crrt/
-â”œâ”€â”€ prisma/
-â”‚   â”œâ”€â”€ schema.prisma         # 18 models (auth, content, forms, config)
-â”‚   â””â”€â”€ seed.ts               # Full seed with realistic CRRT data
-â”œâ”€â”€ src/
-â”‚   â”œâ”€â”€ app/
-â”‚   â”‚   â”œâ”€â”€ (public)/         # Public site pages
-â”‚   â”‚   â”‚   â”œâ”€â”€ page.tsx      # Home (hero, tracks, projects, posts, partners)
-â”‚   â”‚   â”‚   â”œâ”€â”€ events/       # Events index + [slug] detail
-â”‚   â”‚   â”‚   â”œâ”€â”€ projects/     # Projects index + [slug] detail
-â”‚   â”‚   â”‚   â”œâ”€â”€ blog/         # Blog index + [slug] detail
-â”‚   â”‚   â”‚   â”œâ”€â”€ about/        # Mission, team, timeline
-â”‚   â”‚   â”‚   â””â”€â”€ forms/        # Public form rendering + submission
-â”‚   â”‚   â”œâ”€â”€ (admin)/admin/    # Admin panel
-â”‚   â”‚   â”‚   â”œâ”€â”€ page.tsx      # Dashboard
-â”‚   â”‚   â”‚   â”œâ”€â”€ theme/        # Theme Studio
-â”‚   â”‚   â”‚   â”œâ”€â”€ home/         # Home Studio
-â”‚   â”‚   â”‚   â”œâ”€â”€ navigation/   # Navigation Studio
-â”‚   â”‚   â”‚   â”œâ”€â”€ events/       # Events CRUD
-â”‚   â”‚   â”‚   â”œâ”€â”€ projects/     # Projects CRUD
-â”‚   â”‚   â”‚   â”œâ”€â”€ posts/        # Posts CRUD
-â”‚   â”‚   â”‚   â”œâ”€â”€ media/        # Media Studio
-â”‚   â”‚   â”‚   â”œâ”€â”€ forms/        # Form Builder + templates
-â”‚   â”‚   â”‚   â”œâ”€â”€ inbox/        # Unified submissions
-â”‚   â”‚   â”‚   â”œâ”€â”€ email-templates/ # Email templates
-â”‚   â”‚   â”‚   â””â”€â”€ settings/     # Platform settings
-â”‚   â”‚   â”œâ”€â”€ api/              # API routes
-â”‚   â”‚   â”œâ”€â”€ globals.css       # Design system + tokens
-â”‚   â”‚   â””â”€â”€ layout.tsx        # Root layout
-â”‚   â”œâ”€â”€ components/
-â”‚   â”‚   â”œâ”€â”€ crrt/             # Signature components
-â”‚   â”‚   â”‚   â”œâ”€â”€ blueprint-timeline.tsx
-â”‚   â”‚   â”‚   â”œâ”€â”€ circuit-trace.tsx
-â”‚   â”‚   â”‚   â”œâ”€â”€ lab-gallery.tsx
-â”‚   â”‚   â”‚   â”œâ”€â”€ lens-card.tsx
-â”‚   â”‚   â”‚   â”œâ”€â”€ next-event-panel.tsx
-â”‚   â”‚   â”‚   â”œâ”€â”€ signal-cta.tsx
-â”‚   â”‚   â”‚   â””â”€â”€ track-chips.tsx
-â”‚   â”‚   â”œâ”€â”€ admin/            # Admin components
-â”‚   â”‚   â”‚   â”œâ”€â”€ studio-shell.tsx
-â”‚   â”‚   â”‚   â”œâ”€â”€ content-editor.tsx
-â”‚   â”‚   â”‚   â”œâ”€â”€ content-list.tsx
-â”‚   â”‚   â”‚   â”œâ”€â”€ form-builder.tsx
-â”‚   â”‚   â”‚   â””â”€â”€ live-preview-split.tsx
-â”‚   â”‚   â””â”€â”€ layout/           # Shell components
-â”‚   â”‚       â”œâ”€â”€ glass-nav.tsx
-â”‚   â”‚       â””â”€â”€ site-footer.tsx
-â”‚   â””â”€â”€ lib/
-â”‚       â””â”€â”€ prisma.ts         # Prisma singleton
-â”œâ”€â”€ Dockerfile                # Multi-stage production build
-â”œâ”€â”€ docker-compose.yml        # Deployment config
-â””â”€â”€ .env                      # Environment variables
+```powershell
+Copy-Item .env.example .env
 ```
 
----
+Open [http://localhost:3000](http://localhost:3000) for the public site and [http://localhost:3000/admin/login](http://localhost:3000/admin/login) for the admin.
 
-## Design System â€” "Mature Glass Lab"
+Seeded credentials:
+- `admin@crrt.ma / crrt2026`
+- `editor@crrt.ma / crrt2026`
+- `member@crrt.ma / crrt2026`
 
-### Colors
+### Docker Dev Stack (Hot Reload)
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| `--midnight` | `#0B1120` | Page background |
-| `--midnight-light` | `#111827` | Card surfaces |
-| `--ice-white` | `#F8FAFC` | Headings |
-| `--steel-gray` | `#94A3B8` | Body text |
-| `--signal-orange` | `#F97316` | Accent, CTA |
-| `--ghost-white` | `rgba(248,250,252,0.05)` | Glass fill |
-| `--ghost-border` | `rgba(248,250,252,0.08)` | Borders |
+If you want Postgres + app fully inside Docker for development:
 
-### Typography
-
-- **Headings**: Space Grotesk (400â€“700)
-- **Body**: Inter (400â€“600)
-- **Arabic/RTL**: Noto Sans Arabic (400â€“700)
-
-### Glass Utilities
-
-```css
-.glass-surface  /* header/nav glass â€” blurred, clipped */
-.glass-card     /* content card â€” frosted glass border */
+```bash
+# Start postgres + app (Next.js dev server with hot reload)
+npm run dev:docker
 ```
 
-### Motion
+In another terminal, seed once after first boot:
 
-All animations respect `prefers-reduced-motion`:
+```bash
+npm run dev:docker:seed
+```
 
-- **Blueprint Reveal**: section title underline traces
-- **Signal Pulse**: one-time viewport-triggered CTA pulse
-- **Robotics Parallax**: subtle 6px hero parallax (desktop only)
+Useful helpers:
 
----
+```bash
+npm run dev:docker:logs  # Follow app + postgres logs
+npm run dev:docker:down  # Stop dev stack
+npm run dev:docker:reset # Reset database + reseed
+```
 
-## Signature Components
-
-### Public
-
-| Component | Description |
-|-----------|-------------|
-| `GlassNav` | Sticky header â†’ compact pill on scroll |
-| `NextEventPanel` | Glass countdown to next event |
-| `BlueprintTimeline` | Alternating timeline with signal trace |
-| `SignalCTA` | Button with one-time pulse animation |
-| `LensCard` | Circular media frame + hover bloom |
-| `LabGallery` | Contact-sheet grid + lightbox |
-| `TrackChips` | CRRT tags mapped to labeled chips |
-| `CircuitTrace` | Decorative SVG background traces |
-
-### Admin
-
-| Component | Description |
-|-----------|-------------|
-| `StudioShell` | Sidebar + âŒ˜K command palette |
-| `LivePreviewSplit` | Editor + preview (desktop/tablet/mobile/RTL) |
-| `ContentListClient` | Search + filter + action table |
-| `ContentEditor` | Dynamic field renderer + publish toggle |
-| `FormBuilderClient` | 3-pane: library â†’ canvas â†’ inspector |
+Notes:
+- App URL remains `http://localhost:3000`.
+- The dev stack uses an internal Docker DB URL (`postgres:5432`) and does not require local Postgres on your host.
+- Docker dev reads `NEXTAUTH_SECRET` from your project `.env`, so keep it stable across `npm run dev` and `npm run dev:docker`.
+- If you rotate `NEXTAUTH_SECRET`, clear your `localhost` cookies or sign out/in to avoid one-time `next-auth` `JWEDecryptionFailed` session warnings.
 
 ---
-
-## Admin Panel
-
-### Studios Overview
-
-| Studio | Route | Controls |
-|--------|-------|----------|
-| Dashboard | `/admin` | 6-stat grid, recent events |
-| Theme Studio | `/admin/theme` | Colors, radius, glass, noise, motion, variants |
-| Home Studio | `/admin/home` | Hero text, event source, tracks, featured projects |
-| Navigation | `/admin/navigation` | Header/footer items, visibility toggles |
-| Events | `/admin/events` | CRUD with search, type, status |
-| Projects | `/admin/projects` | CRUD with stack tags |
-| Posts | `/admin/posts` | CRUD with markdown |
-| Media | `/admin/media` | Grid/list, used-in refs, copy URL |
-| Form Builder | `/admin/forms` | 3-pane, 4 CRRT templates |
-| Inbox | `/admin/inbox` | Status workflow, CSV export |
-| Email Templates | `/admin/email-templates` | 4 defaults with `{{variables}}` |
-| Settings | `/admin/settings` | General, SMTP, Security |
-
-### Form Builder Templates
-
-| Template | Fields | Use Case |
-|----------|--------|----------|
-| Training Registration | 8 | Arduino, Raspberry Pi workshops |
-| Competition Registration | 10 | Team-based robotics competitions |
-| Membership Application | 7 | New member intake |
-| Partner / Sponsor Intake | 5 | Sponsorship proposals |
-
----
-
-## Seed Data
-
-The seed (`prisma/seed.ts`) populates the database with realistic CRRT content:
-
-| Entity | Count | Details |
-|--------|-------|---------|
-| Tags | 10 | EN/FR/AR labels, colors, icons |
-| Events | 6 | Training, conference, competition, workshop, hackathon |
-| Speakers | 7 | With bios and roles |
-| Projects | 6 | Detailed markdown with code, tables, specs |
-| Posts | 6 | Technical tutorials (Arduino, PID, CV, ESP32, 3D printing, ROS2) |
-| Content Tags | 20 | Cross-references between content and tags |
-| Milestones | 10 | 2008â€“2025 timeline |
-| Team Members | 12 | 8 current bureau + 4 alumni with LinkedIn |
-| Partners | 6 | ENSA, OCP, Arduino, UM6P, IAM, JLCPCB |
-| Navigation | 9 | 5 header + 4 footer items |
-| Forms | 2 | Published with 8-10 fields each |
-| Submissions | 5 | Realistic registration data |
-| Media | 6 | Entries with used-in references |
 
 ### Re-seeding
 
 ```bash
 # Reset and re-seed
-npx prisma migrate reset --skip-seed
-npx tsx prisma/seed.ts
+npm run db:reset
 ```
-
 ---
 
-## API Routes
+## Deployment Runbook (Single VPS: Docker + Nginx)
 
-| Method | Route | Purpose |
-|--------|-------|---------|
-| `GET/PUT` | `/api/admin/theme` | Theme settings |
-| `GET/PUT` | `/api/admin/home` | Home configuration |
-| `PUT` | `/api/admin/navigation` | Replace nav items |
-| `POST` | `/api/admin/events` | Create event |
-| `PUT/DELETE` | `/api/admin/events/[id]` | Update/delete event |
-| `POST` | `/api/admin/projects` | Create project |
-| `PUT/DELETE` | `/api/admin/projects/[id]` | Update/delete project |
-| `POST` | `/api/admin/posts` | Create post |
-| `PUT/DELETE` | `/api/admin/posts/[id]` | Update/delete post |
-| `POST` | `/api/admin/forms` | Create form |
-| `PUT/DELETE` | `/api/admin/forms/[id]` | Update/delete form |
-| `PUT` | `/api/admin/submissions/[id]` | Update submission status |
-| `POST` | `/api/forms/submit` | Public form submission |
+This project supports **PostgreSQL only** in both dev and production.
 
----
-
-## Deployment
-
-### Docker Compose
+### 1) VPS hardening prerequisites (Ubuntu 22.04+)
 
 ```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y ca-certificates curl gnupg lsb-release ufw fail2ban nginx certbot python3-certbot-nginx
+
+# Basic firewall
+sudo ufw allow OpenSSH
+sudo ufw allow 'Nginx Full'
+sudo ufw --force enable
+```
+
+Install Docker Engine + Compose plugin:
+
+```bash
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker "$USER"
+newgrp docker
+docker --version
+docker compose version
+```
+
+### 2) Clone and prepare runtime directories
+
+```bash
+sudo mkdir -p /opt/crrt
+sudo chown -R "$USER":"$USER" /opt/crrt
+cd /opt/crrt
+git clone <YOUR_REPO_URL> .
+
+mkdir -p data/uploads backups
 cp .env.production.example .env.production
+```
+
+Required `.env.production` values:
+
+```dotenv
+POSTGRES_DB=crrt
+POSTGRES_USER=crrt
+POSTGRES_PASSWORD=CHANGE_ME
+DATABASE_URL=postgresql://crrt:CHANGE_ME@postgres:5432/crrt?schema=public
+NEXTAUTH_SECRET=LONG_RANDOM_SECRET
+NEXTAUTH_URL=https://your-domain.com
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=alerts@example.com
+SMTP_PASS=CHANGE_ME
+SMTP_FROM=CRRT <alerts@your-domain.com>
+ADMIN_EMAIL=admin@your-domain.com
+MEDIA_UPLOAD_DIR_HOST=./data/uploads
+```
+
+### 3) First boot (deterministic reset/reseed path)
+
+```bash
+# Build and start postgres + migration + app
+docker compose --env-file .env.production --profile production up -d --build
+
+# Optional deterministic reset + reseed (recommended for first production cutover)
+docker compose --env-file .env.production --profile production run --rm app npx prisma migrate reset --force --skip-generate --skip-seed
+docker compose --env-file .env.production --profile production --profile seed run --rm seed
+
+# Bring app back up after reset
+docker compose --env-file .env.production --profile production up -d app
+```
+
+Seeded credentials after reset/reseed:
+- `admin@crrt.ma / crrt2026`
+- `editor@crrt.ma / crrt2026`
+- `member@crrt.ma / crrt2026`
+
+Admin UI shows a warning banner until the seeded admin password is rotated.
+
+### 4) Health and first-login verification
+
+```bash
+curl -fsS http://127.0.0.1:3000/api/health
+curl -fsS http://127.0.0.1:3000/api/metrics
+```
+
+Then verify in browser:
+- `https://your-domain.com/`
+- `https://your-domain.com/admin/login`
+- Sign in as admin and rotate password at `/admin/settings`.
+
+
+### 5) Persistent volumes
+
+- PostgreSQL data: Docker named volume `postgres-data`.
+- Uploads persistence: bind mount from `MEDIA_UPLOAD_DIR_HOST` to `/app/public/uploads`.
+- Keep `MEDIA_UPLOAD_DIR_HOST` outside container lifecycle (already set to `./data/uploads` by default).
+
+### 6) Backup and restore
+
+Backup:
+
+```bash
+set -a; source .env.production; set +a
+mkdir -p backups
+docker compose --env-file .env.production exec -T postgres \
+  pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" | gzip > "backups/db-$(date +%F-%H%M).sql.gz"
+tar -czf "backups/uploads-$(date +%F-%H%M).tar.gz" data/uploads
+```
+
+Restore:
+
+```bash
+set -a; source .env.production; set +a
+gunzip -c backups/db-YYYY-MM-DD-HHMM.sql.gz | docker compose --env-file .env.production exec -T postgres \
+  psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+tar -xzf backups/uploads-YYYY-MM-DD-HHMM.tar.gz
+```
+
+### 7) Update and rollback
+
+Update:
+
+```bash
+cd /opt/crrt
+git fetch --all --tags
+git checkout <release-tag-or-commit>
 docker compose --env-file .env.production --profile production up -d --build
 ```
 
-This starts:
-- `postgres` with persistent storage
-- `migrate` one-shot container (`prisma migrate deploy`)
-- `app` on port 3000 with `/api/health` health checks
+Rollback:
 
-### Environment Variables
+```bash
+cd /opt/crrt
+git checkout <previous-release-tag-or-commit>
+docker compose --env-file .env.production --profile production up -d --build
+```
 
-| Variable | Description |
-|----------|-------------|
-| `POSTGRES_DB` | PostgreSQL database name |
-| `POSTGRES_USER` | PostgreSQL username |
-| `POSTGRES_PASSWORD` | PostgreSQL password |
-| `DATABASE_URL` | Prisma connection string (`postgresql://...`) |
-| `NEXTAUTH_SECRET` | NextAuth secret (required) |
-| `NEXTAUTH_URL` | Public base URL (required) |
-| `SMTP_HOST` | SMTP server hostname |
-| `SMTP_PORT` | SMTP server port |
-| `SMTP_USER` | SMTP username |
-| `SMTP_PASS` | SMTP password |
-| `SMTP_FROM` | Sender address used by outbound email |
-| `ADMIN_EMAIL` | Optional recipient for admin notifications |
+If rollback requires data rollback, restore both DB dump and uploads tarball from the same backup timestamp.
 
-### External Reverse Proxy (TLS)
+### 8) Post-deploy smoke checklist
 
-Production TLS is expected to be terminated by an external reverse proxy (Nginx, Caddy, Traefik, etc.).
-Forward traffic to `app:3000` and preserve standard headers:
-- `Host`
-- `X-Forwarded-Proto`
-- `X-Forwarded-For`
+```bash
+curl -fsS https://your-domain.com/api/health
+curl -fsS https://your-domain.com/api/metrics
+```
+
+Manual checks:
+- Admin routes reject anonymous users (`/admin` redirects to `/admin/login`).
+- Member can register for an event and sees it in `/dashboard`.
+- Private resources show in member dashboard and are blocked when anonymous.
+
+### 9) Routine deploy + incident response checklist
+
+Routine deploy:
+1. Create DB + uploads backups.
+2. Pull release tag/commit.
+3. `docker compose ... up -d --build`.
+4. Run smoke checks.
+5. Review logs for 5-10 minutes.
+
+Incident response:
+1. Confirm blast radius (`/api/health`, `/api/metrics`, user-facing pages).
+2. Capture logs: `docker compose --env-file .env.production logs --since=30m app postgres`.
+3. If release regression, rollback to previous tag.
+4. If data issue, restore DB + uploads from matching backup snapshot.
+5. Re-run smoke checklist and keep incident notes.
+
+---
+## CI and Test Commands
+
+GitHub Actions (`.github/workflows/ci.yml`) runs:
+- Lint + build (includes type checks) + Vitest unit/API tests.
+- Playwright smoke E2E against seeded PostgreSQL service.
+
+Local test commands:
+
+```bash
+npm run lint
+npm run build
+npm run test
+npm run test:e2e
+```
 
 ---
 ## Scripts
 
 ```bash
-npm run dev       # Start dev server (Turbopack)
-npm run build     # Production build
-npm run start     # Start production server
-npm run db:migrate # Create/apply local migrations in development
-npm run db:deploy # Apply migrations in production
-npm run db:seed   # Run seed script
-npm run db:reset  # Reset + migrate + seed
-npm run db:studio # Open Prisma Studio
+npm run dev         # Start dev server
+npm run dev:docker  # Start Docker dev stack (app + postgres, hot reload)
+npm run dev:docker:logs # Follow Docker dev logs
+npm run dev:docker:seed # Seed Docker dev database
+npm run dev:docker:reset # Reset + migrate + seed Docker dev database
+npm run dev:docker:down # Stop Docker dev stack
+npm run build       # Production build (webpack mode)
+npm run start       # Start production server
+npm run test        # Vitest unit/API tests
+npm run test:e2e    # Playwright smoke E2E
+npm run db:migrate  # Create/apply local migrations in development
+npm run db:deploy   # Apply migrations in production
+npm run db:seed     # Run seed script
+npm run db:reset    # Reset + migrate + seed
+npm run db:studio   # Open Prisma Studio
 ```
 
 ---
 
 ## License
 
-Built for CRRT â€” Club Robotique & Recherche Technologique, ENSA Agadir.
-
-
+Built for CRRT - Club Robotique & Recherche Technologique, ENSA Agadir.

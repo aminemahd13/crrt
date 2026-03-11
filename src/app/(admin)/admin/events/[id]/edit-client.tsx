@@ -1,6 +1,7 @@
 "use client";
 
 import { ContentEditor } from "@/components/admin/content-editor";
+import Link from "next/link";
 
 const eventFields = [
   { key: "title", label: "Title", type: "text" as const, required: true },
@@ -39,12 +40,26 @@ const eventFields = [
 ];
 
 export function EditEventClient({ event }: { event: Record<string, unknown> }) {
+  const eventId = typeof event.id === "string" ? event.id : "";
+
   return (
-    <ContentEditor
-      mode="edit"
-      contentType="events"
-      initialData={event}
-      fields={eventFields}
-    />
+    <>
+      {eventId && (
+        <div className="px-8 pt-6">
+          <Link
+            href={`/admin/events/${eventId}/registrations`}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[var(--ghost-border)] text-xs text-steel-gray hover:text-ice-white hover:bg-white/5"
+          >
+            Manage Registrations
+          </Link>
+        </div>
+      )}
+      <ContentEditor
+        mode="edit"
+        contentType="events"
+        initialData={event}
+        fields={eventFields}
+      />
+    </>
   );
 }

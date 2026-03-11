@@ -10,15 +10,46 @@ async function main() {
     const hashedPassword = await bcrypt.hash("crrt2026", 12);
     await prisma.user.upsert({
         where: { email: "admin@crrt.ma" },
-        update: {},
+        update: {
+            mustRotatePassword: true,
+        },
         create: {
             name: "CRRT Admin",
             email: "admin@crrt.ma",
             password: hashedPassword,
             role: "admin",
+            mustRotatePassword: true,
         },
     });
     console.log("  ✓ Admin user (admin@crrt.ma / crrt2026)");
+
+    await prisma.user.upsert({
+        where: { email: "editor@crrt.ma" },
+        update: {
+            role: "editor",
+        },
+        create: {
+            name: "CRRT Editor",
+            email: "editor@crrt.ma",
+            password: hashedPassword,
+            role: "editor",
+        },
+    });
+    console.log("  ✓ Editor user (editor@crrt.ma / crrt2026)");
+
+    await prisma.user.upsert({
+        where: { email: "member@crrt.ma" },
+        update: {
+            role: "member",
+        },
+        create: {
+            name: "CRRT Member",
+            email: "member@crrt.ma",
+            password: hashedPassword,
+            role: "member",
+        },
+    });
+    console.log("  ✓ Member user (member@crrt.ma / crrt2026)");
 
     // ═══════════════════════════════════════════════
     // 1) THEME SETTINGS (singleton)
@@ -54,18 +85,73 @@ async function main() {
             missionText:
                 "Building the future of robotics and technology at ENSA Agadir since 2008. We design, build, and compete.",
             tagline: "Our robots never sleep.",
-            trackTagMap: JSON.stringify([
+            trackTagMap: [
                 { tag: "arduino", label: "Arduino & Embedded", icon: "cpu" },
                 { tag: "ai", label: "AI & Machine Learning", icon: "brain" },
                 { tag: "mini-projet", label: "Mini-Projets", icon: "rocket" },
                 { tag: "competition", label: "Competitions", icon: "trophy" },
                 { tag: "iot", label: "IoT & Smart Systems", icon: "wifi" },
-            ]),
+            ],
         },
     });
     console.log("  ✓ HomeConfig");
 
     // ═══════════════════════════════════════════════
+    await prisma.platformSettings.upsert({
+        where: { id: "default" },
+        update: {},
+        create: {
+            id: "default",
+            siteTitle: "CRRT - ENSA Agadir",
+            siteUrl: "https://crrt.ensa-agadir.ac.ma",
+            adminEmail: "admin@crrt.ma",
+            smtpHost: process.env.SMTP_HOST ?? null,
+            smtpPort: process.env.SMTP_PORT ? Number.parseInt(process.env.SMTP_PORT, 10) : null,
+            smtpFrom: process.env.SMTP_FROM ?? null,
+        },
+    });
+    console.log("  ✓ PlatformSettings");
+
+    const templateSeeds = [
+        {
+            key: "registration-confirmed",
+            name: "Event Registration - Confirmed",
+            subject: "Registration confirmed for {{eventTitle}}",
+            body: "<p>Hello {{name}},</p><p>Your registration for <strong>{{eventTitle}}</strong> is confirmed.</p><p>Status: {{status}}</p>",
+        },
+        {
+            key: "registration-waitlisted",
+            name: "Event Registration - Waitlisted",
+            subject: "You're on the waitlist for {{eventTitle}}",
+            body: "<p>Hello {{name}},</p><p>You are currently on the waitlist for <strong>{{eventTitle}}</strong>.</p><p>Status: {{status}}</p>",
+        },
+        {
+            key: "registration-status-update",
+            name: "Event Registration - Status Update",
+            subject: "Status updated for {{eventTitle}}",
+            body: "<p>Hello {{name}},</p><p>Your registration status for <strong>{{eventTitle}}</strong> is now: <strong>{{status}}</strong>.</p><p>{{note}}</p>",
+        },
+        {
+            key: "form-submission-received",
+            name: "Form Submission Received",
+            subject: "Submission received: {{formTitle}}",
+            body: "<p>Hello {{name}},</p><p>We received your submission for <strong>{{formTitle}}</strong>.</p>",
+        },
+    ] as const;
+    for (const template of templateSeeds) {
+        await prisma.emailTemplate.upsert({
+            where: { key: template.key },
+            update: {},
+            create: {
+                key: template.key,
+                name: template.name,
+                subject: template.subject,
+                body: template.body,
+            },
+        });
+    }
+    console.log("  ✓ Email templates");
+
     // 3) TAGS (unified across content)
     // ═══════════════════════════════════════════════
     const tagData = [
@@ -455,7 +541,7 @@ void loop() {
 | Track completion | 85% | 98% |
 | Max speed | 0.6 m/s | 1.1 m/s |`,
             status: "completed",
-            stackTags: JSON.stringify(["Arduino", "C++", "PID Control", "PCB Design", "3D Printing"]),
+            stackTags: ["Arduino", "C++", "PID Control", "PCB Design", "3D Printing"],
             year: 2025,
             repoUrl: "https://github.com/crrt-ensa/line-follower-v3",
             published: true,
@@ -504,7 +590,7 @@ Complete IoT solution for greenhouse monitoring using ESP32 and environmental se
             status: "ongoing",
             repoUrl: "https://github.com/crrt-ensa/smart-greenhouse",
             demoUrl: "https://greenhouse.crrt.ma",
-            stackTags: JSON.stringify(["ESP32", "MQTT", "React", "Node.js", "InfluxDB", "Telegram API"]),
+            stackTags: ["ESP32", "MQTT", "React", "Node.js", "InfluxDB", "Telegram API"],
             year: 2026,
             published: true,
         },
@@ -548,7 +634,7 @@ Design and build a delivery drone prototype capable of autonomous navigation bet
             status: "ongoing",
             repoUrl: "https://github.com/crrt-ensa/autonomous-drone",
             demoUrl: "https://drone-demo.crrt.ma",
-            stackTags: JSON.stringify(["Python", "OpenCV", "ROS 2", "Pixhawk", "TensorFlow Lite", "Raspberry Pi"]),
+            stackTags: ["Python", "OpenCV", "ROS 2", "Pixhawk", "TensorFlow Lite", "Raspberry Pi"],
             year: 2026,
             published: true,
         },
@@ -586,7 +672,7 @@ A 6-DOF robotic arm built with 3D-printed parts and MG996R servos. Features inve
 - G-code parsing for simple CNC tasks`,
             status: "completed",
             repoUrl: "https://github.com/crrt-ensa/robotic-arm",
-            stackTags: JSON.stringify(["Arduino", "React", "WebSocket", "3D Printing", "Kinematics"]),
+            stackTags: ["Arduino", "React", "WebSocket", "3D Printing", "Kinematics"],
             year: 2025,
             published: true,
         },
@@ -617,7 +703,7 @@ Ultrasonic sensors at each bay, connected to ESP32 nodes via I2C, reporting to a
 - LED indicators at parking entrance`,
             status: "ongoing",
             repoUrl: "https://github.com/crrt-ensa/smart-parking",
-            stackTags: JSON.stringify(["ESP32", "MQTT", "Next.js", "Ultrasonic", "IoT"]),
+            stackTags: ["ESP32", "MQTT", "Next.js", "Ultrasonic", "IoT"],
             year: 2026,
             published: true,
         },
@@ -653,7 +739,7 @@ Optimal path finding: the robot maps the maze on first run, then computes the sh
 - 3rd place: Morocco National Micromouse (2025)`,
             status: "completed",
             repoUrl: "https://github.com/crrt-ensa/maze-solver",
-            stackTags: JSON.stringify(["Arduino", "C++", "Flood Fill", "PCB Design", "ToF Sensors"]),
+            stackTags: ["Arduino", "C++", "Flood Fill", "PCB Design", "ToF Sensors"],
             year: 2025,
             published: true,
         },
@@ -1084,6 +1170,94 @@ rclpy.spin(HelloPublisher())
     // ═══════════════════════════════════════════════
     // 13) FORMS (2 published with fields)
     // ═══════════════════════════════════════════════
+    // 13) RESOURCE CATEGORIES + RESOURCES (public + private)
+    const resourceCategories = [
+        {
+            name: "Documentation",
+            slug: "documentation",
+            description: "Guides, handbooks, and onboarding material.",
+            color: "#0EA5E9",
+            icon: "book-open",
+        },
+        {
+            name: "Repositories",
+            slug: "repositories",
+            description: "Codebases and templates used by CRRT teams.",
+            color: "#22C55E",
+            icon: "code-2",
+        },
+    ] as const;
+
+    const categoryBySlug: Record<string, { id: string }> = {};
+    for (const category of resourceCategories) {
+        categoryBySlug[category.slug] = await prisma.resourceCategory.upsert({
+            where: { slug: category.slug },
+            update: {
+                name: category.name,
+                description: category.description,
+                color: category.color,
+                icon: category.icon,
+            },
+            create: category,
+        });
+    }
+
+    const resources = [
+        {
+            title: "CRRT Starter Kit Handbook",
+            slug: "crrt-starter-kit-handbook",
+            description: "New member onboarding handbook for tools, safety, and contribution workflow.",
+            url: "/media/crrt-starter-kit-handbook.pdf",
+            type: "document",
+            isPublic: true,
+            categoryId: categoryBySlug.documentation.id,
+        },
+        {
+            title: "Line Follower Firmware Template",
+            slug: "line-follower-firmware-template",
+            description: "Baseline firmware template used in internal line follower projects.",
+            url: "https://github.com/crrt/line-follower-template",
+            type: "repository",
+            isPublic: true,
+            categoryId: categoryBySlug.repositories.id,
+        },
+        {
+            title: "Internal Electronics Procurement Sheet",
+            slug: "internal-electronics-procurement-sheet",
+            description: "Member-only budget and procurement planning sheet for electronics components.",
+            url: "/media/internal-procurement-sheet.xlsx",
+            type: "document",
+            isPublic: false,
+            categoryId: categoryBySlug.documentation.id,
+        },
+        {
+            title: "Competition Judging Rubric (Members)",
+            slug: "competition-judging-rubric-members",
+            description: "Private rubric and scoring details shared with registered members.",
+            url: "/media/competition-judging-rubric.pdf",
+            type: "document",
+            isPublic: false,
+            categoryId: categoryBySlug.documentation.id,
+        },
+    ] as const;
+
+    for (const resource of resources) {
+        await prisma.resource.upsert({
+            where: { slug: resource.slug },
+            update: {
+                title: resource.title,
+                description: resource.description,
+                url: resource.url,
+                type: resource.type,
+                isPublic: resource.isPublic,
+                categoryId: resource.categoryId,
+            },
+            create: resource,
+        });
+    }
+    console.log("  ✓ Resources (4 - 2 public, 2 private)");
+
+    // 14) FORMS (2 published with fields)
     const trainingForm = await prisma.form.create({
         data: {
             title: "Arduino Training Registration",
@@ -1141,7 +1315,7 @@ rclpy.spin(HelloPublisher())
         {
             formId: trainingForm.id,
             status: "new",
-            data: JSON.stringify({
+            data: {
                 "Full Name": "Hamza Ait Brahim",
                 "Email": "hamza.aitbrahim@ensa-agadir.ac.ma",
                 "Student ID (CNE)": "R130456789",
@@ -1150,12 +1324,12 @@ rclpy.spin(HelloPublisher())
                 "Prior Arduino Experience": "Beginner",
                 "Do you have your own Arduino board?": "true",
                 "Anything else we should know?": "",
-            }),
+            },
         },
         {
             formId: trainingForm.id,
             status: "accepted",
-            data: JSON.stringify({
+            data: {
                 "Full Name": "Zineb El Khatiri",
                 "Email": "zineb.elkhatiri@ensa-agadir.ac.ma",
                 "Student ID (CNE)": "R130567890",
@@ -1164,12 +1338,12 @@ rclpy.spin(HelloPublisher())
                 "Prior Arduino Experience": "None",
                 "Do you have your own Arduino board?": "false",
                 "Anything else we should know?": "I'm very excited to learn electronics!",
-            }),
+            },
         },
         {
             formId: trainingForm.id,
             status: "in_review",
-            data: JSON.stringify({
+            data: {
                 "Full Name": "Mohammed Ezzahiri",
                 "Email": "m.ezzahiri@ensa-agadir.ac.ma",
                 "Student ID (CNE)": "R130678901",
@@ -1178,12 +1352,12 @@ rclpy.spin(HelloPublisher())
                 "Prior Arduino Experience": "Intermediate",
                 "Do you have your own Arduino board?": "true",
                 "Anything else we should know?": "I'd like to bring my own sensor kit.",
-            }),
+            },
         },
         {
             formId: competitionForm.id,
             status: "new",
-            data: JSON.stringify({
+            data: {
                 "Team Name": "NeuroBots",
                 "Captain Name": "Younes Moustaid",
                 "Captain Email": "y.moustaid@ensa-agadir.ac.ma",
@@ -1194,12 +1368,12 @@ rclpy.spin(HelloPublisher())
                 "Robot Name": "NeuroRacer",
                 "Brief Robot Description": "Autonomous line-following robot with PID control and obstacle avoidance using 3 ultrasonic sensors.",
                 "Have you participated in CRRT competitions before?": "true",
-            }),
+            },
         },
         {
             formId: competitionForm.id,
             status: "accepted",
-            data: JSON.stringify({
+            data: {
                 "Team Name": "Atlas Makers",
                 "Captain Name": "Leila Amrani",
                 "Captain Email": "l.amrani@est-agadir.ac.ma",
@@ -1210,7 +1384,7 @@ rclpy.spin(HelloPublisher())
                 "Robot Name": "AtlasBot",
                 "Brief Robot Description": "Maze-solving robot using flood-fill algorithm with custom ToF sensor array and ESP32.",
                 "Have you participated in CRRT competitions before?": "false",
-            }),
+            },
         },
     ];
     for (const s of submissions) {
@@ -1240,7 +1414,7 @@ rclpy.spin(HelloPublisher())
     await prisma.homeConfig.update({
         where: { id: "default" },
         data: {
-            featuredProjectIds: JSON.stringify([project1.id, project2.id, project3.id]),
+            featuredProjectIds: [project1.id, project2.id, project3.id],
             pinnedEventId: event1.id,
         },
     });

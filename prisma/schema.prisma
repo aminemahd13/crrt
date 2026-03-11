@@ -17,8 +17,10 @@ model User {
   image         String?
   password      String?   // hashed password for credentials login
   role          String    @default("member") // admin | editor | member
+  mustRotatePassword Boolean @default(false)
   accounts      Account[]
   sessions      Session[]
+  registrations EventRegistration[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -82,6 +84,7 @@ model Event {
   published   Boolean  @default(false)
   tags        ContentTag[]
   speakers    EventSpeaker[]
+  registrations EventRegistration[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -107,7 +110,7 @@ model Project {
   coverImage  String?
   repoUrl     String?
   demoUrl     String?
-  stackTags   String   @default("[]") // JSON array of tech stack strings
+  stackTags   Json     @default("[]")
   year        Int?
   published   Boolean  @default(false)
   tags        ContentTag[]
@@ -221,8 +224,8 @@ model FormField {
   label        String
   placeholder  String?
   required     Boolean @default(false)
-  options      String? // JSON for select/radio/checkbox options
-  validation   String? // JSON for validation rules
+  options      Json?
+  validation   Json?
   order        Int     @default(0)
   page         Int     @default(0)
 }
@@ -232,7 +235,7 @@ model FormSubmission {
   formId    String
   form      Form                  @relation(fields: [formId], references: [id], onDelete: Cascade)
   status    String                @default("new") // new | in_review | accepted | rejected
-  data      String                @default("{}") // JSON of field values
+  data      Json                  @default("{}")
   createdAt DateTime              @default(now())
   updatedAt DateTime              @updatedAt
 }
@@ -263,10 +266,60 @@ model HomeConfig {
   missionText        String @default("Club Robotique & Recherche Technologique")
   tagline            String @default("Our robots never sleep.")
   pinnedEventId      String?
-  featuredProjectIds String @default("[]") // JSON array
-  trackTagMap        String @default("[]") // JSON array of {tag, label, icon}
-  sponsorIds         String @default("[]") // JSON array
+  featuredProjectIds Json   @default("[]")
+  trackTagMap        Json   @default("[]")
+  sponsorIds         Json   @default("[]")
   updatedAt          DateTime @updatedAt
+}
+
+model PlatformSettings {
+  id          String   @id @default("default")
+  siteTitle   String   @default("CRRT - ENSA Agadir")
+  siteUrl     String   @default("https://crrt.ensa-agadir.ac.ma")
+  adminEmail  String?
+  smtpHost    String?
+  smtpPort    Int?
+  smtpFrom    String?
+  updatedAt   DateTime @updatedAt
+}
+
+model EmailTemplate {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  name      String
+  subject   String
+  body      String
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum EventRegistrationStatus {
+  registered
+  waitlisted
+  approved
+  rejected
+  cancelled
+}
+
+model EventRegistration {
+  id          String                  @id @default(cuid())
+  eventId     String
+  userId      String
+  status      EventRegistrationStatus @default(registered)
+  note        String?
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  waitlistedAt DateTime?
+  approvedAt   DateTime?
+  rejectedAt   DateTime?
+  cancelledAt  DateTime?
+  event       Event                   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user        User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([eventId, status])
+  @@index([userId, status])
 }
 
 model NavItem {

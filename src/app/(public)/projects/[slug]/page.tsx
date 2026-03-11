@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { ProjectDetailView } from "./project-detail";
+import { toStringArray } from "@/lib/json";
 
 export default async function ProjectDetailPage({
   params,
@@ -20,7 +21,7 @@ export default async function ProjectDetailPage({
     <ProjectDetailView
       project={{
         ...project,
-        stackTags: JSON.parse(project.stackTags) as string[],
+        stackTags: toStringArray(project.stackTags),
         tags: Array.from(new Set(project.tags.map((ct) => ct.tag.name))),
       }}
     />

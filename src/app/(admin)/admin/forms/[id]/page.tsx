@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { FormBuilderClient } from "@/components/admin/form-builder";
+import { toSelectOptions } from "@/lib/json";
 
 export default async function EditFormPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -26,7 +27,7 @@ export default async function EditFormPage({ params }: { params: Promise<{ id: s
         type: f.type,
         required: f.required,
         placeholder: f.placeholder ?? "",
-        options: f.options ?? "",
+        options: toSelectOptions(f.options).join(", "),
         order: f.order,
       }))}
     />

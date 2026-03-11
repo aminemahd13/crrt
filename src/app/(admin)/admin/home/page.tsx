@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { HomeStudioClient } from "./home-client";
+import { toStringArray, toTrackMap } from "@/lib/json";
 
 export default async function HomeStudioPage() {
   const [config, events, projects] = await Promise.all([
@@ -14,8 +15,8 @@ export default async function HomeStudioPage() {
         missionText: config?.missionText ?? "",
         tagline: config?.tagline ?? "",
         pinnedEventId: config?.pinnedEventId ?? null,
-        featuredProjectIds: config?.featuredProjectIds ? JSON.parse(config.featuredProjectIds) : [],
-        trackTagMap: config?.trackTagMap ? JSON.parse(config.trackTagMap) : [],
+        featuredProjectIds: toStringArray(config?.featuredProjectIds),
+        trackTagMap: toTrackMap(config?.trackTagMap),
       }}
       events={events}
       projects={projects}

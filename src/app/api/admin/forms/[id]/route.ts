@@ -1,5 +1,23 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
+
+function normalizeFieldOptions(value: unknown): Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput {
+    if (Array.isArray(value)) {
+        return value.map((item) => String(item).trim()).filter(Boolean);
+    }
+    if (typeof value === "string") {
+        return value.split(",").map((item) => item.trim()).filter(Boolean);
+    }
+    return Prisma.JsonNull;
+}
+
+function normalizeValidation(value: unknown): Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput {
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+        return value as Prisma.InputJsonValue;
+    }
+    return Prisma.JsonNull;
+}
 
 export async function PUT(
     request: Request,
@@ -40,8 +58,8 @@ export async function PUT(
                     type: f.type,
                     required: f.required ?? false,
                     placeholder: f.placeholder || null,
-                    options: f.options || null,
-                    validation: f.validation || null,
+                    options: normalizeFieldOptions(f.options),
+                    validation: normalizeValidation(f.validation),
                     order: i,
                 },
             });

@@ -6,7 +6,7 @@ import { Search, Download, ChevronDown, CheckCircle, Clock, XCircle, Eye } from 
 interface Submission {
   id: string;
   formTitle: string;
-  data: string;
+  data: Record<string, string>;
   status: string;
   createdAt: string;
 }
@@ -28,7 +28,7 @@ export function InboxClient({ submissions }: { submissions: Submission[] }) {
     .filter(
       (s) =>
         s.formTitle.toLowerCase().includes(search.toLowerCase()) ||
-        s.data.toLowerCase().includes(search.toLowerCase())
+        JSON.stringify(s.data).toLowerCase().includes(search.toLowerCase())
     );
 
   const handleExportCSV = () => {
@@ -38,7 +38,7 @@ export function InboxClient({ submissions }: { submissions: Submission[] }) {
       s.formTitle,
       s.status,
       new Date(s.createdAt).toLocaleDateString(),
-      s.data,
+      JSON.stringify(s.data),
     ]);
     const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -118,12 +118,7 @@ export function InboxClient({ submissions }: { submissions: Submission[] }) {
             const cfg = statusConfig[sub.status] || statusConfig.new;
             const StatusIcon = cfg.icon;
             const isExpanded = expandedId === sub.id;
-            let parsedData: Record<string, string> = {};
-            try {
-              parsedData = JSON.parse(sub.data);
-            } catch {
-              parsedData = { raw: sub.data };
-            }
+            const parsedData = sub.data;
 
             return (
               <div key={sub.id} className="glass-card overflow-hidden">

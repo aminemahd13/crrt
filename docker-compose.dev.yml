@@ -1,0 +1,61 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: crrt
+      POSTGRES_USER: crrt
+      POSTGRES_PASSWORD: crrt
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crrt -d crrt"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    working_dir: /app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      NEXT_TELEMETRY_DISABLED: "1"
+      DATABASE_URL: postgresql://crrt:crrt@postgres:5432/crrt?schema=public
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-crrt-dev-secret-change-in-production}
+      NEXTAUTH_URL: http://localhost:3000
+      ADMIN_EMAIL: admin@crrt.ma
+      SMTP_HOST: ""
+      SMTP_PORT: "587"
+      SMTP_USER: ""
+      SMTP_PASS: ""
+      SMTP_FROM: CRRT <notifications@example.com>
+      MEDIA_MAX_UPLOAD_BYTES: "10485760"
+      CHOKIDAR_USEPOLLING: "1"
+      WATCHPACK_POLLING: "true"
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - dev-node-modules:/app/node_modules
+      - dev-next-cache:/app/.next
+    command: >
+      sh -c "npm install &&
+      npx prisma generate &&
+      npx prisma migrate deploy &&
+      npm run dev -- --hostname 0.0.0.0 --port 3000"
+
+volumes:
+  postgres-dev-data:
+    driver: local
+  dev-node-modules:
+    driver: local
+  dev-next-cache:
+    driver: local

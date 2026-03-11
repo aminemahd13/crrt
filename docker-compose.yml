@@ -51,6 +51,9 @@ services:
       SMTP_PASS: ${SMTP_PASS:?SMTP_PASS is required}
       SMTP_FROM: ${SMTP_FROM:?SMTP_FROM is required}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      MEDIA_UPLOAD_DIR: /app/public/uploads
+    volumes:
+      - ${MEDIA_UPLOAD_DIR_HOST:-./data/uploads}:/app/public/uploads
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health | grep -q '\"ok\":true'"]
@@ -58,6 +61,21 @@ services:
       timeout: 10s
       retries: 5
       start_period: 45s
+
+  seed:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    profiles: ["seed"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+    command: ["npx", "prisma", "db", "seed"]
+    restart: "no"
 
 volumes:
   postgres-data:

@@ -189,6 +189,11 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
 
       {/* Main */}
       <main className="flex-1 overflow-y-auto">
+        {session?.user?.mustRotatePassword && (
+          <div className="mx-6 mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-300">
+            Default seeded admin password is still active. Change it from Settings for production safety.
+          </div>
+        )}
         {children}
       </main>
 

@@ -1,127 +1,136 @@
 "use client";
 
-import { useState } from "react";
-import { Save, Check, Plus, Eye } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Save, Check, Plus, Eye, AlertCircle } from "lucide-react";
 
 interface EmailTemplate {
-  id: string;
+  id?: string;
+  key: string;
   name: string;
   subject: string;
   body: string;
+  enabled: boolean;
 }
 
-const defaultTemplates: EmailTemplate[] = [
-  {
-    id: "registration-confirm",
-    name: "Registration Confirmation",
-    subject: "✅ You're registered for {{eventTitle}}",
-    body: `Hello {{name}},
-
-You have been successfully registered for **{{eventTitle}}**.
-
-📅 **Date:** {{eventDate}}
-📍 **Location:** {{eventLocation}}
-
-Please arrive 15 minutes early. Bring your laptop if required.
-
-See you there!
-— CRRT Team`,
-  },
-  {
-    id: "submission-received",
-    name: "Form Submission Received",
-    subject: "📋 Your application has been received",
-    body: `Hello {{name}},
-
-Thank you for submitting the {{formTitle}} form. We have received your response and will review it shortly.
-
-You'll hear back from us within 3–5 business days.
-
-— CRRT Team`,
-  },
-  {
-    id: "accepted",
-    name: "Application Accepted",
-    subject: "🎉 Congratulations! You've been accepted",
-    body: `Hello {{name}},
-
-Great news! Your application for {{formTitle}} has been **accepted**.
-
-Next steps will be communicated soon.
-
-— CRRT Team`,
-  },
-  {
-    id: "rejected",
-    name: "Application Rejected",
-    subject: "Application Update",
-    body: `Hello {{name}},
-
-Thank you for your interest in {{formTitle}}. Unfortunately, we are unable to accept your application at this time.
-
-We encourage you to apply again in the future.
-
-— CRRT Team`,
-  },
-];
+const EMPTY_TEMPLATE: EmailTemplate = {
+  key: "",
+  name: "New Template",
+  subject: "",
+  body: "",
+  enabled: true,
+};
 
 export default function EmailTemplatesPage() {
-  const [templates, setTemplates] = useState<EmailTemplate[]>(defaultTemplates);
-  const [selectedId, setSelectedId] = useState<string>(defaultTemplates[0].id);
+  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
+  const [selectedKey, setSelectedKey] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const selected = templates.find((t) => t.id === selectedId);
+  useEffect(() => {
+    async function load() {
+      try {
+        const response = await fetch("/api/admin/email-templates");
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "Failed to load templates");
+        const items = payload.templates as EmailTemplate[];
+        setTemplates(items);
+        setSelectedKey(items[0]?.key || "");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load templates");
+      } finally {
+        setLoading(false);
+      }
+    }
 
-  const updateTemplate = (key: keyof EmailTemplate, value: string) => {
+    load();
+  }, []);
+
+  const selected = useMemo(
+    () => templates.find((template) => template.key === selectedKey),
+    [templates, selectedKey]
+  );
+
+  const updateTemplate = (key: keyof EmailTemplate, value: string | boolean) => {
     setTemplates((prev) =>
-      prev.map((t) => (t.id === selectedId ? { ...t, [key]: value } : t))
+      prev.map((template) =>
+        template.key === selectedKey ? { ...template, [key]: value } : template
+      )
     );
     setSaved(false);
   };
 
   const handleSave = async () => {
     setSaving(true);
-    // In production, this would persist to DB
-    await new Promise((r) => setTimeout(r, 500));
+    setError(null);
+    const response = await fetch("/api/admin/email-templates", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ templates }),
+    });
+    const payload = await response.json().catch(() => ({}));
     setSaving(false);
+    if (!response.ok) {
+      setError(payload.error || "Failed to save templates");
+      return;
+    }
+    setTemplates(payload.templates as EmailTemplate[]);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
+  const addTemplate = () => {
+    const key = `custom-${Date.now()}`;
+    const next = {
+      ...EMPTY_TEMPLATE,
+      key,
+      name: `Custom Template ${templates.length + 1}`,
+    };
+    setTemplates((prev) => [...prev, next]);
+    setSelectedKey(key);
+    setSaved(false);
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <p className="text-sm text-steel-gray">Loading templates...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-full">
-      {/* Template list */}
-      <div className="w-64 border-r border-[var(--ghost-border)] bg-midnight-light p-3 overflow-y-auto shrink-0">
+      <div className="w-72 border-r border-[var(--ghost-border)] bg-midnight-light p-3 overflow-y-auto shrink-0">
         <div className="flex items-center justify-between mb-3 px-1">
           <h4 className="text-[10px] font-semibold uppercase tracking-widest text-steel-gray/60">Templates</h4>
-          <button className="text-signal-orange hover:text-signal-orange/80">
+          <button onClick={addTemplate} className="text-signal-orange hover:text-signal-orange/80">
             <Plus size={14} />
           </button>
         </div>
         <div className="space-y-1">
-          {templates.map((t) => (
+          {templates.map((template) => (
             <button
-              key={t.id}
-              onClick={() => setSelectedId(t.id)}
+              key={template.key}
+              onClick={() => setSelectedKey(template.key)}
               className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                selectedId === t.id
+                selectedKey === template.key
                   ? "bg-signal-orange/10 text-signal-orange border border-signal-orange/20"
                   : "text-steel-gray hover:text-ice-white hover:bg-white/5 border border-transparent"
               }`}
             >
-              <span className="block truncate">{t.name}</span>
-              <span className="block text-[10px] truncate mt-0.5 opacity-60">{t.subject}</span>
+              <span className="block truncate">{template.name}</span>
+              <span className="block text-[10px] truncate mt-0.5 opacity-60">{template.subject}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Editor */}
       <div className="flex-1 p-6 overflow-y-auto">
         {selected ? (
-          <div className="max-w-2xl mx-auto space-y-6">
-            <div className="flex items-center justify-between">
+          <div className="max-w-3xl mx-auto space-y-6">
+            <div className="flex items-center justify-between gap-4">
               <h1 className="text-xl font-heading font-bold text-ice-white">{selected.name}</h1>
               <div className="flex items-center gap-2">
                 <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--ghost-border)] text-xs text-steel-gray hover:text-ice-white hover:bg-white/5">
@@ -138,7 +147,24 @@ export default function EmailTemplatesPage() {
               </div>
             </div>
 
+            {error && (
+              <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                <AlertCircle size={12} />
+                {error}
+              </div>
+            )}
+
             <div className="space-y-4">
+              <div className="glass-card p-5 space-y-2">
+                <label className="text-xs text-steel-gray">Template Key</label>
+                <input
+                  type="text"
+                  value={selected.key}
+                  onChange={(e) => updateTemplate("key", e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white"
+                />
+              </div>
+
               <div className="glass-card p-5 space-y-2">
                 <label className="text-xs text-steel-gray">Template Name</label>
                 <input
@@ -157,19 +183,28 @@ export default function EmailTemplatesPage() {
                   onChange={(e) => updateTemplate("subject", e.target.value)}
                   className="w-full px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white"
                 />
-                <p className="text-[10px] text-steel-gray/60">
-                  Variables: {"{{name}}"}, {"{{eventTitle}}"}, {"{{eventDate}}"}, {"{{formTitle}}"}
-                </p>
               </div>
 
               <div className="glass-card p-5 space-y-2">
-                <label className="text-xs text-steel-gray">Body (Markdown)</label>
+                <label className="text-xs text-steel-gray">Body (HTML with {"{{variables}}"})</label>
                 <textarea
                   value={selected.body}
                   onChange={(e) => updateTemplate("body", e.target.value)}
                   rows={12}
                   className="w-full px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white font-mono resize-y"
                 />
+              </div>
+
+              <div className="glass-card p-5">
+                <label className="inline-flex items-center gap-2 text-xs text-steel-gray">
+                  <input
+                    type="checkbox"
+                    checked={selected.enabled}
+                    onChange={(e) => updateTemplate("enabled", e.target.checked)}
+                    className="accent-signal-orange"
+                  />
+                  Enabled
+                </label>
               </div>
             </div>
           </div>

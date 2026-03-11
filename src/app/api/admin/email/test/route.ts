@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { sendEmail } from "@/lib/email";
+import { logError, logInfo } from "@/lib/logger";
+import { recordApiError, recordApiRequest } from "@/lib/metrics";
 
 /**
  * POST /api/admin/email/test
  * Send a test email to verify SMTP configuration.
  */
 export async function POST(request: Request) {
+    const requestId = request.headers.get("x-request-id");
+    recordApiRequest("/api/admin/email/test", "POST");
     const body = await request.json();
     const { to } = body;
 
@@ -32,8 +36,23 @@ export async function POST(request: Request) {
     });
 
     if (!result.ok) {
+        recordApiError("/api/admin/email/test", "POST");
+        logError("email_test_failed", {
+            pathname: "/api/admin/email/test",
+            method: "POST",
+            status: 500,
+            requestId,
+            details: { to, error: result.error },
+        });
         return NextResponse.json({ error: result.error }, { status: 500 });
     }
 
+    logInfo("email_test_sent", {
+        pathname: "/api/admin/email/test",
+        method: "POST",
+        status: 200,
+        requestId,
+        details: { to },
+    });
     return NextResponse.json({ ok: true, message: "Test email sent" });
 }

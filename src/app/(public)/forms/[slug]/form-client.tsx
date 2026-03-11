@@ -9,7 +9,7 @@ interface FormField {
   type: string;
   required: boolean;
   placeholder: string | null;
-  options: string | null;
+  options: string[];
 }
 
 interface PublicFormClientProps {
@@ -137,7 +137,7 @@ export function PublicFormClient({ form }: PublicFormClientProps) {
                   className="w-full px-3 py-2.5 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white focus:border-signal-orange/30 focus:outline-none"
                 >
                   <option value="">Select...</option>
-                  {field.options?.split(",").map((opt) => (
+                  {field.options.map((opt) => (
                     <option key={opt.trim()} value={opt.trim()}>
                       {opt.trim()}
                     </option>

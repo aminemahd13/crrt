@@ -10,16 +10,16 @@ export async function PUT(request: Request) {
             missionText: body.missionText,
             tagline: body.tagline,
             pinnedEventId: body.pinnedEventId,
-            featuredProjectIds: JSON.stringify(body.featuredProjectIds ?? []),
-            trackTagMap: JSON.stringify(body.trackTagMap ?? []),
+            featuredProjectIds: body.featuredProjectIds ?? [],
+            trackTagMap: body.trackTagMap ?? [],
         },
         create: {
             id: "default",
             missionText: body.missionText,
             tagline: body.tagline,
             pinnedEventId: body.pinnedEventId,
-            featuredProjectIds: JSON.stringify(body.featuredProjectIds ?? []),
-            trackTagMap: JSON.stringify(body.trackTagMap ?? []),
+            featuredProjectIds: body.featuredProjectIds ?? [],
+            trackTagMap: body.trackTagMap ?? [],
         },
     });
 

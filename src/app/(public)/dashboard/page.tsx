@@ -1,41 +1,69 @@
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth"; // Assuming standard authOptions location
+import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { DashboardClient } from "./dashboard-client";
+import { toStringRecord } from "@/lib/json";
 
 export default async function DashboardServerPage() {
   const session = await getServerSession(authOptions);
-  
-  if (!session || !session.user) {
+
+  if (!session?.user) {
     redirect("/api/auth/signin?callbackUrl=/dashboard");
   }
 
-  // Fetch user data
   const user = await prisma.user.findUnique({
-    where: { email: session.user.email as string },
+    where: { id: session.user.id },
   });
-
   if (!user) {
     redirect("/");
   }
 
-  // Fetch form submissions mapping to the user's email if possible
-  // Since we don't have a rigid relation between user and forms, we can guess by data payload, or simply pass empty if unsupported.
-  // Wait, let's see if there are any forms submitted by this user.
-  const submissions = await prisma.formSubmission.findMany({
-    where: {
-      data: {
-        contains: user.email as string,
-      }
-    },
-    include: { form: true },
-    orderBy: { createdAt: "desc" },
-    take: 5,
-  });
+  const [registrations, privateResources, submissionsRaw] = await Promise.all([
+    prisma.eventRegistration.findMany({
+      where: { userId: user.id },
+      include: {
+        event: {
+          select: {
+            title: true,
+            slug: true,
+            startDate: true,
+            location: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 8,
+    }),
+    prisma.resource.findMany({
+      where: { isPublic: false },
+      include: {
+        category: {
+          select: {
+            name: true,
+            slug: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 8,
+    }),
+    prisma.formSubmission.findMany({
+      include: { form: true },
+      orderBy: { createdAt: "desc" },
+      take: 40,
+    }),
+  ]);
+
+  const submissions = submissionsRaw
+    .filter((submission) => {
+      const values = Object.values(toStringRecord(submission.data));
+      return values.some((value) => value.toLowerCase().includes((user.email || "").toLowerCase()));
+    })
+    .slice(0, 5);
 
   return (
-    <DashboardClient 
+    <DashboardClient
       user={{
         name: user.name || "",
         email: user.email || "",
@@ -43,11 +71,29 @@ export default async function DashboardServerPage() {
         image: user.image || "",
         joinedAt: user.createdAt.toISOString(),
       }}
-      submissions={submissions.map(s => ({
-        id: s.id,
-        formTitle: s.form.title,
-        status: s.status,
-        date: s.createdAt.toISOString(),
+      submissions={submissions.map((item) => ({
+        id: item.id,
+        formTitle: item.form.title,
+        status: item.status,
+        date: item.createdAt.toISOString(),
+      }))}
+      registrations={registrations.map((item) => ({
+        id: item.id,
+        status: item.status,
+        createdAt: item.createdAt.toISOString(),
+        eventTitle: item.event.title,
+        eventSlug: item.event.slug,
+        eventDate: item.event.startDate.toISOString(),
+        eventLocation: item.event.location,
+      }))}
+      privateResources={privateResources.map((resource) => ({
+        id: resource.id,
+        title: resource.title,
+        slug: resource.slug,
+        description: resource.description,
+        url: resource.url,
+        type: resource.type,
+        category: resource.category.name,
       }))}
     />
   );

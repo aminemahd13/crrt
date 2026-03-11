@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { ProjectsPage } from "./projects-client";
+import { toStringArray } from "@/lib/json";
 
 export default async function ProjectsServerPage() {
   const projects = await prisma.project.findMany({
@@ -16,7 +17,7 @@ export default async function ProjectsServerPage() {
         slug: p.slug,
         description: p.description,
         status: p.status,
-        stackTags: JSON.parse(p.stackTags) as string[],
+        stackTags: toStringArray(p.stackTags),
         year: p.year,
         repoUrl: p.repoUrl,
         demoUrl: p.demoUrl,

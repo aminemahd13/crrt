@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { InboxClient } from "./inbox-client";
+import { toStringRecord } from "@/lib/json";
 
 export default async function InboxPage() {
   const submissions = await prisma.formSubmission.findMany({
@@ -14,7 +15,7 @@ export default async function InboxPage() {
       submissions={submissions.map((s) => ({
         id: s.id,
         formTitle: s.form.title,
-        data: s.data,
+        data: toStringRecord(s.data),
         status: s.status,
         createdAt: s.createdAt.toISOString(),
       }))}

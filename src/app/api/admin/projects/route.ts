@@ -12,8 +12,10 @@ export async function POST(request: Request) {
             content: body.content ?? "",
             status: body.status ?? "ongoing",
             stackTags: typeof body.stackTags === "string"
-                ? JSON.stringify(body.stackTags.split(",").map((s: string) => s.trim()).filter(Boolean))
-                : JSON.stringify(body.stackTags ?? []),
+                ? body.stackTags.split(",").map((s: string) => s.trim()).filter(Boolean)
+                : Array.isArray(body.stackTags)
+                    ? body.stackTags
+                    : [],
             year: body.year ?? null,
             repoUrl: body.repoUrl ?? null,
             demoUrl: body.demoUrl ?? null,

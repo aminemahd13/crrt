@@ -19,18 +19,10 @@ export default async function RootLayout({
 
   return (
     <html lang="fr" className="dark">
-      <head>
-        {themeCSS && (
-          <style
-            id="crrt-theme"
-            dangerouslySetInnerHTML={{ __html: themeCSS }}
-          />
-        )}
-      </head>
+      <head>{themeCSS ? <style id="crrt-theme" dangerouslySetInnerHTML={{ __html: themeCSS }} /> : null}</head>
       <body className="antialiased gradient-wash noise-overlay min-h-screen">
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );
 }
-

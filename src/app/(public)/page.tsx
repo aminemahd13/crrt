@@ -5,6 +5,7 @@ import { HomeTracks } from "./sections/home-tracks";
 import { HomeProjects } from "./sections/home-projects";
 import { HomePosts } from "./sections/home-posts";
 import { HomePartners } from "./sections/home-partners";
+import { toStringArray, toTrackMap } from "@/lib/json";
 
 export default async function HomePage() {
   const now = new Date();
@@ -30,9 +31,7 @@ export default async function HomePage() {
     prisma.partner.findMany({ orderBy: { order: "asc" } }),
   ]);
 
-  const tracks = homeConfig?.trackTagMap
-    ? JSON.parse(homeConfig.trackTagMap)
-    : [];
+  const tracks = toTrackMap(homeConfig?.trackTagMap);
 
   return (
     <div className="relative">
@@ -64,7 +63,7 @@ export default async function HomePage() {
       <HomeProjects
         projects={projects.map((p) => ({
           ...p,
-          stackTags: JSON.parse(p.stackTags),
+          stackTags: toStringArray(p.stackTags),
         }))}
       />
 

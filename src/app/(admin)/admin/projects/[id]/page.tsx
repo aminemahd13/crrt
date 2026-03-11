@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { EditProjectClient } from "./edit-client";
+import { toStringArray } from "@/lib/json";
 
 export default async function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -11,7 +12,7 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
     <EditProjectClient
       project={{
         ...project,
-        stackTags: JSON.parse(project.stackTags).join(", "),
+        stackTags: toStringArray(project.stackTags).join(", "),
       }}
     />
   );
