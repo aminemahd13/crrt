@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { X, ChevronLeft, ChevronRight, Maximize2 } from "lucide-react";
+import Image from "next/image";
 
 interface LabGalleryProps {
   images: { src: string; alt: string; caption?: string }[];
@@ -35,10 +36,12 @@ export function LabGallery({ images }: LabGalleryProps) {
             onClick={() => openLightbox(i)}
             className="group relative aspect-square overflow-hidden rounded-lg bg-midnight border border-[var(--ghost-border)] hover:border-signal-orange/30 transition-all"
           >
-            <img
+            <Image
               src={img.src}
               alt={img.alt}
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              fill
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
             {/* Overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-midnight/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-end justify-between p-2">
@@ -85,10 +88,12 @@ export function LabGallery({ images }: LabGalleryProps) {
             className="max-w-[85vw] max-h-[85vh] flex flex-col items-center"
             onClick={(e) => e.stopPropagation()}
           >
-            <img
+            <Image
               src={images[lightboxIndex].src}
               alt={images[lightboxIndex].alt}
-              className="max-w-full max-h-[80vh] object-contain rounded-lg"
+              width={1600}
+              height={1200}
+              className="max-h-[80vh] max-w-full rounded-lg object-contain"
             />
             {images[lightboxIndex].caption && (
               <p className="mt-3 text-sm text-steel-gray text-center">
@@ -117,7 +122,13 @@ export function LabGallery({ images }: LabGalleryProps) {
                     : "border-transparent opacity-50 hover:opacity-80"
                 }`}
               >
-                <img src={img.src} alt={img.alt} className="w-full h-full object-cover" />
+                <Image
+                  src={img.src}
+                  alt={img.alt}
+                  width={48}
+                  height={48}
+                  className="h-full w-full object-cover"
+                />
               </button>
             ))}
           </div>

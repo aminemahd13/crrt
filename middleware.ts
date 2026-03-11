@@ -89,7 +89,10 @@ export async function middleware(request: NextRequest) {
 
     if (isAdminLoginAlias) {
       if (canAccessAdmin(role)) {
-        return applySecurityHeaders(NextResponse.redirect(new URL("/admin", request.url)), requestId);
+        return applySecurityHeaders(
+          NextResponse.redirect(new URL("/admin", request.url)),
+          requestId
+        );
       }
       const requestHeaders = new Headers(request.headers);
       requestHeaders.set("x-request-id", requestId);
@@ -105,13 +108,14 @@ export async function middleware(request: NextRequest) {
       loginUrl.searchParams.set("callbackUrl", request.nextUrl.pathname);
       return applySecurityHeaders(NextResponse.redirect(loginUrl), requestId);
     }
-
   }
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-request-id", requestId);
-  const response = NextResponse.next({ request: { headers: requestHeaders } });
-  return applySecurityHeaders(response, requestId);
+  return applySecurityHeaders(
+    NextResponse.next({ request: { headers: requestHeaders } }),
+    requestId
+  );
 }
 
 export const config = {

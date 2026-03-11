@@ -10,6 +10,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface UserProfile {
   name: string;
@@ -79,7 +80,13 @@ export function DashboardClient({
         <div className="flex items-center gap-6 relative z-10">
           <div className="w-16 h-16 rounded-full bg-midnight border border-[var(--ghost-border)] flex items-center justify-center overflow-hidden flex-shrink-0">
             {user.image ? (
-              <img src={user.image} alt={user.name} className="w-full h-full object-cover" />
+              <Image
+                src={user.image}
+                alt={user.name}
+                width={64}
+                height={64}
+                className="h-full w-full object-cover"
+              />
             ) : (
               <User size={28} className="text-steel-gray" />
             )}

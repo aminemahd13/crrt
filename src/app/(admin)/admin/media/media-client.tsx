@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { Upload, Search, Grid, List, Trash2, Copy, Check, Image as ImageIcon } from "lucide-react";
+import Image from "next/image";
 
 interface MediaItem {
   id: string;
@@ -155,7 +156,13 @@ export function MediaStudioClient({ media: initialMedia }: { media: MediaItem[] 
               )}
               <div className="aspect-square bg-midnight flex items-center justify-center">
                 {item.mimeType.startsWith("image/") ? (
-                  <img src={item.url} alt={item.alt ?? item.filename} className="w-full h-full object-cover" />
+                  <Image
+                    src={item.url}
+                    alt={item.alt ?? item.filename}
+                    width={320}
+                    height={320}
+                    className="h-full w-full object-cover"
+                  />
                 ) : (
                   <ImageIcon size={24} className="text-steel-gray/40" />
                 )}
@@ -195,7 +202,13 @@ export function MediaStudioClient({ media: initialMedia }: { media: MediaItem[] 
             >
               <div className="w-10 h-10 rounded-lg bg-midnight flex items-center justify-center overflow-hidden shrink-0">
                 {item.mimeType.startsWith("image/") ? (
-                  <img src={item.url} alt={item.filename} className="w-full h-full object-cover" />
+                  <Image
+                    src={item.url}
+                    alt={item.filename}
+                    width={40}
+                    height={40}
+                    className="h-full w-full object-cover"
+                  />
                 ) : (
                   <ImageIcon size={16} className="text-steel-gray/40" />
                 )}

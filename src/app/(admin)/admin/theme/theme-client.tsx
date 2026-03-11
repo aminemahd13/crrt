@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { RotateCcw, Save, Check } from "lucide-react";
+import Image from "next/image";
 
 interface ThemeData {
   primaryColor: string;
@@ -324,7 +325,13 @@ export function ThemeStudioClient({ theme }: { theme: ThemeData & { id: string }
                   </div>
                   {form[field] && (
                     <div className="w-12 h-12 rounded-lg bg-midnight border border-[var(--ghost-border)] flex items-center justify-center overflow-hidden">
-                      <img src={form[field] as string} alt={labels[field]} className="max-w-full max-h-full" />
+                      <Image
+                        src={form[field] as string}
+                        alt={labels[field]}
+                        width={48}
+                        height={48}
+                        className="max-h-full max-w-full object-contain"
+                      />
                     </div>
                   )}
                 </div>

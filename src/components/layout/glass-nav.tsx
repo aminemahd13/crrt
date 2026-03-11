@@ -1,140 +1,148 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-
-const navLinks = [
-  { label: "Home", href: "/" },
-  { label: "Events", href: "/events" },
-  { label: "Projects", href: "/projects" },
-  { label: "Resources", href: "/resources" },
-  { label: "Blog", href: "/blog" },
-  { label: "About", href: "/about" },
-];
+import { Menu } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { appCopy } from "@/lib/copy";
 
 export function GlassNav() {
+  const pathname = usePathname();
+  const { status } = useSession();
+  const messages = appCopy;
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { status } = useSession();
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 80);
+    const handleScroll = () => setScrolled(window.scrollY > 72);
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  return (
-    <>
-      <motion.header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled
-            ? "top-3 mx-auto max-w-4xl rounded-full px-6 py-2 glass-surface-strong"
-            : "px-6 py-4 glass-surface"
-        }`}
-        initial={{ y: -100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      >
-        <div className={`flex items-center justify-between ${scrolled ? "" : "max-w-7xl mx-auto"}`}>
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 rounded-lg bg-signal-orange flex items-center justify-center font-heading font-bold text-sm text-white group-hover:scale-110 transition-transform">
-              CR
-            </div>
-            {!scrolled && (
-              <span className="font-heading font-semibold text-ice-white tracking-tight">
-                CRRT
-              </span>
-            )}
-          </Link>
+  const navLinks = useMemo(
+    () => [
+      { label: messages.nav.home, href: "/" },
+      { label: messages.nav.events, href: "/events" },
+      { label: messages.nav.projects, href: "/projects" },
+      { label: messages.nav.resources, href: "/resources" },
+      { label: messages.nav.blog, href: "/blog" },
+      { label: messages.nav.about, href: "/about" },
+    ],
+    [messages.nav]
+  );
 
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
+  return (
+    <header
+      className={`fixed left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled
+          ? "top-3 mx-auto max-w-6xl rounded-2xl border border-[var(--ghost-border)] glass-surface-strong px-4 py-2"
+          : "top-0 border-b border-transparent px-4 py-3"
+      }`}
+    >
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
+        <Link href="/" className="flex items-center gap-2">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-signal-orange font-heading text-xs font-bold text-white">
+            CR
+          </div>
+          <span className="font-heading text-sm font-semibold text-ice-white">CRRT</span>
+        </Link>
+
+        <nav className="hidden items-center gap-1 md:flex">
+          {navLinks.map((link) => {
+            const isActive =
+              pathname === link.href ||
+              (link.href !== "/" && pathname.startsWith(link.href));
+
+            return (
               <Link
                 key={link.href}
                 href={link.href}
-                className="relative px-3 py-1.5 text-sm text-steel-gray hover:text-ice-white transition-colors rounded-lg hover:bg-white/5"
+                className={`rounded-md px-3 py-1.5 text-sm transition-colors ${
+                  isActive
+                    ? "bg-signal-orange/10 text-signal-orange"
+                    : "text-steel-gray hover:bg-white/5 hover:text-ice-white"
+                }`}
               >
                 {link.label}
               </Link>
-            ))}
-          </nav>
+            );
+          })}
+        </nav>
 
-          {/* CTA + Mobile Toggle */}
-          <div className="flex items-center gap-3">
-            {status === "authenticated" ? (
-              <Link
-                href="/dashboard"
-                className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-signal-orange text-white text-sm font-medium hover:bg-[var(--signal-orange-hover)] transition-colors"
-              >
-                Dashboard
-              </Link>
-            ) : (
-              <Link
-                href="/login"
-                className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[var(--ghost-border)] text-steel-gray text-sm font-medium hover:text-ice-white hover:bg-white/5 transition-colors"
-              >
-                Log In
-              </Link>
-            )}
-
-            <button
-              onClick={() => setMobileOpen(!mobileOpen)}
-              className="md:hidden p-2 rounded-lg hover:bg-white/5 text-ice-white"
-              aria-label="Toggle menu"
-            >
-              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
-          </div>
+        <div className="hidden items-center gap-2 md:flex">
+          {status === "authenticated" ? (
+            <Button asChild size="sm" className="rounded-full px-4">
+              <Link href="/dashboard">{messages.nav.dashboard}</Link>
+            </Button>
+          ) : (
+            <Button asChild size="sm" variant="outline" className="rounded-full border-[var(--ghost-border)] bg-transparent px-4 text-ice-white hover:bg-white/5">
+              <Link href="/login">{messages.nav.login}</Link>
+            </Button>
+          )}
         </div>
-      </motion.header>
 
-      {/* Mobile Overlay */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.div
-            className="fixed inset-0 z-40 glass-surface-strong flex flex-col items-center justify-center gap-6"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+          <SheetTrigger asChild>
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              className="text-ice-white md:hidden"
+              aria-label="Toggle navigation"
+            >
+              <Menu />
+            </Button>
+          </SheetTrigger>
+          <SheetContent
+            side="right"
+            className="border-[var(--ghost-border)] bg-midnight p-0 text-ice-white"
           >
-            {navLinks.map((link, i) => (
-              <motion.div
-                key={link.href}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 + 0.1 }}
-              >
+            <SheetHeader className="border-b border-[var(--ghost-border)] px-5 py-4">
+              <SheetTitle className="font-heading text-ice-white">
+                Navigation
+              </SheetTitle>
+            </SheetHeader>
+            <div className="space-y-1 p-4">
+              {navLinks.map((link) => (
                 <Link
+                  key={link.href}
                   href={link.href}
                   onClick={() => setMobileOpen(false)}
-                  className="text-2xl font-heading font-semibold text-ice-white hover:text-signal-orange transition-colors"
+                  className={`block rounded-lg px-3 py-2 text-sm transition-colors ${
+                    pathname === link.href
+                      ? "bg-signal-orange/10 text-signal-orange"
+                      : "text-steel-gray hover:bg-white/5 hover:text-ice-white"
+                  }`}
                 >
                   {link.label}
                 </Link>
-              </motion.div>
-            ))}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.35 }}
-            >
-              <Link
-                href="/events"
-                onClick={() => setMobileOpen(false)}
-                className="mt-4 inline-flex items-center px-6 py-3 rounded-full bg-signal-orange text-white font-medium hover:bg-[var(--signal-orange-hover)] transition-colors"
-              >
-                Register Now
-              </Link>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
+              ))}
+            </div>
+            <div className="space-y-3 border-t border-[var(--ghost-border)] p-4">
+              {status === "authenticated" ? (
+                <Button
+                  asChild
+                  className="w-full"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  <Link href="/dashboard">{messages.nav.dashboard}</Link>
+                </Button>
+              ) : (
+                <Button
+                  asChild
+                  variant="outline"
+                  className="w-full border-[var(--ghost-border)] bg-transparent text-ice-white hover:bg-white/5"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  <Link href="/login">{messages.nav.login}</Link>
+                </Button>
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+    </header>
   );
 }

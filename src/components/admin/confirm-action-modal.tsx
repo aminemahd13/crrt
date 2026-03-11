@@ -1,14 +1,15 @@
 "use client";
 
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function ConfirmActionModal({
   open,
@@ -30,33 +31,30 @@ export function ConfirmActionModal({
   onConfirm: () => Promise<void> | void;
 }) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-[var(--ghost-border)] bg-midnight text-ice-white">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription className="text-steel-gray">{description}</DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            className="border-[var(--ghost-border)] bg-transparent text-steel-gray hover:text-ice-white"
-          >
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent className="border-[var(--ghost-border)] bg-midnight text-ice-white">
+        <AlertDialogHeader>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription className="text-steel-gray">
+            {description}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel className="border-[var(--ghost-border)] bg-transparent text-steel-gray hover:bg-white/5 hover:text-ice-white">
             {cancelLabel}
-          </Button>
-          <Button
-            type="button"
-            variant="destructive"
-            onClick={() => {
+          </AlertDialogCancel>
+          <AlertDialogAction
+            disabled={loading}
+            onClick={(event) => {
+              event.preventDefault();
               void onConfirm();
             }}
-            disabled={loading}
+            className="bg-red-500 text-white hover:bg-red-500/90"
           >
             {loading ? "Working..." : confirmLabel}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

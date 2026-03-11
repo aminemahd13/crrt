@@ -7,6 +7,17 @@ import Link from "next/link";
 import { LensCard } from "@/components/crrt/lens-card";
 import { BlueprintTimeline } from "@/components/crrt/blueprint-timeline";
 import { LabGallery } from "@/components/crrt/lab-gallery";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { getEventRegistrationConfig, getEventThemeStyles } from "@/lib/event-config";
 import { registrationStatusLabel } from "@/lib/event-registration";
 
@@ -357,14 +368,14 @@ export function EventDetail({ event }: EventDetailProps) {
               )}
 
               {registrationConfig.disabled || !registrationConfig.href ? (
-                <button
+                <Button
                   type="button"
                   disabled
                   style={theme.buttonSubtleStyle}
-                  className="w-full py-3 rounded-xl border font-medium text-sm opacity-80 cursor-not-allowed"
+                  className="h-auto w-full cursor-not-allowed rounded-xl border py-3 text-sm font-medium opacity-80"
                 >
                   {registrationConfig.label}
-                </button>
+                </Button>
               ) : registrationConfig.external ? (
                 <a
                   href={registrationConfig.href}
@@ -396,27 +407,29 @@ export function EventDetail({ event }: EventDetailProps) {
                     </div>
                   ) : hasActiveRegistration ? (
                     <>
-                      <button
+                      <Button
                         type="button"
                         disabled
+                        variant="outline"
                         style={theme.buttonSubtleStyle}
-                        className="w-full py-3 rounded-xl border font-medium text-sm"
+                        className="h-auto w-full rounded-xl border py-3 text-sm font-medium"
                       >
                         {registrationStatusLabel(registration.status)}
-                      </button>
+                      </Button>
                       {event.registrationReviewMode === "manual" && registration.status === "registered" && (
                         <p className="text-xs text-steel-gray text-center flex items-center justify-center gap-1">
                           <ClipboardCheck size={12} /> Your registration is pending review
                         </p>
                       )}
-                      <button
+                      <Button
                         type="button"
                         onClick={handleCancel}
                         disabled={isPending}
-                        className="w-full py-2.5 rounded-xl border border-[var(--ghost-border)] text-steel-gray text-sm hover:text-ice-white hover:bg-white/5 disabled:opacity-50"
+                        variant="outline"
+                        className="h-auto w-full rounded-xl border-[var(--ghost-border)] py-2.5 text-sm text-steel-gray hover:bg-white/5 hover:text-ice-white"
                       >
                         {isPending ? "Updating..." : "Cancel Registration"}
-                      </button>
+                      </Button>
                     </>
                   ) : showForm && hasFormFields ? (
                     <motion.div
@@ -433,54 +446,55 @@ export function EventDetail({ event }: EventDetailProps) {
                             {field.required && <span className="text-signal-orange ml-0.5">*</span>}
                           </label>
                           {field.type === "textarea" ? (
-                            <textarea
+                            <Textarea
                               rows={3}
                               placeholder={field.placeholder ?? ""}
                               value={formValues[field.label] ?? ""}
                               onChange={(e) =>
                                 setFormValues((prev) => ({ ...prev, [field.label]: e.target.value }))
                               }
-                              className="w-full rounded-lg bg-[var(--ghost-white)] border border-[var(--ghost-border)] px-3 py-2 text-sm text-ice-white placeholder:text-steel-gray/50 focus:outline-none focus:ring-1 focus:ring-signal-orange/50 resize-none"
+                              className="border-[var(--ghost-border)] bg-[var(--ghost-white)] text-ice-white placeholder:text-steel-gray/50"
                             />
                           ) : field.type === "select" ? (
-                            <select
-                              value={formValues[field.label] ?? ""}
-                              onChange={(e) =>
-                                setFormValues((prev) => ({ ...prev, [field.label]: e.target.value }))
+                            <Select
+                              value={formValues[field.label] || undefined}
+                              onValueChange={(value) =>
+                                setFormValues((prev) => ({ ...prev, [field.label]: value }))
                               }
-                              className="w-full rounded-lg bg-[var(--ghost-white)] border border-[var(--ghost-border)] px-3 py-2 text-sm text-ice-white focus:outline-none focus:ring-1 focus:ring-signal-orange/50"
                             >
-                              <option value="">{field.placeholder || "Select..."}</option>
-                              {getFieldOptions(field).map((opt) => (
-                                <option key={opt} value={opt}>
-                                  {opt}
-                                </option>
-                              ))}
-                            </select>
+                              <SelectTrigger className="w-full border-[var(--ghost-border)] bg-[var(--ghost-white)] text-ice-white">
+                                <SelectValue placeholder={field.placeholder || "Select..."} />
+                              </SelectTrigger>
+                              <SelectContent className="border-[var(--ghost-border)] bg-midnight text-ice-white">
+                                {getFieldOptions(field).map((opt) => (
+                                  <SelectItem key={opt} value={opt}>
+                                    {opt}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           ) : field.type === "checkbox" ? (
-                            <label className="flex items-center gap-2 text-sm text-ice-white cursor-pointer">
-                              <input
-                                type="checkbox"
+                            <label className="flex cursor-pointer items-center gap-2 text-sm text-ice-white">
+                              <Checkbox
                                 checked={formValues[field.label] === "true"}
-                                onChange={(e) =>
+                                onCheckedChange={(checked) =>
                                   setFormValues((prev) => ({
                                     ...prev,
-                                    [field.label]: e.target.checked ? "true" : "",
+                                    [field.label]: checked === true ? "true" : "",
                                   }))
                                 }
-                                className="rounded border-[var(--ghost-border)] bg-[var(--ghost-white)] accent-signal-orange"
                               />
                               {field.placeholder}
                             </label>
                           ) : (
-                            <input
+                            <Input
                               type={field.type === "number" ? "number" : field.type === "date" ? "date" : field.type === "email" ? "email" : "text"}
                               placeholder={field.placeholder ?? ""}
                               value={formValues[field.label] ?? ""}
                               onChange={(e) =>
                                 setFormValues((prev) => ({ ...prev, [field.label]: e.target.value }))
                               }
-                              className="w-full rounded-lg bg-[var(--ghost-white)] border border-[var(--ghost-border)] px-3 py-2 text-sm text-ice-white placeholder:text-steel-gray/50 focus:outline-none focus:ring-1 focus:ring-signal-orange/50"
+                              className="border-[var(--ghost-border)] bg-[var(--ghost-white)] text-ice-white placeholder:text-steel-gray/50"
                             />
                           )}
                           {fieldErrors[field.label] && (
@@ -489,34 +503,35 @@ export function EventDetail({ event }: EventDetailProps) {
                         </div>
                       ))}
                       <div className="flex gap-2 pt-1">
-                        <button
+                        <Button
                           type="button"
                           onClick={() => { setShowForm(false); setFieldErrors({}); }}
-                          className="flex-1 py-2.5 rounded-xl border border-[var(--ghost-border)] text-steel-gray text-sm hover:text-ice-white hover:bg-white/5"
+                          variant="outline"
+                          className="h-auto flex-1 rounded-xl border-[var(--ghost-border)] py-2.5 text-sm text-steel-gray hover:bg-white/5 hover:text-ice-white"
                         >
                           Back
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           type="button"
                           onClick={handleRegister}
                           disabled={isPending}
                           style={theme.buttonStyle}
-                          className="flex-1 py-2.5 rounded-xl text-white font-medium text-sm hover:opacity-90 transition-opacity disabled:opacity-60"
+                          className="h-auto flex-1 rounded-xl py-2.5 text-sm font-medium text-white hover:opacity-90"
                         >
                           {isPending ? "Submitting..." : "Submit"}
-                        </button>
+                        </Button>
                       </div>
                     </motion.div>
                   ) : (
-                    <button
+                    <Button
                       type="button"
                       onClick={handleRegister}
                       disabled={isPending}
                       style={theme.buttonStyle}
-                      className="w-full py-3 rounded-xl text-white font-medium text-sm text-center hover:opacity-90 transition-opacity disabled:opacity-60"
+                      className="h-auto w-full rounded-xl py-3 text-center text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
                     >
                       {isPending ? "Registering..." : registrationConfig.label}
-                    </button>
+                    </Button>
                   )}
                   {registrationError && <p className="text-xs text-red-400">{registrationError}</p>}
                 </div>

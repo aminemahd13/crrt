@@ -12,6 +12,14 @@ import {
   AdminToastViewport,
   useAdminToast,
 } from "@/components/admin/admin-toast";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type {
   ApplicationRow,
   RegistrationStatus,
@@ -281,30 +289,42 @@ export function ApplicationsPanel({
           onSearchChange={setQuery}
           searchPlaceholder="Search applications..."
         >
-          <select
+          <Select
             value={registrationFilter}
-            onChange={(e) => setRegistrationFilter(e.target.value as RegistrationStatus | "all")}
-            className="rounded-lg border border-[var(--ghost-border)] bg-midnight-light px-3 py-2 text-xs text-ice-white"
+            onValueChange={(value) =>
+              setRegistrationFilter(value as RegistrationStatus | "all")
+            }
           >
-            <option value="all">All registration states</option>
-            {REGISTRATION_STATUS_OPTIONS.map((status) => (
-              <option key={status} value={status}>
-                {REGISTRATION_STATUS_LABELS[status]}
-              </option>
-            ))}
-          </select>
-          <select
+            <SelectTrigger className="w-[190px] border-[var(--ghost-border)] bg-midnight-light text-ice-white">
+              <SelectValue placeholder="All registration states" />
+            </SelectTrigger>
+            <SelectContent className="border-[var(--ghost-border)] bg-midnight text-ice-white">
+              <SelectItem value="all">All registration states</SelectItem>
+              {REGISTRATION_STATUS_OPTIONS.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {REGISTRATION_STATUS_LABELS[status]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
             value={reviewFilter}
-            onChange={(e) => setReviewFilter(e.target.value as ReviewSubmissionStatus | "all")}
-            className="rounded-lg border border-[var(--ghost-border)] bg-midnight-light px-3 py-2 text-xs text-ice-white"
+            onValueChange={(value) =>
+              setReviewFilter(value as ReviewSubmissionStatus | "all")
+            }
           >
-            <option value="all">All review states</option>
-            {REVIEW_STATUS_OPTIONS.map((status) => (
-              <option key={status} value={status}>
-                {REVIEW_STATUS_LABELS[status]}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="w-[170px] border-[var(--ghost-border)] bg-midnight-light text-ice-white">
+              <SelectValue placeholder="All review states" />
+            </SelectTrigger>
+            <SelectContent className="border-[var(--ghost-border)] bg-midnight text-ice-white">
+              <SelectItem value="all">All review states</SelectItem>
+              {REVIEW_STATUS_OPTIONS.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {REVIEW_STATUS_LABELS[status]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </AdminFiltersBar>
       ) : null}
 
@@ -406,7 +426,7 @@ export function ApplicationsPanel({
                 ) : null}
               </td>
               <td className="px-4 py-3">
-                <input
+                <Input
                   type="text"
                   value={noteDraft[row.id] ?? row.note ?? ""}
                   onChange={(e) =>
@@ -416,7 +436,7 @@ export function ApplicationsPanel({
                     }))
                   }
                   placeholder="Optional moderation note"
-                  className="w-full rounded-md border border-[var(--ghost-border)] bg-midnight px-2 py-1.5 text-xs text-ice-white"
+                  className="h-8 border-[var(--ghost-border)] bg-midnight text-xs text-ice-white"
                 />
               </td>
               <td className="px-4 py-3">

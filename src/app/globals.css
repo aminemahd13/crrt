@@ -141,6 +141,11 @@
     min-height: 100vh;
   }
 
+  :focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--signal-orange) 75%, white 25%);
+    outline-offset: 2px;
+  }
+
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
     font-weight: 600;

@@ -1,9 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { signupSchema, type SignupValues } from "@/lib/forms/auth-schemas";
+import { appCopy } from "@/lib/copy";
 
 interface SignupErrorPayload {
   error?: string;
@@ -12,6 +21,7 @@ interface SignupErrorPayload {
 export default function SignupPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const messages = appCopy;
   const callbackUrl = useMemo(() => {
     const raw = searchParams.get("callbackUrl");
     if (!raw || !raw.startsWith("/")) return "/dashboard";
@@ -19,44 +29,41 @@ export default function SignupPage() {
     return raw;
   }, [searchParams]);
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [isPending, setIsPending] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+  const form = useForm<SignupValues>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    },
+  });
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError(null);
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
-
-    setIsPending(true);
-
+  const handleSubmit = async (values: SignupValues) => {
+    setServerError(null);
     try {
       const response = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          name,
-          email: email.trim(),
-          password,
+          name: values.name,
+          email: values.email.trim(),
+          password: values.password,
         }),
       });
 
       if (!response.ok) {
         const payload = (await response.json().catch(() => ({}))) as SignupErrorPayload;
-        setError(payload.error || "Unable to create account.");
+        const message = payload.error || messages.auth.unableToSignup;
+        setServerError(message);
+        toast.error(message);
         return;
       }
 
       const signInResult = await signIn("credentials", {
-        email: email.trim(),
-        password,
+        email: values.email.trim(),
+        password: values.password,
         callbackUrl,
         redirect: false,
       });
@@ -69,106 +76,142 @@ export default function SignupPage() {
       router.push(signInResult?.url ?? callbackUrl);
       router.refresh();
     } catch {
-      setError("Unable to create account right now.");
-    } finally {
-      setIsPending(false);
+      setServerError(messages.auth.unableToSignup);
+      toast.error(messages.auth.unableToSignup);
     }
   };
 
   return (
-    <section className="max-w-md mx-auto px-6 py-16">
-      <div className="glass-card p-8">
-        <h1 className="font-heading text-3xl text-ice-white mb-2">Create Account</h1>
-        <p className="text-steel-gray text-sm mb-6">Sign up as a member to register for events and access resources.</p>
+    <section className="mx-auto max-w-md px-6 py-16">
+      <Card className="glass-card border-[var(--ghost-border)] py-0 text-ice-white">
+        <CardHeader className="space-y-2 border-b border-[var(--ghost-border)] px-8 py-6">
+          <CardTitle className="font-heading text-3xl">
+            {messages.auth.signupTitle}
+          </CardTitle>
+          <CardDescription className="text-steel-gray">
+            {messages.auth.signupSubtitle}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="px-8 py-6">
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(handleSubmit)}
+              className="space-y-4"
+              noValidate
+            >
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{messages.auth.fullName}</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        id="signup-name"
+                        autoComplete="name"
+                        placeholder={messages.auth.optional}
+                        className="border-[var(--ghost-border)] bg-midnight text-ice-white placeholder:text-steel-gray/60"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <label htmlFor="signup-name" className="text-xs text-steel-gray uppercase tracking-wider">
-              Full Name
-            </label>
-            <input
-              id="signup-name"
-              type="text"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              autoComplete="name"
-              className="w-full rounded-xl bg-midnight border border-[var(--ghost-border)] px-3 py-2.5 text-sm text-ice-white placeholder:text-steel-gray/50 focus:outline-none focus:border-signal-orange/30"
-              placeholder="Optional"
-            />
-          </div>
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{messages.auth.email}</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        id="signup-email"
+                        type="email"
+                        autoComplete="email"
+                        placeholder="you@example.com"
+                        className="border-[var(--ghost-border)] bg-midnight text-ice-white placeholder:text-steel-gray/60"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <div className="space-y-1.5">
-            <label htmlFor="signup-email" className="text-xs text-steel-gray uppercase tracking-wider">
-              Email
-            </label>
-            <input
-              id="signup-email"
-              type="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              autoComplete="email"
-              className="w-full rounded-xl bg-midnight border border-[var(--ghost-border)] px-3 py-2.5 text-sm text-ice-white placeholder:text-steel-gray/50 focus:outline-none focus:border-signal-orange/30"
-              placeholder="you@example.com"
-            />
-          </div>
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{messages.auth.password}</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        id="signup-password"
+                        type="password"
+                        autoComplete="new-password"
+                        placeholder="At least 8 characters"
+                        className="border-[var(--ghost-border)] bg-midnight text-ice-white placeholder:text-steel-gray/60"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <div className="space-y-1.5">
-            <label htmlFor="signup-password" className="text-xs text-steel-gray uppercase tracking-wider">
-              Password
-            </label>
-            <input
-              id="signup-password"
-              type="password"
-              required
-              minLength={8}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              autoComplete="new-password"
-              className="w-full rounded-xl bg-midnight border border-[var(--ghost-border)] px-3 py-2.5 text-sm text-ice-white placeholder:text-steel-gray/50 focus:outline-none focus:border-signal-orange/30"
-              placeholder="At least 8 characters"
-            />
-          </div>
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{messages.auth.confirmPassword}</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        id="signup-password-confirm"
+                        type="password"
+                        autoComplete="new-password"
+                        placeholder="Repeat password"
+                        className="border-[var(--ghost-border)] bg-midnight text-ice-white placeholder:text-steel-gray/60"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <div className="space-y-1.5">
-            <label htmlFor="signup-password-confirm" className="text-xs text-steel-gray uppercase tracking-wider">
-              Confirm Password
-            </label>
-            <input
-              id="signup-password-confirm"
-              type="password"
-              required
-              minLength={8}
-              value={confirmPassword}
-              onChange={(event) => setConfirmPassword(event.target.value)}
-              autoComplete="new-password"
-              className="w-full rounded-xl bg-midnight border border-[var(--ghost-border)] px-3 py-2.5 text-sm text-ice-white placeholder:text-steel-gray/50 focus:outline-none focus:border-signal-orange/30"
-              placeholder="Repeat password"
-            />
-          </div>
+              {serverError ? (
+                <p className="text-sm text-red-400" role="alert">
+                  {serverError}
+                </p>
+              ) : null}
 
-          {error ? <p className="text-sm text-red-400">{error}</p> : null}
+              <Button
+                type="submit"
+                disabled={form.formState.isSubmitting}
+                className="w-full"
+              >
+                {form.formState.isSubmitting
+                  ? messages.auth.creatingAccount
+                  : messages.auth.createAccount}
+              </Button>
+            </form>
+          </Form>
 
-          <button
-            type="submit"
-            disabled={isPending}
-            className="w-full rounded-xl bg-signal-orange py-2.5 text-sm font-medium text-white hover:bg-[var(--signal-orange-hover)] disabled:opacity-60"
-          >
-            {isPending ? "Creating account..." : "Create Account"}
-          </button>
-        </form>
-
-        <p className="text-sm text-steel-gray mt-5">
-          Already have an account?{" "}
-          <Link
-            href={`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`}
-            className="text-signal-orange hover:underline"
-          >
-            Sign in
-          </Link>
-          .
-        </p>
-      </div>
+          <p className="mt-5 text-sm text-steel-gray">
+            {messages.auth.alreadyHaveAccount}{" "}
+            <Link
+              href={`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`}
+              className="text-signal-orange hover:underline"
+            >
+              {messages.auth.signInLink}
+            </Link>
+            .
+          </p>
+        </CardContent>
+      </Card>
     </section>
   );
 }

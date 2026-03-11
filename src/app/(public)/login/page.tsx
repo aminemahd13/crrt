@@ -1,9 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getSession, signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { loginSchema, type LoginValues } from "@/lib/forms/auth-schemas";
+import { appCopy } from "@/lib/copy";
 
 function normalizeCallbackUrl(value: string | null): string | null {
   if (!value || !value.startsWith("/")) return null;
@@ -16,7 +25,10 @@ function defaultRouteForRole(role: string | null | undefined): string {
   return role === "admin" ? "/admin" : "/dashboard";
 }
 
-function resolvePostLoginRoute(callbackUrl: string | null, role: string | null | undefined): string {
+function resolvePostLoginRoute(
+  callbackUrl: string | null,
+  role: string | null | undefined
+): string {
   const fallback = defaultRouteForRole(role);
   if (!callbackUrl) return fallback;
   if (callbackUrl.startsWith("/admin") && role !== "admin") {
@@ -29,16 +41,21 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
+  const messages = appCopy;
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const callbackUrl = useMemo(
     () => normalizeCallbackUrl(searchParams.get("callbackUrl")),
     [searchParams]
   );
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [isPending, setIsPending] = useState(false);
+  const form = useForm<LoginValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -46,20 +63,18 @@ export default function LoginPage() {
     router.replace(resolvePostLoginRoute(callbackUrl, role));
   }, [callbackUrl, router, session, status]);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError(null);
-    setIsPending(true);
-
+  const handleSubmit = async (values: LoginValues) => {
+    setServerError(null);
     try {
       const result = await signIn("credentials", {
-        email: email.trim(),
-        password,
+        email: values.email.trim(),
+        password: values.password,
         redirect: false,
       });
 
       if (result?.error) {
-        setError("Invalid email or password.");
+        setServerError(messages.auth.invalidCredentials);
+        toast.error(messages.auth.invalidCredentials);
         return;
       }
 
@@ -70,9 +85,8 @@ export default function LoginPage() {
       router.push(target);
       router.refresh();
     } catch {
-      setError("Unable to sign in right now.");
-    } finally {
-      setIsPending(false);
+      setServerError(messages.auth.unableToSignIn);
+      toast.error(messages.auth.unableToSignIn);
     }
   };
 
@@ -83,66 +97,95 @@ export default function LoginPage() {
   const signupCallback = callbackUrl ?? "/dashboard";
 
   return (
-    <section className="max-w-md mx-auto px-6 py-16">
-      <div className="glass-card p-8">
-        <h1 className="font-heading text-3xl text-ice-white mb-2">Sign In</h1>
-        <p className="text-steel-gray text-sm mb-6">One login portal for members and admins.</p>
+    <section className="mx-auto max-w-md px-6 py-16">
+      <Card className="glass-card border-[var(--ghost-border)] py-0 text-ice-white">
+        <CardHeader className="space-y-2 border-b border-[var(--ghost-border)] px-8 py-6">
+          <CardTitle className="font-heading text-3xl">
+            {messages.auth.signInTitle}
+          </CardTitle>
+          <CardDescription className="text-steel-gray">
+            {messages.auth.signInSubtitle}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="px-8 py-6">
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(handleSubmit)}
+              className="space-y-4"
+              noValidate
+            >
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{messages.auth.email}</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        id="login-email"
+                        type="email"
+                        autoComplete="email"
+                        placeholder="you@example.com"
+                        className="border-[var(--ghost-border)] bg-midnight text-ice-white placeholder:text-steel-gray/60"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <label htmlFor="login-email" className="text-xs text-steel-gray uppercase tracking-wider">
-              Email
-            </label>
-            <input
-              id="login-email"
-              type="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              autoComplete="email"
-              className="w-full rounded-xl bg-midnight border border-[var(--ghost-border)] px-3 py-2.5 text-sm text-ice-white placeholder:text-steel-gray/50 focus:outline-none focus:border-signal-orange/30"
-              placeholder="you@example.com"
-            />
-          </div>
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{messages.auth.password}</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        id="login-password"
+                        type="password"
+                        autoComplete="current-password"
+                        placeholder="********"
+                        className="border-[var(--ghost-border)] bg-midnight text-ice-white placeholder:text-steel-gray/60"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <div className="space-y-1.5">
-            <label htmlFor="login-password" className="text-xs text-steel-gray uppercase tracking-wider">
-              Password
-            </label>
-            <input
-              id="login-password"
-              type="password"
-              required
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              autoComplete="current-password"
-              className="w-full rounded-xl bg-midnight border border-[var(--ghost-border)] px-3 py-2.5 text-sm text-ice-white placeholder:text-steel-gray/50 focus:outline-none focus:border-signal-orange/30"
-              placeholder="********"
-            />
-          </div>
+              {serverError ? (
+                <p className="text-sm text-red-400" role="alert">
+                  {serverError}
+                </p>
+              ) : null}
 
-          {error ? <p className="text-sm text-red-400">{error}</p> : null}
+              <Button
+                type="submit"
+                disabled={form.formState.isSubmitting}
+                className="w-full"
+              >
+                {form.formState.isSubmitting
+                  ? messages.auth.signingIn
+                  : messages.auth.signIn}
+              </Button>
+            </form>
+          </Form>
 
-          <button
-            type="submit"
-            disabled={isPending}
-            className="w-full rounded-xl bg-signal-orange py-2.5 text-sm font-medium text-white hover:bg-[var(--signal-orange-hover)] disabled:opacity-60"
-          >
-            {isPending ? "Signing in..." : "Sign In"}
-          </button>
-        </form>
-
-        <p className="text-sm text-steel-gray mt-5">
-          No account yet?{" "}
-          <Link
-            href={`/signup?callbackUrl=${encodeURIComponent(signupCallback)}`}
-            className="text-signal-orange hover:underline"
-          >
-            Create one
-          </Link>
-          .
-        </p>
-      </div>
+          <p className="mt-5 text-sm text-steel-gray">
+            {messages.auth.noAccount}{" "}
+            <Link
+              href={`/signup?callbackUrl=${encodeURIComponent(signupCallback)}`}
+              className="text-signal-orange hover:underline"
+            >
+              {messages.auth.signupLink}
+            </Link>
+            .
+          </p>
+        </CardContent>
+      </Card>
     </section>
   );
 }

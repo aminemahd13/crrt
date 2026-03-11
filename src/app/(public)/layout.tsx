@@ -11,7 +11,9 @@ export default function PublicLayout({
   return (
     <>
       <GlassNav />
-      <main className="relative z-10 pt-20">{children}</main>
+      <main id="main-content" className="relative z-10 pt-20">
+        {children}
+      </main>
       <SiteFooter />
     </>
   );

@@ -8,7 +8,10 @@ import { AdminDataTable } from "@/components/admin/admin-data-table";
 import { AdminFiltersBar } from "@/components/admin/admin-filters-bar";
 import { ConfirmActionModal } from "@/components/admin/confirm-action-modal";
 import { AdminToastViewport, useAdminToast } from "@/components/admin/admin-toast";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import type { EventListRow } from "@/components/admin/events-admin-types";
+import { appCopy } from "@/lib/copy";
 
 function formatDate(value: string): string {
   return new Date(value).toLocaleDateString("en-US", {
@@ -20,10 +23,11 @@ function formatDate(value: string): string {
 
 export function EventsHubClient({ events }: { events: EventListRow[] }) {
   const router = useRouter();
+  const messages = appCopy;
   const [query, setQuery] = useState("");
   const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const { toasts, dismissToast, pushToast } = useAdminToast();
+  const { pushToast } = useAdminToast();
 
   const filteredEvents = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -61,28 +65,24 @@ export function EventsHubClient({ events }: { events: EventListRow[] }) {
 
   return (
     <div className="p-8 mx-auto max-w-6xl space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-heading font-bold text-ice-white">Events</h1>
-          <p className="mt-1 text-sm text-steel-gray">
-            Manage event content and jump directly to event-scoped applications.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/admin/applications"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--ghost-border)] px-4 py-2 text-xs text-steel-gray transition-colors hover:bg-white/5 hover:text-ice-white"
-          >
-            <Users size={14} /> Applications Center
-          </Link>
-          <Link
-            href="/admin/events/new"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-signal-orange px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-[var(--signal-orange-hover)]"
-          >
-            <Plus size={14} /> Create New
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        title={messages.nav.events}
+        description="Manage event content and jump directly to event-scoped applications."
+        actions={
+          <>
+            <Button asChild variant="outline" size="sm" className="border-[var(--ghost-border)] bg-transparent text-steel-gray hover:bg-white/5 hover:text-ice-white">
+              <Link href="/admin/applications">
+                <Users size={14} /> Applications Center
+              </Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href="/admin/events/new">
+                <Plus size={14} /> Create New
+              </Link>
+            </Button>
+          </>
+        }
+      />
 
       <AdminFiltersBar
         search={query}
@@ -176,7 +176,7 @@ export function EventsHubClient({ events }: { events: EventListRow[] }) {
         }}
       />
 
-      <AdminToastViewport toasts={toasts} onDismiss={dismissToast} />
+      <AdminToastViewport />
     </div>
   );
 }

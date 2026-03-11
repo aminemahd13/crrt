@@ -20,8 +20,20 @@ import {
   Type,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { PublishChecklist } from "@/components/admin/publish-checklist";
 import { ApplicationsPanel } from "@/components/admin/applications-panel";
+import { toast } from "sonner";
 import type {
   ApplicationRow,
   EventAdminTab,
@@ -229,10 +241,11 @@ export function EventAdminWorkspace({
 
       if (!response.ok) {
         const payload = (await response.json().catch(() => ({}))) as { error?: string };
-        alert(payload.error || "Failed to save event.");
+        toast.error(payload.error || "Failed to save event.");
         return;
       }
 
+      toast.success("Event saved.");
       router.push("/admin/events");
       router.refresh();
     } finally {
@@ -259,45 +272,54 @@ export function EventAdminWorkspace({
       </label>
 
       {field.type === "text" && (
-        <input
+        <Input
           data-testid={`event-field-${field.key}`}
           type="text"
           value={typeof form[field.key] === "string" ? (form[field.key] as string) : ""}
           onChange={(e) => update(field.key, e.target.value)}
           placeholder={field.placeholder}
-          className="w-full px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white placeholder:text-steel-gray focus:border-signal-orange/30 focus:outline-none"
+          className="border-[var(--ghost-border)] bg-midnight text-ice-white placeholder:text-steel-gray"
         />
       )}
 
       {field.type === "textarea" && (
-        <textarea
+        <Textarea
           data-testid={`event-field-${field.key}`}
           value={typeof form[field.key] === "string" ? (form[field.key] as string) : ""}
           onChange={(e) => update(field.key, e.target.value)}
           placeholder={field.placeholder}
           rows={field.key === "content" ? 12 : 3}
-          className="w-full px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white placeholder:text-steel-gray focus:border-signal-orange/30 focus:outline-none resize-y font-mono"
+          className="border-[var(--ghost-border)] bg-midnight text-ice-white placeholder:text-steel-gray resize-y font-mono"
         />
       )}
 
       {field.type === "select" && (
-        <select
-          data-testid={`event-field-${field.key}`}
-          value={typeof form[field.key] === "string" ? (form[field.key] as string) : ""}
-          onChange={(e) => update(field.key, e.target.value)}
-          className="w-full px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white"
+        <Select
+          value={
+            typeof form[field.key] === "string" && (form[field.key] as string).length > 0
+              ? (form[field.key] as string)
+              : undefined
+          }
+          onValueChange={(value) => update(field.key, value)}
         >
-          <option value="">Select...</option>
-          {field.options?.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger
+            data-testid={`event-field-${field.key}`}
+            className="w-full border-[var(--ghost-border)] bg-midnight text-ice-white"
+          >
+            <SelectValue placeholder="Select..." />
+          </SelectTrigger>
+          <SelectContent className="border-[var(--ghost-border)] bg-midnight text-ice-white">
+            {field.options?.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       )}
 
       {field.type === "number" && (
-        <input
+        <Input
           data-testid={`event-field-${field.key}`}
           type="number"
           value={
@@ -308,17 +330,17 @@ export function EventAdminWorkspace({
                 : ""
           }
           onChange={(e) => update(field.key, e.target.value ? parseInt(e.target.value, 10) : null)}
-          className="w-full px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white"
+          className="border-[var(--ghost-border)] bg-midnight text-ice-white"
         />
       )}
 
       {field.type === "datetime" && (
-        <input
+        <Input
           data-testid={`event-field-${field.key}`}
           type="datetime-local"
           value={typeof form[field.key] === "string" ? (form[field.key] as string) : ""}
           onChange={(e) => update(field.key, e.target.value)}
-          className="w-full px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white"
+          className="border-[var(--ghost-border)] bg-midnight text-ice-white"
         />
       )}
     </div>
@@ -360,25 +382,28 @@ export function EventAdminWorkspace({
         </div>
 
         <div className="flex items-center gap-2">
-          <button
+          <Button
             onClick={() => update("published", !published)}
-            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border text-xs transition-colors ${
+            variant="outline"
+            size="sm"
+            className={`${
               published
-                ? "border-emerald-500/30 text-emerald-400 bg-emerald-500/5"
-                : "border-[var(--ghost-border)] text-steel-gray hover:text-ice-white"
+                ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-400 hover:bg-emerald-500/10"
+                : "border-[var(--ghost-border)] bg-transparent text-steel-gray hover:bg-white/5 hover:text-ice-white"
             }`}
           >
             {published ? <Eye size={12} /> : <EyeOff size={12} />}
             {published ? "Published" : "Draft"}
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleSave}
             disabled={saving}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-signal-orange text-white text-xs font-medium hover:bg-[var(--signal-orange-hover)] transition-colors disabled:opacity-50"
+            size="sm"
+            data-testid="event-save-button"
           >
             <Save size={12} />
             {saving ? "Saving..." : "Save"}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -435,15 +460,17 @@ export function EventAdminWorkspace({
               </label>
               <div className="flex items-center gap-1">
                 {FORM_FIELD_TYPE_OPTIONS.map((ft) => (
-                  <button
+                  <Button
                     key={ft.type}
                     type="button"
                     onClick={() => addField(ft.type)}
                     title={`Add ${ft.label}`}
-                    className="p-1.5 rounded-md text-steel-gray hover:text-ice-white hover:bg-white/5 transition-colors"
+                    size="icon-xs"
+                    variant="ghost"
+                    className="text-steel-gray hover:text-ice-white"
                   >
                     <ft.icon size={14} />
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -472,16 +499,18 @@ export function EventAdminWorkspace({
                         {field.required && <span className="text-signal-orange ml-1">*</span>}
                       </span>
                       <span className="text-[10px] text-steel-gray/50 uppercase">{field.type}</span>
-                      <button
+                      <Button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           removeField(field.id);
                         }}
-                        className="p-1 text-steel-gray/30 hover:text-red-400"
+                        variant="ghost"
+                        size="icon-xs"
+                        className="text-steel-gray/30 hover:text-red-400"
                       >
                         <Trash2 size={12} />
-                      </button>
+                      </Button>
                     </div>
 
                     {editingFieldId === field.id && (
@@ -491,20 +520,20 @@ export function EventAdminWorkspace({
                       >
                         <div className="space-y-1">
                           <label className="text-[10px] text-steel-gray">Label</label>
-                          <input
+                          <Input
                             type="text"
                             value={field.label}
                             onChange={(e) => updateField(field.id, "label", e.target.value)}
-                            className="w-full px-2 py-1.5 rounded-md bg-midnight border border-[var(--ghost-border)] text-xs text-ice-white"
+                            className="h-8 border-[var(--ghost-border)] bg-midnight text-xs text-ice-white"
                           />
                         </div>
                         <div className="space-y-1">
                           <label className="text-[10px] text-steel-gray">Placeholder</label>
-                          <input
+                          <Input
                             type="text"
                             value={field.placeholder ?? ""}
                             onChange={(e) => updateField(field.id, "placeholder", e.target.value)}
-                            className="w-full px-2 py-1.5 rounded-md bg-midnight border border-[var(--ghost-border)] text-xs text-ice-white"
+                            className="h-8 border-[var(--ghost-border)] bg-midnight text-xs text-ice-white"
                           />
                         </div>
                         {field.type === "select" && (
@@ -512,21 +541,21 @@ export function EventAdminWorkspace({
                             <label className="text-[10px] text-steel-gray">
                               Options (comma-separated)
                             </label>
-                            <input
+                            <Input
                               type="text"
                               value={field.options ?? ""}
                               onChange={(e) => updateField(field.id, "options", e.target.value)}
-                              className="w-full px-2 py-1.5 rounded-md bg-midnight border border-[var(--ghost-border)] text-xs text-ice-white"
+                              className="h-8 border-[var(--ghost-border)] bg-midnight text-xs text-ice-white"
                               placeholder="Option1, Option2"
                             />
                           </div>
                         )}
                         <label className="col-span-2 flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             checked={field.required}
-                            onChange={(e) => updateField(field.id, "required", e.target.checked)}
-                            className="accent-signal-orange"
+                            onCheckedChange={(checked) =>
+                              updateField(field.id, "required", checked === true)
+                            }
                           />
                           <span className="text-xs text-steel-gray">Required</span>
                         </label>
@@ -546,7 +575,7 @@ export function EventAdminWorkspace({
               {csvHref && (
                 <a
                   href={csvHref}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[var(--ghost-border)] text-xs text-steel-gray hover:text-ice-white hover:bg-white/5 transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--ghost-border)] px-4 py-2 text-xs text-steel-gray transition-colors hover:bg-white/5 hover:text-ice-white"
                 >
                   <Download size={13} /> Export CSV
                 </a>

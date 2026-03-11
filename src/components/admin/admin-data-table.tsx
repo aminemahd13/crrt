@@ -1,6 +1,15 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { Card } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export interface AdminDataTableColumn {
   key: string;
@@ -20,37 +29,37 @@ export function AdminDataTable({
   emptyMessage: string;
 }) {
   return (
-    <div className="glass-card overflow-hidden">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-[var(--ghost-border)]">
+    <Card className="glass-card overflow-hidden border-[var(--ghost-border)] py-0">
+      <Table>
+        <TableHeader>
+          <TableRow className="border-[var(--ghost-border)] hover:bg-transparent">
             {columns.map((column) => (
-              <th
+              <TableHead
                 key={column.key}
-                className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-steel-gray ${
+                className={`px-4 text-xs font-semibold uppercase tracking-wider text-steel-gray ${
                   column.className ?? ""
                 }`}
               >
                 {column.label}
-              </th>
+              </TableHead>
             ))}
-          </tr>
-        </thead>
-        <tbody>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {empty ? (
-            <tr>
-              <td
+            <TableRow className="hover:bg-transparent">
+              <TableCell
                 className="px-4 py-8 text-center text-sm text-steel-gray"
                 colSpan={Math.max(columns.length, 1)}
               >
                 {emptyMessage}
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ) : (
             children
           )}
-        </tbody>
-      </table>
-    </div>
+        </TableBody>
+      </Table>
+    </Card>
   );
 }

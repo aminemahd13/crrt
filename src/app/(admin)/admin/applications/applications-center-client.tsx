@@ -6,6 +6,16 @@ import Link from "next/link";
 import { AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
 import { AdminFiltersBar } from "@/components/admin/admin-filters-bar";
 import { ApplicationsPanel } from "@/components/admin/applications-panel";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type {
   ApplicationsResponse,
   ApplicationRow,
@@ -147,20 +157,20 @@ export function ApplicationsCenterClient() {
 
   return (
     <div className="p-8 mx-auto max-w-7xl space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-heading font-bold text-ice-white">Applications Center</h1>
-          <p className="mt-1 text-sm text-steel-gray">
-            Manage event applications in one place: status updates, payload review, and hard delete.
-          </p>
-        </div>
-        <Link
-          href="/admin/events"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--ghost-border)] px-4 py-2 text-xs text-steel-gray transition-colors hover:bg-white/5 hover:text-ice-white"
-        >
-          Back to Events
-        </Link>
-      </div>
+      <PageHeader
+        title="Applications Center"
+        description="Manage event applications in one place: status updates, payload review, and hard delete."
+        actions={
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="border-[var(--ghost-border)] bg-transparent text-steel-gray hover:bg-white/5 hover:text-ice-white"
+          >
+            <Link href="/admin/events">Back to Events</Link>
+          </Button>
+        }
+      />
 
       <AdminFiltersBar
         search={q}
@@ -170,84 +180,100 @@ export function ApplicationsCenterClient() {
         }}
         searchPlaceholder="Search by event, member, email, or payload..."
       >
-        <select
+        <Select
           value={eventId}
-          onChange={(e) => {
-            setEventId(e.target.value);
+          onValueChange={(value) => {
+            setEventId(value);
             setPage(1);
           }}
-          className="rounded-lg border border-[var(--ghost-border)] bg-midnight-light px-3 py-2 text-xs text-ice-white"
         >
-          <option value="all">All events</option>
-          {events.map((event) => (
-            <option key={event.eventId} value={event.eventId}>
-              {event.eventTitle}
-            </option>
-          ))}
-        </select>
-        <select
+          <SelectTrigger className="w-[180px] border-[var(--ghost-border)] bg-midnight-light text-ice-white">
+            <SelectValue placeholder="All events" />
+          </SelectTrigger>
+          <SelectContent className="border-[var(--ghost-border)] bg-midnight text-ice-white">
+            <SelectItem value="all">All events</SelectItem>
+            {events.map((event) => (
+              <SelectItem key={event.eventId} value={event.eventId}>
+                {event.eventTitle}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
           value={registrationStatus}
-          onChange={(e) => {
-            setRegistrationStatus(e.target.value as "all" | RegistrationStatus);
+          onValueChange={(value) => {
+            setRegistrationStatus(value as "all" | RegistrationStatus);
             setPage(1);
           }}
-          className="rounded-lg border border-[var(--ghost-border)] bg-midnight-light px-3 py-2 text-xs text-ice-white"
         >
-          {REGISTRATION_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <select
+          <SelectTrigger className="w-[180px] border-[var(--ghost-border)] bg-midnight-light text-ice-white">
+            <SelectValue placeholder="All registration states" />
+          </SelectTrigger>
+          <SelectContent className="border-[var(--ghost-border)] bg-midnight text-ice-white">
+            {REGISTRATION_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
           value={reviewStatus}
-          onChange={(e) => {
-            setReviewStatus(e.target.value as "all" | ReviewSubmissionStatus);
+          onValueChange={(value) => {
+            setReviewStatus(value as "all" | ReviewSubmissionStatus);
             setPage(1);
           }}
-          className="rounded-lg border border-[var(--ghost-border)] bg-midnight-light px-3 py-2 text-xs text-ice-white"
         >
-          {REVIEW_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <input
+          <SelectTrigger className="w-[170px] border-[var(--ghost-border)] bg-midnight-light text-ice-white">
+            <SelectValue placeholder="All review states" />
+          </SelectTrigger>
+          <SelectContent className="border-[var(--ghost-border)] bg-midnight text-ice-white">
+            {REVIEW_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Input
           type="date"
           value={dateFrom}
           onChange={(e) => {
             setDateFrom(e.target.value);
             setPage(1);
           }}
-          className="rounded-lg border border-[var(--ghost-border)] bg-midnight-light px-3 py-2 text-xs text-ice-white"
+          className="w-[156px] border-[var(--ghost-border)] bg-midnight-light text-ice-white"
           aria-label="Date from"
         />
-        <input
+        <Input
           type="date"
           value={dateTo}
           onChange={(e) => {
             setDateTo(e.target.value);
             setPage(1);
           }}
-          className="rounded-lg border border-[var(--ghost-border)] bg-midnight-light px-3 py-2 text-xs text-ice-white"
+          className="w-[156px] border-[var(--ghost-border)] bg-midnight-light text-ice-white"
           aria-label="Date to"
         />
-        <select
-          value={pageSize}
-          onChange={(e) => {
-            const nextSize = Number.parseInt(e.target.value, 10);
+        <Select
+          value={String(pageSize)}
+          onValueChange={(value) => {
+            const nextSize = Number.parseInt(value, 10);
             setPageSize(nextSize);
             setPage(1);
           }}
-          className="rounded-lg border border-[var(--ghost-border)] bg-midnight-light px-3 py-2 text-xs text-ice-white"
         >
-          {[10, 25, 50, 100].map((size) => (
-            <option key={size} value={size}>
-              {size} / page
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="w-[120px] border-[var(--ghost-border)] bg-midnight-light text-ice-white">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="border-[var(--ghost-border)] bg-midnight text-ice-white">
+            {[10, 25, 50, 100].map((size) => (
+              <SelectItem key={size} value={String(size)}>
+                {size} / page
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </AdminFiltersBar>
 
       {truncated ? (
@@ -282,25 +308,27 @@ export function ApplicationsCenterClient() {
           Showing {rows.length} of {total} applications
         </p>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
+          <Button
             onClick={() => setPage((prev) => Math.max(1, prev - 1))}
             disabled={page <= 1}
-            className="inline-flex items-center gap-1 rounded-md border border-[var(--ghost-border)] px-2.5 py-1.5 text-xs text-steel-gray transition-colors hover:bg-white/5 hover:text-ice-white disabled:opacity-50"
+            variant="outline"
+            size="sm"
+            className="border-[var(--ghost-border)] bg-transparent text-steel-gray hover:bg-white/5 hover:text-ice-white"
           >
             <ChevronLeft size={12} /> Prev
-          </button>
+          </Button>
           <span className="text-xs text-ice-white">
             Page {page} / {pageCount}
           </span>
-          <button
-            type="button"
+          <Button
             onClick={() => setPage((prev) => Math.min(pageCount, prev + 1))}
             disabled={page >= pageCount}
-            className="inline-flex items-center gap-1 rounded-md border border-[var(--ghost-border)] px-2.5 py-1.5 text-xs text-steel-gray transition-colors hover:bg-white/5 hover:text-ice-white disabled:opacity-50"
+            variant="outline"
+            size="sm"
+            className="border-[var(--ghost-border)] bg-transparent text-steel-gray hover:bg-white/5 hover:text-ice-white"
           >
             Next <ChevronRight size={12} />
-          </button>
+          </Button>
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";
 
 interface LensCardProps {
   name: string;
@@ -27,7 +28,13 @@ export function LensCard({ name, role, image, className = "" }: LensCardProps) {
       {/* Circular Lens Frame */}
       <div className="lens-frame w-24 h-24 ring-2 ring-[var(--ghost-border)] group-hover:ring-signal-orange/40 transition-all">
         {image ? (
-          <img src={image} alt={name} className="w-full h-full object-cover" />
+          <Image
+            src={image}
+            alt={name}
+            width={96}
+            height={96}
+            className="h-full w-full object-cover"
+          />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-slate-deep to-midnight flex items-center justify-center">
             <span className="font-heading font-bold text-lg text-signal-orange">{initials}</span>
