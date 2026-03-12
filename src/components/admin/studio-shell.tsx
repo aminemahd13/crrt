@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import NextImage from "next/image";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import {
@@ -147,9 +148,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
             className={`flex items-center gap-2 ${collapsed ? "mx-auto" : ""}`}
             aria-label={messages.admin.studio}
           >
-            <div className="flex size-7 items-center justify-center rounded-md bg-signal-orange font-heading text-xs font-bold text-white">
-              CR
-            </div>
+            <NextImage src="/logo.png" alt="CRRT" width={28} height={28} className="size-7 rounded-md object-contain" />
             {!collapsed && (
               <span className="font-heading text-sm font-semibold text-ice-white">
                 {messages.admin.studio}

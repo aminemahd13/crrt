@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Menu } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { appCopy } from "@/lib/copy";
@@ -46,9 +47,7 @@ export function GlassNav() {
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-signal-orange font-heading text-xs font-bold text-white">
-            CR
-          </div>
+          <Image src="/logo.png" alt="CRRT" width={32} height={32} className="size-8 rounded-lg object-contain" />
           <span className="font-heading text-sm font-semibold text-ice-white">CRRT</span>
         </Link>
 

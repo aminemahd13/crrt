@@ -15,6 +15,10 @@ export const metadata: Metadata = {
     "Arduino",
     "AI",
   ],
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default async function RootLayout({
