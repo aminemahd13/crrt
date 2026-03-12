@@ -10,7 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { appCopy } from "@/lib/copy";
 
-export function GlassNav() {
+interface NavLink {
+  label: string;
+  href: string;
+}
+
+export function GlassNav({ links }: { links?: NavLink[] }) {
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const messages = appCopy;
@@ -25,17 +30,19 @@ export function GlassNav() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const navLinks = useMemo(
-    () => [
+  const navLinks = useMemo(() => {
+    if (links) {
+      return links;
+    }
+    return [
       { label: messages.nav.home, href: "/" },
       { label: messages.nav.events, href: "/events" },
       { label: messages.nav.projects, href: "/projects" },
       { label: messages.nav.resources, href: "/resources" },
       { label: messages.nav.blog, href: "/blog" },
       { label: messages.nav.about, href: "/about" },
-    ],
-    [messages.nav]
-  );
+    ];
+  }, [links, messages.nav]);
 
   return (
     <header
@@ -47,7 +54,7 @@ export function GlassNav() {
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
         <Link href="/" className="flex items-center gap-2">
-          <Image src="/logo.png" alt="CRRT" width={32} height={32} className="size-8 rounded-lg object-contain" />
+          <Image src="/logo.png" alt="CRRT" width={32} height={32} unoptimized className="size-8 rounded-lg object-contain" />
           <span className="font-heading text-sm font-semibold text-ice-white">CRRT</span>
         </Link>
 

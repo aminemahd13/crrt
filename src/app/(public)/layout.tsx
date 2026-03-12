@@ -1,20 +1,23 @@
 import { GlassNav } from "@/components/layout/glass-nav";
 import { SiteFooter } from "@/components/layout/site-footer";
+import { getPublicNavigationConfig } from "@/lib/site-config";
 
 export const dynamic = "force-dynamic";
 
-export default function PublicLayout({
+export default async function PublicLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const navigation = await getPublicNavigationConfig();
+
   return (
     <>
-      <GlassNav />
+      <GlassNav links={navigation.header} />
       <main id="main-content" className="relative z-10 pt-20">
         {children}
       </main>
-      <SiteFooter />
+      <SiteFooter links={navigation.footer} />
     </>
   );
 }

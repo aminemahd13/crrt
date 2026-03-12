@@ -2,17 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { logError, logInfo } from "@/lib/logger";
 import { recordApiError, recordApiRequest } from "@/lib/metrics";
-
-function defaultSettings() {
-  return {
-    siteTitle: "CRRT - ENSA Agadir",
-    siteUrl: process.env.NEXTAUTH_URL ?? "http://localhost:3000",
-    adminEmail: process.env.ADMIN_EMAIL ?? "",
-    smtpHost: process.env.SMTP_HOST ?? "",
-    smtpPort: Number.parseInt(process.env.SMTP_PORT ?? "587", 10),
-    smtpFrom: process.env.SMTP_FROM ?? "",
-  };
-}
+import { getDefaultPlatformSettings } from "@/lib/site-config";
 
 export async function GET(request: Request) {
   const requestId = request.headers.get("x-request-id");
@@ -23,7 +13,7 @@ export async function GET(request: Request) {
       update: {},
       create: {
         id: "default",
-        ...defaultSettings(),
+        ...getDefaultPlatformSettings(),
       },
     });
     logInfo("settings_loaded", {

@@ -4,6 +4,11 @@ import Link from "next/link";
 import { Github, Linkedin, Instagram, Mail } from "lucide-react";
 import { appCopy } from "@/lib/copy";
 
+interface FooterLink {
+  label: string;
+  href: string;
+}
+
 const socialLinks = [
   { icon: Linkedin, href: "https://linkedin.com/company/crrt/", label: "LinkedIn" },
   { icon: Instagram, href: "https://instagram.com/club_robotique_crrt", label: "Instagram" },
@@ -11,15 +16,16 @@ const socialLinks = [
   { icon: Mail, href: "mailto:crrt@ensa-agadir.ac.ma", label: "Email" },
 ];
 
-export function SiteFooter() {
+export function SiteFooter({ links }: { links?: FooterLink[] }) {
   const messages = appCopy;
+  const aboutLinks = links ?? [
+    { label: messages.footer.missionLink, href: "/about" },
+    { label: messages.footer.teamLink, href: "/about#team" },
+    { label: messages.footer.timelineLink, href: "/about#timeline" },
+  ];
 
   const footerLinks = {
-    about: [
-      { label: messages.footer.missionLink, href: "/about" },
-      { label: messages.footer.teamLink, href: "/about#team" },
-      { label: messages.footer.timelineLink, href: "/about#timeline" },
-    ],
+    about: aboutLinks,
     explore: [
       { label: messages.nav.events, href: "/events" },
       { label: messages.nav.projects, href: "/projects" },
@@ -64,7 +70,7 @@ export function SiteFooter() {
             </div>
           </div>
 
-          {Object.entries(footerLinks).map(([title, links]) => (
+          {Object.entries(footerLinks).map(([title, sectionLinks]) => (
             <div key={title}>
               <h4 className="mb-4 font-heading text-sm font-semibold uppercase tracking-wider text-ice-white">
                 {title === "about"
@@ -74,7 +80,7 @@ export function SiteFooter() {
                     : messages.footer.connect}
               </h4>
               <ul className="space-y-3">
-                {links.map((link) => (
+                {sectionLinks.map((link) => (
                   <li key={link.href}>
                     <Link
                       href={link.href}
@@ -92,7 +98,7 @@ export function SiteFooter() {
         <div className="section-divider mb-6 mt-12" />
         <div className="flex flex-col items-center justify-between gap-4 text-xs text-steel-gray sm:flex-row">
           <p>
-            © {new Date().getFullYear()} CRRT - ENSA Agadir.{" "}
+            &copy; {new Date().getFullYear()} CRRT - ENSA Agadir.{" "}
             {messages.footer.copyright}
           </p>
           <p className="font-heading italic opacity-60">

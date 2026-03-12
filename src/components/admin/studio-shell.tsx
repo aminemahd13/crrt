@@ -148,7 +148,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
             className={`flex items-center gap-2 ${collapsed ? "mx-auto" : ""}`}
             aria-label={messages.admin.studio}
           >
-            <NextImage src="/logo.png" alt="CRRT" width={28} height={28} className="size-7 rounded-md object-contain" />
+            <NextImage src="/logo.png" alt="CRRT" width={28} height={28} unoptimized className="size-7 rounded-md object-contain" />
             {!collapsed && (
               <span className="font-heading text-sm font-semibold text-ice-white">
                 {messages.admin.studio}

@@ -2,24 +2,41 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { getThemeCSS } from "@/lib/theme";
 import { AuthProvider } from "@/components/auth-provider";
+import { getPlatformSettingsSnapshot } from "@/lib/site-config";
 
-export const metadata: Metadata = {
-  title: "CRRT - Club Robotique & Recherche Technologique",
-  description:
-    "Club Robotique & Recherche Technologique, ENSA Agadir. Trainings, competitions, and research in robotics, AI, and embedded systems.",
-  keywords: [
-    "CRRT",
-    "robotique",
-    "ENSA Agadir",
-    "robotics club",
-    "Arduino",
-    "AI",
-  ],
-  icons: {
-    icon: "/logo.png",
-    apple: "/logo.png",
-  },
-};
+const DEFAULT_TITLE = "CRRT - Club Robotique & Recherche Technologique";
+const DEFAULT_DESCRIPTION =
+  "Club Robotique & Recherche Technologique, ENSA Agadir. Trainings, competitions, and research in robotics, AI, and embedded systems.";
+const DEFAULT_KEYWORDS = [
+  "CRRT",
+  "robotique",
+  "ENSA Agadir",
+  "robotics club",
+  "Arduino",
+  "AI",
+];
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getPlatformSettingsSnapshot();
+  let metadataBase: URL | undefined;
+
+  try {
+    metadataBase = new URL(settings.siteUrl);
+  } catch {
+    metadataBase = undefined;
+  }
+
+  return {
+    title: settings.siteTitle || DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
+    keywords: DEFAULT_KEYWORDS,
+    metadataBase,
+    icons: {
+      icon: "/logo.png",
+      apple: "/logo.png",
+    },
+  };
+}
 
 export default async function RootLayout({
   children,

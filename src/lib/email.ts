@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import { prisma } from "@/lib/prisma";
+import { getPlatformSettingsSnapshot } from "@/lib/site-config";
 
 interface EmailOptions {
   to: string;
@@ -8,28 +9,29 @@ interface EmailOptions {
   from?: string;
 }
 
-function getTransporter() {
-  const host = process.env.SMTP_HOST;
-  const port = Number.parseInt(process.env.SMTP_PORT || "587", 10);
+async function resolveSmtpConfig() {
+  const settings = await getPlatformSettingsSnapshot();
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
+  const fallbackFrom = process.env.SMTP_USER ? `CRRT <${process.env.SMTP_USER}>` : "CRRT <no-reply@localhost>";
 
-  if (!host || !user || !pass) {
-    return null;
-  }
-
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass },
-  });
+  return {
+    host: settings.smtpHost,
+    port: settings.smtpPort,
+    user,
+    pass,
+    from: settings.smtpFrom || fallbackFrom,
+  };
 }
 
 export async function sendEmail(opts: EmailOptions): Promise<{ ok: boolean; error?: string }> {
-  const transporter = getTransporter();
+  const smtp = await resolveSmtpConfig();
 
-  if (!transporter) {
+  const host = smtp.host.trim();
+  const user = smtp.user?.trim();
+  const pass = smtp.pass?.trim();
+
+  if (!host || !user || !pass) {
     console.log("[Email Preview - SMTP not configured]");
     console.log(`   To: ${opts.to}`);
     console.log(`   Subject: ${opts.subject}`);
@@ -37,9 +39,16 @@ export async function sendEmail(opts: EmailOptions): Promise<{ ok: boolean; erro
     return { ok: true };
   }
 
+  const transporter = nodemailer.createTransport({
+    host,
+    port: smtp.port,
+    secure: smtp.port === 465,
+    auth: { user, pass },
+  });
+
   try {
     await transporter.sendMail({
-      from: opts.from || process.env.SMTP_FROM || `CRRT <${process.env.SMTP_USER}>`,
+      from: opts.from || smtp.from,
       to: opts.to,
       subject: opts.subject,
       html: opts.html,

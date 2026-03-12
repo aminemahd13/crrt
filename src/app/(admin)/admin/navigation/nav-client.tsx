@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Save, Check, Plus, Trash2, GripVertical, Eye, EyeOff, ArrowUp, ArrowDown } from "lucide-react";
+import { Save, Check, Plus, Trash2, GripVertical, Eye, EyeOff, ArrowUp, ArrowDown, AlertCircle } from "lucide-react";
 
 interface NavItem {
   id: string;
@@ -16,6 +16,7 @@ export function NavigationStudioClient({ navItems }: { navItems: NavItem[] }) {
   const [items, setItems] = useState<NavItem[]>(navItems);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [dragItem, setDragItem] = useState<string | null>(null);
 
   const headerItems = items.filter((i) => i.section === "header").sort((a, b) => a.order - b.order);
@@ -25,6 +26,7 @@ export function NavigationStudioClient({ navItems }: { navItems: NavItem[] }) {
     setItems((prev) =>
       prev.map((item) => (item.id === id ? { ...item, [key]: value } : item))
     );
+    setError(null);
     setSaved(false);
   };
 
@@ -41,11 +43,13 @@ export function NavigationStudioClient({ navItems }: { navItems: NavItem[] }) {
         section,
       },
     ]);
+    setError(null);
     setSaved(false);
   };
 
   const removeItem = (id: string) => {
     setItems((prev) => prev.filter((item) => item.id !== id));
+    setError(null);
     setSaved(false);
   };
 
@@ -66,6 +70,7 @@ export function NavigationStudioClient({ navItems }: { navItems: NavItem[] }) {
       });
       return result;
     });
+    setError(null);
     setSaved(false);
   }, []);
 
@@ -98,6 +103,7 @@ export function NavigationStudioClient({ navItems }: { navItems: NavItem[] }) {
         return newOrder !== undefined ? { ...item, order: newOrder } : item;
       });
     });
+    setError(null);
     setSaved(false);
   };
 
@@ -107,14 +113,29 @@ export function NavigationStudioClient({ navItems }: { navItems: NavItem[] }) {
 
   const handleSave = async () => {
     setSaving(true);
-    await fetch("/api/admin/navigation", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items }),
-    });
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setError(null);
+    try {
+      const response = await fetch("/api/admin/navigation", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(
+          typeof payload?.error === "string" ? payload.error : "Failed to save navigation."
+        );
+      }
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save navigation.");
+      setSaved(false);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const renderSection = (title: string, section: string, sectionItems: NavItem[]) => (
@@ -206,6 +227,12 @@ export function NavigationStudioClient({ navItems }: { navItems: NavItem[] }) {
           {saving ? "Saving..." : saved ? "Saved!" : "Save"}
         </button>
       </div>
+      {error && (
+        <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+          <AlertCircle size={12} />
+          {error}
+        </div>
+      )}
 
       {renderSection("Header Navigation", "header", headerItems)}
       {renderSection("Footer Navigation", "footer", footerItems)}
