@@ -23,12 +23,6 @@ export default async function EventDetailPage({
   });
 
   if (!event) return notFound();
-  const form = await prisma.form.findUnique({
-    where: { eventId: event.id },
-    include: {
-      fields: { orderBy: { order: "asc" } },
-    },
-  });
 
   const isVisible =
     event.published &&
@@ -54,24 +48,6 @@ export default async function EventDetailPage({
         })
       : Promise.resolve(null),
   ]);
-
-  // Pre-fill data from user profile
-  let userProfile: { name?: string; email?: string; phone?: string; organization?: string; city?: string } | null = null;
-  if (session?.user?.id) {
-    const dbUser = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { name: true, email: true, phone: true, organization: true, city: true },
-    });
-    if (dbUser) {
-      userProfile = {
-        name: dbUser.name ?? undefined,
-        email: dbUser.email ?? undefined,
-        phone: dbUser.phone ?? undefined,
-        organization: dbUser.organization ?? undefined,
-        city: dbUser.city ?? undefined,
-      };
-    }
-  }
 
   return (
     <EventDetail
@@ -102,15 +78,6 @@ export default async function EventDetailPage({
           image: s.image,
         })),
         tags: Array.from(new Set(event.tags.map((ct) => ct.tag.name))),
-        formFields: form?.fields.map((f) => ({
-          id: f.id,
-          label: f.label,
-          type: f.type,
-          required: f.required,
-          placeholder: f.placeholder,
-          options: f.options,
-        })) ?? [],
-        userProfile,
       }}
     />
   );

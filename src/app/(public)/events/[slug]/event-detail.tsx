@@ -1,25 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Calendar, MapPin, Users, ArrowLeft, ClipboardCheck } from "lucide-react";
+import { ArrowLeft, Calendar, ClipboardCheck, MapPin, Users } from "lucide-react";
 import Link from "next/link";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { LensCard } from "@/components/crrt/lens-card";
-import { BlueprintTimeline } from "@/components/crrt/blueprint-timeline";
-import { LabGallery } from "@/components/crrt/lab-gallery";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { getEventRegistrationConfig, getEventThemeStyles } from "@/lib/event-config";
 import { registrationStatusLabel } from "@/lib/event-registration";
 
@@ -36,15 +26,6 @@ interface Speaker {
   role: string | null;
   bio: string | null;
   image: string | null;
-}
-
-interface FormFieldDef {
-  id: string;
-  label: string;
-  type: string;
-  required: boolean;
-  placeholder: string | null;
-  options: unknown;
 }
 
 interface EventDetailProps {
@@ -70,37 +51,17 @@ interface EventDetailProps {
     userRegistration: UserRegistrationSummary | null;
     speakers: Speaker[];
     tags: string[];
-    formFields: FormFieldDef[];
-    userProfile: { name?: string; email?: string; phone?: string; organization?: string; city?: string } | null;
   };
 }
 
-function getProfilePrefill(label: string, profile: EventDetailProps["event"]["userProfile"]): string {
-  if (!profile) return "";
-  const key = label.toLowerCase();
-  if (key.includes("name") && !key.includes("last")) return profile.name ?? "";
-  if (key.includes("email") || key.includes("e-mail")) return profile.email ?? "";
-  if (key.includes("phone") || key.includes("tel")) return profile.phone ?? "";
-  if (key.includes("organi") || key.includes("school") || key.includes("university") || key.includes("institution"))
-    return profile.organization ?? "";
-  if (key.includes("city") || key.includes("ville")) return profile.city ?? "";
-  return "";
-}
+const isActiveRegistration = (status: RegistrationStatus | undefined) =>
+  status === "registered" || status === "approved" || status === "waitlisted";
 
 export function EventDetail({ event }: EventDetailProps) {
   const [registration, setRegistration] = useState<UserRegistrationSummary | null>(event.userRegistration);
   const [activeRegistrationCount, setActiveRegistrationCount] = useState(event.activeRegistrationCount);
   const [isPending, setIsPending] = useState(false);
   const [registrationError, setRegistrationError] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
-  const [formValues, setFormValues] = useState<Record<string, string>>(() => {
-    const initial: Record<string, string> = {};
-    for (const field of event.formFields) {
-      initial[field.label] = getProfilePrefill(field.label, event.userProfile);
-    }
-    return initial;
-  });
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const dateStr = new Date(event.startDate).toLocaleDateString("en-US", {
     weekday: "long",
@@ -113,73 +74,14 @@ export function EventDetail({ event }: EventDetailProps) {
     minute: "2-digit",
   });
   const theme = getEventThemeStyles(event.themePreset, event.themeAccent);
-
   const registrationConfig = getEventRegistrationConfig({
     ...event,
-    defaultHref: "/dashboard",
+    defaultHref: `/events/${event.slug}/apply`,
   });
-  const isInternalRegistration = registrationConfig.mode === "internal";
-  const hasActiveRegistration =
-    registration &&
-    registration.status !== "cancelled" &&
-    registration.status !== "rejected";
-  const hasFormFields = event.formFields.length > 0;
-
-  const validateForm = (): boolean => {
-    const errors: Record<string, string> = {};
-    for (const field of event.formFields) {
-      if (field.required && (!formValues[field.label] || !formValues[field.label].trim())) {
-        errors[field.label] = `${field.label} is required`;
-      }
-    }
-    setFieldErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const handleRegister = async () => {
-    setRegistrationError(null);
-
-    // If there are form fields and form is not shown yet, show it
-    if (hasFormFields && !showForm) {
-      setShowForm(true);
-      return;
-    }
-
-    // Validate form if fields exist
-    if (hasFormFields && !validateForm()) {
-      return;
-    }
-
-    setIsPending(true);
-    try {
-      const response = await fetch(`/api/events/${event.id}/registrations`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          formData: hasFormFields ? formValues : undefined,
-        }),
-      });
-      const payload = await response.json();
-      if (!response.ok) {
-        setRegistrationError(payload.error || "Failed to register.");
-        return;
-      }
-
-      const previousStatus = registration?.status ?? null;
-      setRegistration({ id: payload.id as string, status: payload.status as RegistrationStatus });
-      setShowForm(false);
-
-      const wasActive = previousStatus === "registered" || previousStatus === "approved";
-      const nowActive = payload.status === "registered" || payload.status === "approved";
-      if (!wasActive && nowActive) {
-        setActiveRegistrationCount((prev) => prev + 1);
-      }
-    } catch {
-      setRegistrationError("Failed to register.");
-    } finally {
-      setIsPending(false);
-    }
-  };
+  const hasActiveRegistration = useMemo(
+    () => isActiveRegistration(registration?.status),
+    [registration]
+  );
 
   const handleCancel = async () => {
     if (!registration) return;
@@ -196,7 +98,7 @@ export function EventDetail({ event }: EventDetailProps) {
         return;
       }
 
-      const wasActive = registration.status === "registered" || registration.status === "approved";
+      const wasActive = isActiveRegistration(registration.status);
       setRegistration({ id: payload.id as string, status: payload.status as RegistrationStatus });
       if (wasActive) {
         setActiveRegistrationCount((prev) => Math.max(0, prev - 1));
@@ -208,34 +110,17 @@ export function EventDetail({ event }: EventDetailProps) {
     }
   };
 
-  const getFieldOptions = (field: FormFieldDef): string[] => {
-    if (Array.isArray(field.options)) return field.options.map(String);
-    if (typeof field.options === "string") return field.options.split(",").map((o: string) => o.trim()).filter(Boolean);
-    return [];
-  };
-
-  // Parse content sections for timeline
-  const sections = event.content
-    .split(/^## /m)
-    .filter(Boolean)
-    .map((s, i) => {
-      const lines = s.trim().split("\n");
-      return { id: `agenda-${i}`, year: i + 1, title: lines[0], description: lines.slice(1).join("\n").trim() };
-    });
-
   return (
-    <section className="max-w-7xl mx-auto px-6 py-12" style={theme.scopeStyle}>
-      {/* Back */}
+    <section className="mx-auto max-w-7xl px-6 py-12" style={theme.scopeStyle}>
       <Link
         href="/events"
-        className="inline-flex items-center gap-2 text-sm text-steel-gray hover:text-ice-white transition-colors mb-8"
+        className="mb-8 inline-flex items-center gap-2 text-sm text-steel-gray transition-colors hover:text-ice-white"
       >
         <ArrowLeft size={16} /> Back to Events
       </Link>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        {/* Main */}
-        <div className="lg:col-span-2 space-y-10">
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-3">
+        <div className="space-y-10 lg:col-span-2">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -243,91 +128,133 @@ export function EventDetail({ event }: EventDetailProps) {
           >
             <span
               style={theme.badgeStyle}
-              className="inline-flex items-center text-xs font-medium px-3 py-1 rounded-full border uppercase tracking-wider mb-4"
+              className="mb-4 inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium uppercase tracking-wider"
             >
               {event.type}
             </span>
-            <h1 className="text-3xl md:text-4xl font-heading font-bold text-ice-white mb-4">
+            <h1 className="mb-4 text-3xl font-heading font-bold text-ice-white md:text-4xl">
               {event.title}
             </h1>
-            <p className="text-steel-gray text-lg leading-relaxed">
-              {event.description}
-            </p>
+            <p className="text-lg leading-relaxed text-steel-gray">{event.description}</p>
           </motion.div>
 
-          {/* Agenda Timeline */}
-          {sections.length > 0 && (
-            <div>
-              <h2 className="flex items-center gap-3 font-heading font-bold text-xl text-ice-white mb-6">
-                <div className="w-1 h-5 rounded-full bg-signal-orange" />
-                Agenda
-              </h2>
-              <BlueprintTimeline
-                milestones={sections.map((s) => ({
-                  id: s.id,
-                  year: s.year,
-                  title: s.title,
-                  description: s.description,
-                }))}
-              />
-            </div>
+          {event.content.trim().length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              className="glass-card p-6 md:p-8"
+            >
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  h2: ({ children }) => (
+                    <h2 className="mt-8 mb-3 flex items-center gap-3 font-heading text-2xl font-bold text-ice-white first:mt-0">
+                      <span className="h-5 w-1 rounded-full bg-signal-orange" />
+                      {children}
+                    </h2>
+                  ),
+                  h3: ({ children }) => (
+                    <h3 className="mt-6 mb-2 font-heading text-xl font-semibold text-ice-white">
+                      {children}
+                    </h3>
+                  ),
+                  p: ({ children }) => (
+                    <p className="mb-4 leading-relaxed text-steel-gray">{children}</p>
+                  ),
+                  ul: ({ children }) => (
+                    <ul className="mb-4 list-disc space-y-1 pl-5 text-steel-gray">{children}</ul>
+                  ),
+                  ol: ({ children }) => (
+                    <ol className="mb-4 list-decimal space-y-1 pl-5 text-steel-gray">{children}</ol>
+                  ),
+                  li: ({ children }) => <li>{children}</li>,
+                  blockquote: ({ children }) => (
+                    <blockquote className="my-4 border-l-2 border-[var(--event-accent)] pl-4 italic text-steel-gray">
+                      {children}
+                    </blockquote>
+                  ),
+                  a: ({ href, children }) => (
+                    <a
+                      href={href}
+                      target={href?.startsWith("http") ? "_blank" : undefined}
+                      rel={href?.startsWith("http") ? "noopener noreferrer" : undefined}
+                      className="text-[var(--event-accent)] underline decoration-transparent underline-offset-4 transition-colors hover:decoration-[var(--event-accent)]"
+                    >
+                      {children}
+                    </a>
+                  ),
+                  code: ({ children }) => (
+                    <code className="rounded border border-[var(--ghost-border)] bg-midnight-light px-1.5 py-0.5 text-xs text-signal-orange">
+                      {children}
+                    </code>
+                  ),
+                  pre: ({ children }) => (
+                    <pre className="my-4 overflow-x-auto rounded-xl border border-[var(--ghost-border)] bg-midnight p-4 text-sm text-ice-white">
+                      {children}
+                    </pre>
+                  ),
+                  table: ({ children }) => (
+                    <div className="my-4 overflow-x-auto">
+                      <table className="w-full min-w-[520px] border-collapse border border-[var(--ghost-border)] text-left text-sm text-steel-gray">
+                        {children}
+                      </table>
+                    </div>
+                  ),
+                  th: ({ children }) => (
+                    <th className="border border-[var(--ghost-border)] bg-white/5 px-3 py-2 font-semibold text-ice-white">
+                      {children}
+                    </th>
+                  ),
+                  td: ({ children }) => (
+                    <td className="border border-[var(--ghost-border)] px-3 py-2 align-top">
+                      {children}
+                    </td>
+                  ),
+                  img: ({ src, alt }) => (
+                    <img
+                      src={src}
+                      alt={alt ?? ""}
+                      loading="lazy"
+                      className="my-5 w-full rounded-xl border border-[var(--ghost-border)] bg-midnight-light object-cover"
+                    />
+                  ),
+                }}
+              >
+                {event.content}
+              </ReactMarkdown>
+            </motion.div>
           )}
 
-          {/* Speakers */}
           {event.speakers.length > 0 && (
             <div>
-              <h2 className="flex items-center gap-3 font-heading font-bold text-xl text-ice-white mb-6">
-                <div className="w-1 h-5 rounded-full bg-signal-orange" />
+              <h2 className="mb-6 flex items-center gap-3 font-heading text-xl font-bold text-ice-white">
+                <div className="h-5 w-1 rounded-full bg-signal-orange" />
                 Speakers
               </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4">
                 {event.speakers.map((speaker, index) => (
                   <motion.div
                     key={speaker.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    transition={{ duration: 0.5, delay: index * 0.08 }}
                   >
-                     <LensCard
-                       name={speaker.name}
-                       role={speaker.role || "Speaker"}
-                       image={speaker.image || "/images/placeholder.svg"}
-                     />
+                    <LensCard
+                      name={speaker.name}
+                      role={speaker.role || "Speaker"}
+                      image={speaker.image || "/images/placeholder.svg"}
+                    />
                   </motion.div>
                 ))}
               </div>
             </div>
           )}
-
-          {/* Gallery */}
-          {(() => {
-            const imgRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
-            const images: { src: string; alt: string; caption?: string }[] = [];
-            let match;
-            while ((match = imgRegex.exec(event.content)) !== null) {
-              images.push({ src: match[2], alt: match[1] || event.title, caption: match[1] || undefined });
-            }
-            if (images.length === 0) return null;
-            return (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-              >
-                <h2 className="flex items-center gap-3 font-heading font-bold text-xl text-ice-white mb-6">
-                  <div className="w-1 h-5 rounded-full bg-signal-orange" />
-                  Gallery
-                </h2>
-                <LabGallery images={images} />
-              </motion.div>
-            );
-          })()}
         </div>
 
-        {/* Sticky Sidebar */}
         <div className="lg:col-span-1">
           <div className="sticky top-24 space-y-4">
-            <div className="glass-card p-6 space-y-4">
+            <div className="glass-card space-y-4 p-6">
               <h3 className="font-heading font-semibold text-ice-white">Event Details</h3>
 
               <div className="space-y-3">
@@ -350,7 +277,7 @@ export function EventDetail({ event }: EventDetailProps) {
                   <div className="flex items-start gap-3">
                     <Users size={16} className="mt-0.5" style={theme.iconStyle} />
                     <p className="text-sm text-ice-white">
-                      {event.capacity} spots • {activeRegistrationCount} confirmed
+                      {event.capacity} spots - {activeRegistrationCount} active
                     </p>
                   </div>
                 )}
@@ -362,7 +289,7 @@ export function EventDetail({ event }: EventDetailProps) {
                     <Badge
                       key={tag}
                       variant="secondary"
-                      className="text-[10px] bg-[var(--ghost-white)] border-[var(--ghost-border)] text-steel-gray"
+                      className="border-[var(--ghost-border)] bg-[var(--ghost-white)] text-[10px] text-steel-gray"
                     >
                       {tag}
                     </Badge>
@@ -385,171 +312,52 @@ export function EventDetail({ event }: EventDetailProps) {
                   target="_blank"
                   rel="noopener noreferrer"
                   style={theme.buttonStyle}
-                  className="block w-full py-3 rounded-xl text-white font-medium text-sm text-center hover:opacity-90 transition-opacity"
+                  className="block w-full rounded-xl py-3 text-center text-sm font-medium text-white transition-opacity hover:opacity-90"
                 >
                   {registrationConfig.label}
                 </a>
-              ) : isInternalRegistration ? (
+              ) : hasActiveRegistration && registration ? (
                 <div className="space-y-2">
-                  {!event.isAuthenticated ? (
-                    <div className="space-y-2">
-                      <Link
-                        href={`/signup?callbackUrl=${encodeURIComponent(`/events/${event.slug}`)}`}
-                        style={theme.buttonStyle}
-                        className="block w-full py-3 rounded-xl text-white font-medium text-sm text-center hover:opacity-90 transition-opacity"
-                      >
-                        Create Account to Register
-                      </Link>
-                      <Link
-                        href={`/login?callbackUrl=${encodeURIComponent(`/events/${event.slug}`)}`}
-                        style={theme.buttonSubtleStyle}
-                        className="block w-full py-2.5 rounded-xl border font-medium text-sm text-center"
-                      >
-                        Already a member? Sign In
-                      </Link>
-                    </div>
-                  ) : hasActiveRegistration ? (
-                    <>
-                      <Button
-                        type="button"
-                        disabled
-                        variant="outline"
-                        style={theme.buttonSubtleStyle}
-                        className="h-auto w-full rounded-xl border py-3 text-sm font-medium"
-                      >
-                        {registrationStatusLabel(registration.status)}
-                      </Button>
-                      {event.registrationReviewMode === "manual" && registration.status === "registered" && (
-                        <p className="text-xs text-steel-gray text-center flex items-center justify-center gap-1">
-                          <ClipboardCheck size={12} /> Your registration is pending review
-                        </p>
-                      )}
-                      <Button
-                        type="button"
-                        onClick={handleCancel}
-                        disabled={isPending}
-                        variant="outline"
-                        className="h-auto w-full rounded-xl border-[var(--ghost-border)] py-2.5 text-sm text-steel-gray hover:bg-white/5 hover:text-ice-white"
-                      >
-                        {isPending ? "Updating..." : "Cancel Registration"}
-                      </Button>
-                    </>
-                  ) : showForm && hasFormFields ? (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                      className="space-y-3"
-                    >
-                      <h4 className="text-sm font-medium text-ice-white">Registration Form</h4>
-                      {event.formFields.map((field) => (
-                        <div key={field.id} className="space-y-1">
-                          <label className="text-xs text-steel-gray">
-                            {field.label}
-                            {field.required && <span className="text-signal-orange ml-0.5">*</span>}
-                          </label>
-                          {field.type === "textarea" ? (
-                            <Textarea
-                              rows={3}
-                              placeholder={field.placeholder ?? ""}
-                              value={formValues[field.label] ?? ""}
-                              onChange={(e) =>
-                                setFormValues((prev) => ({ ...prev, [field.label]: e.target.value }))
-                              }
-                              className="border-[var(--ghost-border)] bg-[var(--ghost-white)] text-ice-white placeholder:text-steel-gray/50"
-                            />
-                          ) : field.type === "select" ? (
-                            <Select
-                              value={formValues[field.label] || undefined}
-                              onValueChange={(value) =>
-                                setFormValues((prev) => ({ ...prev, [field.label]: value }))
-                              }
-                            >
-                              <SelectTrigger className="w-full border-[var(--ghost-border)] bg-[var(--ghost-white)] text-ice-white">
-                                <SelectValue placeholder={field.placeholder || "Select..."} />
-                              </SelectTrigger>
-                              <SelectContent className="border-[var(--ghost-border)] bg-midnight text-ice-white">
-                                {getFieldOptions(field).map((opt) => (
-                                  <SelectItem key={opt} value={opt}>
-                                    {opt}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          ) : field.type === "checkbox" ? (
-                            <label className="flex cursor-pointer items-center gap-2 text-sm text-ice-white">
-                              <Checkbox
-                                checked={formValues[field.label] === "true"}
-                                onCheckedChange={(checked) =>
-                                  setFormValues((prev) => ({
-                                    ...prev,
-                                    [field.label]: checked === true ? "true" : "",
-                                  }))
-                                }
-                              />
-                              {field.placeholder}
-                            </label>
-                          ) : (
-                            <Input
-                              type={field.type === "number" ? "number" : field.type === "date" ? "date" : field.type === "email" ? "email" : "text"}
-                              placeholder={field.placeholder ?? ""}
-                              value={formValues[field.label] ?? ""}
-                              onChange={(e) =>
-                                setFormValues((prev) => ({ ...prev, [field.label]: e.target.value }))
-                              }
-                              className="border-[var(--ghost-border)] bg-[var(--ghost-white)] text-ice-white placeholder:text-steel-gray/50"
-                            />
-                          )}
-                          {fieldErrors[field.label] && (
-                            <p className="text-xs text-red-400 mt-0.5">{fieldErrors[field.label]}</p>
-                          )}
-                        </div>
-                      ))}
-                      <div className="flex gap-2 pt-1">
-                        <Button
-                          type="button"
-                          onClick={() => { setShowForm(false); setFieldErrors({}); }}
-                          variant="outline"
-                          className="h-auto flex-1 rounded-xl border-[var(--ghost-border)] py-2.5 text-sm text-steel-gray hover:bg-white/5 hover:text-ice-white"
-                        >
-                          Back
-                        </Button>
-                        <Button
-                          type="button"
-                          onClick={handleRegister}
-                          disabled={isPending}
-                          style={theme.buttonStyle}
-                          className="h-auto flex-1 rounded-xl py-2.5 text-sm font-medium text-white hover:opacity-90"
-                        >
-                          {isPending ? "Submitting..." : "Submit"}
-                        </Button>
-                      </div>
-                    </motion.div>
-                  ) : (
-                    <Button
-                      type="button"
-                      onClick={handleRegister}
-                      disabled={isPending}
-                      style={theme.buttonStyle}
-                      className="h-auto w-full rounded-xl py-3 text-center text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
-                    >
-                      {isPending ? "Registering..." : registrationConfig.label}
-                    </Button>
+                  <Button
+                    type="button"
+                    disabled
+                    variant="outline"
+                    style={theme.buttonSubtleStyle}
+                    className="h-auto w-full rounded-xl border py-3 text-sm font-medium"
+                  >
+                    {registrationStatusLabel(registration.status)}
+                  </Button>
+                  {event.registrationReviewMode === "manual" && registration.status === "registered" && (
+                    <p className="flex items-center justify-center gap-1 text-center text-xs text-steel-gray">
+                      <ClipboardCheck size={12} /> Your application is pending review
+                    </p>
                   )}
-                  {registrationError && (
-                    <Alert variant="destructive" className="bg-red-500/10 border-red-500/20">
-                      <AlertDescription className="text-red-400 text-xs">{registrationError}</AlertDescription>
-                    </Alert>
-                  )}
+                  <Button
+                    type="button"
+                    onClick={handleCancel}
+                    disabled={isPending}
+                    variant="outline"
+                    className="h-auto w-full rounded-xl border-[var(--ghost-border)] py-2.5 text-sm text-steel-gray hover:bg-white/5 hover:text-ice-white"
+                  >
+                    {isPending ? "Updating..." : "Cancel Registration"}
+                  </Button>
                 </div>
               ) : (
                 <Link
-                  href={registrationConfig.href}
+                  href={`/events/${event.slug}/apply`}
                   style={theme.buttonStyle}
-                  className="block w-full py-3 rounded-xl text-white font-medium text-sm text-center hover:opacity-90 transition-opacity"
+                  className="block w-full rounded-xl py-3 text-center text-sm font-medium text-white transition-opacity hover:opacity-90"
                 >
                   {registrationConfig.label}
                 </Link>
+              )}
+
+              {registrationError && (
+                <Alert variant="destructive" className="border-red-500/20 bg-red-500/10">
+                  <AlertDescription className="text-xs text-red-400">
+                    {registrationError}
+                  </AlertDescription>
+                </Alert>
               )}
             </div>
           </div>

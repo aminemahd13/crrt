@@ -34,6 +34,23 @@ test("public navigation remains English and has no language switcher", async ({ 
   await expect(page.getByRole("link", { name: /^accueil$/i })).toHaveCount(0);
 });
 
+test("event apply page shows auth callbacks for unauthenticated users", async ({ page }) => {
+  await page.goto(`/events/${eventSlug}/apply`);
+  const signup = page.getByRole("link", { name: /create account to apply/i });
+  const signin = page.getByRole("link", { name: /already a member\? sign in/i });
+
+  await expect(signup).toBeVisible();
+  await expect(signin).toBeVisible();
+  await expect(signup).toHaveAttribute(
+    "href",
+    new RegExp(`callbackUrl=${encodeURIComponent(`/events/${eventSlug}/apply`)}`)
+  );
+  await expect(signin).toHaveAttribute(
+    "href",
+    new RegExp(`callbackUrl=${encodeURIComponent(`/events/${eventSlug}/apply`)}`)
+  );
+});
+
 test("admin routes are protected and applications center flow works", async ({ page }) => {
   await page.goto("/admin");
   await expect(page).toHaveURL(/\/login\?callbackUrl=%2Fadmin/);
@@ -121,17 +138,60 @@ test("member can register for an event and view private resources", async ({ pag
   }
   await page.goto(`/events/${eventSlug}`);
 
-  const signInPrompt = page.getByRole("link", { name: /sign in to register/i });
-  await expect(signInPrompt).toHaveCount(0);
-
-  const registerButton = page.getByRole("button", { name: /register/i });
-  const statusButton = page.getByRole("button", { name: /registered|waitlisted|approved/i });
-
-  if (await registerButton.count()) {
-    await registerButton.click();
-    await expect(statusButton).toBeVisible();
+  const detailStatusButton = page.getByRole("button", { name: /registered|waitlisted|approved/i });
+  if (await detailStatusButton.count()) {
+    await expect(detailStatusButton).toBeVisible();
   } else {
-    await expect(statusButton).toBeVisible();
+    const applyLink = page.getByRole("link", { name: /register|apply/i }).first();
+    await expect(applyLink).toBeVisible();
+    await applyLink.click();
+    await expect(page).toHaveURL(new RegExp(`/events/${eventSlug}/apply`));
+
+    const submitButton = page.getByTestId("event-apply-submit");
+    await expect(submitButton).toBeVisible();
+    await submitButton.click();
+
+    const validationErrors = page.getByText(/is required/i);
+    if (await validationErrors.count()) {
+      const textInputs = page.locator("input:not([type='checkbox']):not([type='hidden'])");
+      const textInputCount = await textInputs.count();
+      for (let i = 0; i < textInputCount; i += 1) {
+        const input = textInputs.nth(i);
+        if (!(await input.isVisible())) continue;
+        if ((await input.inputValue()).trim().length > 0) continue;
+        const type = (await input.getAttribute("type")) ?? "text";
+        if (type === "email") {
+          await input.fill("member@crrt.ma");
+        } else if (type === "date") {
+          await input.fill("2026-01-01");
+        } else {
+          await input.fill(`E2E value ${i + 1}`);
+        }
+      }
+
+      const textareas = page.locator("textarea");
+      const textareasCount = await textareas.count();
+      for (let i = 0; i < textareasCount; i += 1) {
+        const textarea = textareas.nth(i);
+        if (!(await textarea.isVisible())) continue;
+        if ((await textarea.inputValue()).trim().length > 0) continue;
+        await textarea.fill(`E2E notes ${i + 1}`);
+      }
+
+      const selectTriggers = page.getByRole("combobox");
+      const selectCount = await selectTriggers.count();
+      for (let i = 0; i < selectCount; i += 1) {
+        const trigger = selectTriggers.nth(i);
+        if (!(await trigger.isVisible())) continue;
+        await trigger.click();
+        const option = page.getByRole("option").first();
+        await option.click();
+      }
+
+      await submitButton.click();
+    }
+
+    await expect(page.getByRole("button", { name: /registered|waitlisted|approved/i })).toBeVisible();
   }
 
   await page.goto("/dashboard");
