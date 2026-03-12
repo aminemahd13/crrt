@@ -23,6 +23,7 @@ export default async function AdminEventsPage() {
         type: event.type,
         date: event.startDate.toISOString(),
         registrationsCount: event._count.registrations,
+        capacity: event.capacity,
       }))}
     />
   );

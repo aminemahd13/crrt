@@ -31,6 +31,7 @@ export interface EventListRow {
   type: string;
   date: string;
   registrationsCount: number;
+  capacity: number | null;
 }
 
 export interface EventFilterOption {

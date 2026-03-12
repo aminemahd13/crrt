@@ -5,6 +5,9 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { Calendar as CalendarIcon, MapPin, ArrowUpRight, Grid, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { getEventThemeStyles } from "@/lib/event-config";
 
 interface EventItem {
@@ -87,41 +90,49 @@ export function EventsPage({ events }: { events: EventItem[] }) {
         </Tabs>
 
         <div className="flex flex-wrap gap-2 flex-1">
-          <button
+          <Button
             onClick={() => setTypeFilter(null)}
-            className={`track-chip ${!typeFilter ? "active" : ""}`}
+            variant={!typeFilter ? "default" : "outline"}
+            size="sm"
+            aria-pressed={!typeFilter}
+            className={!typeFilter ? "" : "border-[var(--ghost-border)] bg-transparent text-steel-gray hover:bg-white/5 hover:text-ice-white"}
           >
             All
-          </button>
+          </Button>
           {types.map((type) => (
-            <button
+            <Button
               key={type}
               onClick={() => setTypeFilter(type === typeFilter ? null : type)}
-              className={`track-chip ${typeFilter === type ? "active" : ""}`}
+              variant={typeFilter === type ? "default" : "outline"}
+              size="sm"
+              aria-pressed={typeFilter === type}
+              className={typeFilter === type ? "" : "border-[var(--ghost-border)] bg-transparent text-steel-gray hover:bg-white/5 hover:text-ice-white"}
             >
               {type.charAt(0).toUpperCase() + type.slice(1)}
-            </button>
+            </Button>
           ))}
         </div>
 
         {/* View toggle */}
         <div className="flex items-center gap-1 p-1 rounded-lg bg-[var(--ghost-white)] border border-[var(--ghost-border)]">
-          <button
+          <Button
             onClick={() => setView("grid")}
-            className={`p-1.5 rounded-md transition-colors ${
-              view === "grid" ? "bg-signal-orange/10 text-signal-orange" : "text-steel-gray hover:text-ice-white"
-            }`}
+            variant="ghost"
+            size="icon-xs"
+            aria-pressed={view === "grid"}
+            className={view === "grid" ? "bg-signal-orange/10 text-signal-orange" : "text-steel-gray hover:text-ice-white"}
           >
             <Grid size={14} />
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => setView("calendar")}
-            className={`p-1.5 rounded-md transition-colors ${
-              view === "calendar" ? "bg-signal-orange/10 text-signal-orange" : "text-steel-gray hover:text-ice-white"
-            }`}
+            variant="ghost"
+            size="icon-xs"
+            aria-pressed={view === "calendar"}
+            className={view === "calendar" ? "bg-signal-orange/10 text-signal-orange" : "text-steel-gray hover:text-ice-white"}
           >
             <CalendarDays size={14} />
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -130,25 +141,29 @@ export function EventsPage({ events }: { events: EventItem[] }) {
         <div className="glass-card p-6">
           {/* Calendar header */}
           <div className="flex items-center justify-between mb-6">
-            <button
+            <Button
               onClick={() => {
                 if (calMonth === 0) { setCalMonth(11); setCalYear(calYear - 1); }
                 else setCalMonth(calMonth - 1);
               }}
-              className="p-2 rounded-lg hover:bg-white/5 text-steel-gray hover:text-ice-white"
+              variant="ghost"
+              size="icon-sm"
+              className="text-steel-gray hover:text-ice-white"
             >
               <ChevronLeft size={16} />
-            </button>
+            </Button>
             <h3 className="font-heading font-semibold text-ice-white">{monthLabel}</h3>
-            <button
+            <Button
               onClick={() => {
                 if (calMonth === 11) { setCalMonth(0); setCalYear(calYear + 1); }
                 else setCalMonth(calMonth + 1);
               }}
-              className="p-2 rounded-lg hover:bg-white/5 text-steel-gray hover:text-ice-white"
+              variant="ghost"
+              size="icon-sm"
+              className="text-steel-gray hover:text-ice-white"
             >
               <ChevronRight size={16} />
-            </button>
+            </Button>
           </div>
 
           {/* Day labels */}
@@ -204,9 +219,10 @@ export function EventsPage({ events }: { events: EventItem[] }) {
         /* Grid View */
         <>
           {filtered.length === 0 ? (
-            <div className="text-center py-20">
-              <p className="text-steel-gray text-sm">No events found for this filter.</p>
-            </div>
+            <EmptyState
+              title="No events found"
+              description="Try adjusting your filters or check back later for new events."
+            />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {filtered.map((event, i) => {
@@ -228,12 +244,13 @@ export function EventsPage({ events }: { events: EventItem[] }) {
                   >
                     <div className="relative p-6 pb-4 space-y-3">
                       <div className="flex items-center justify-between">
-                        <span
+                        <Badge
+                          variant="outline"
                           style={theme.badgeStyle}
-                          className="inline-flex items-center text-[11px] font-medium px-2.5 py-0.5 rounded-full border"
+                          className="border text-[11px]"
                         >
                           {event.type}
-                        </span>
+                        </Badge>
                         <span className="text-xs text-steel-gray flex items-center gap-1">
                           <CalendarIcon size={12} /> {dateStr}
                         </span>

@@ -8,8 +8,10 @@ import { LensCard } from "@/components/crrt/lens-card";
 import { BlueprintTimeline } from "@/components/crrt/blueprint-timeline";
 import { LabGallery } from "@/components/crrt/lab-gallery";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -357,12 +359,13 @@ export function EventDetail({ event }: EventDetailProps) {
               {event.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 pt-2">
                   {Array.from(new Set(event.tags)).map((tag) => (
-                    <span
+                    <Badge
                       key={tag}
-                      className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--ghost-white)] border border-[var(--ghost-border)] text-steel-gray"
+                      variant="secondary"
+                      className="text-[10px] bg-[var(--ghost-white)] border-[var(--ghost-border)] text-steel-gray"
                     >
                       {tag}
-                    </span>
+                    </Badge>
                   ))}
                 </div>
               )}
@@ -498,7 +501,7 @@ export function EventDetail({ event }: EventDetailProps) {
                             />
                           )}
                           {fieldErrors[field.label] && (
-                            <p className="text-xs text-red-400">{fieldErrors[field.label]}</p>
+                            <p className="text-xs text-red-400 mt-0.5">{fieldErrors[field.label]}</p>
                           )}
                         </div>
                       ))}
@@ -533,7 +536,11 @@ export function EventDetail({ event }: EventDetailProps) {
                       {isPending ? "Registering..." : registrationConfig.label}
                     </Button>
                   )}
-                  {registrationError && <p className="text-xs text-red-400">{registrationError}</p>}
+                  {registrationError && (
+                    <Alert variant="destructive" className="bg-red-500/10 border-red-500/20">
+                      <AlertDescription className="text-red-400 text-xs">{registrationError}</AlertDescription>
+                    </Alert>
+                  )}
                 </div>
               ) : (
                 <Link

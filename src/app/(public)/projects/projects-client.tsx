@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { Github, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface ProjectItem {
   id: string;
@@ -41,13 +42,16 @@ export function ProjectsPage({ projects }: { projects: ProjectItem[] }) {
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-8">
         {[null, "ongoing", "completed"].map((s) => (
-          <button
+          <Button
             key={s ?? "all"}
             onClick={() => setStatusFilter(s)}
-            className={`track-chip ${statusFilter === s ? "active" : ""}`}
+            variant={statusFilter === s ? "default" : "outline"}
+            size="sm"
+            aria-pressed={statusFilter === s}
+            className={statusFilter === s ? "" : "border-[var(--ghost-border)] bg-transparent text-steel-gray hover:bg-white/5 hover:text-ice-white"}
           >
             {s ? s.charAt(0).toUpperCase() + s.slice(1) : "All"}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -61,18 +65,19 @@ export function ProjectsPage({ projects }: { projects: ProjectItem[] }) {
             transition={{ delay: i * 0.06, duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
           >
             <div className="flex items-center justify-between">
-              <span
-                className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-0.5 rounded-full ${
+              <Badge
+                variant="outline"
+                className={`gap-1.5 ${
                   project.status === "ongoing"
-                    ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                    : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                    : "bg-blue-500/10 text-blue-400 border-blue-500/20"
                 }`}
               >
                 {project.status === "ongoing" && (
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 )}
                 {project.status}
-              </span>
+              </Badge>
               {project.year && (
                 <span className="text-xs text-steel-gray">{project.year}</span>
               )}

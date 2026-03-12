@@ -2,13 +2,22 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ExternalLink, Pencil, Plus, Trash2, Users } from "lucide-react";
+import { ExternalLink, MoreHorizontal, Pencil, Plus, Trash2, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { AdminDataTable } from "@/components/admin/admin-data-table";
 import { AdminFiltersBar } from "@/components/admin/admin-filters-bar";
 import { ConfirmActionModal } from "@/components/admin/confirm-action-modal";
 import { AdminToastViewport, useAdminToast } from "@/components/admin/admin-toast";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { PageHeader } from "@/components/ui/page-header";
 import type { EventListRow } from "@/components/admin/events-admin-types";
 import { appCopy } from "@/lib/copy";
@@ -95,71 +104,91 @@ export function EventsHubClient({ events }: { events: EventListRow[] }) {
           { key: "title", label: "Title" },
           { key: "status", label: "Status" },
           { key: "type", label: "Type" },
-          { key: "applications", label: "Applications" },
+          { key: "applications", label: "Registrations" },
           { key: "date", label: "Date" },
-          { key: "actions", label: "Actions", className: "text-right" },
+          { key: "actions", label: "", className: "w-10" },
         ]}
         empty={filteredEvents.length === 0}
         emptyMessage="No events found."
       >
-        {filteredEvents.map((item) => (
-          <tr
-            key={item.id}
-            className="border-b border-[var(--ghost-border)] last:border-0 hover:bg-white/[0.02] transition-colors"
-          >
-            <td className="px-4 py-3">
-              <p className="text-sm font-medium text-ice-white">{item.title}</p>
-              <p className="text-xs text-steel-gray">{item.slug}</p>
-            </td>
-            <td className="px-4 py-3">
-              <span
-                className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                  item.status === "published"
-                    ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
-                    : "border border-amber-500/20 bg-amber-500/10 text-amber-400"
-                }`}
-              >
-                {item.status}
-              </span>
-            </td>
-            <td className="px-4 py-3 text-xs text-steel-gray">{item.type}</td>
-            <td className="px-4 py-3 text-xs text-steel-gray">{item.registrationsCount}</td>
-            <td className="px-4 py-3 text-xs text-steel-gray">{formatDate(item.date)}</td>
-            <td className="px-4 py-3">
-              <div className="flex items-center justify-end gap-1">
-                <Link
-                  href={`/admin/events/${item.id}`}
-                  className="rounded-md p-1.5 text-steel-gray transition-colors hover:bg-white/5 hover:text-ice-white"
-                  title="Edit event"
-                >
-                  <Pencil size={14} />
+        {filteredEvents.map((item) => {
+          const fillPercent = item.capacity ? Math.round((item.registrationsCount / item.capacity) * 100) : null;
+
+          return (
+            <tr
+              key={item.id}
+              className="border-b border-[var(--ghost-border)] last:border-0 hover:bg-white/[0.02] transition-colors"
+            >
+              <td className="px-4 py-3">
+                <Link href={`/admin/events/${item.id}`} className="hover:text-signal-orange transition-colors">
+                  <p className="text-sm font-medium text-ice-white">{item.title}</p>
+                  <p className="text-xs text-steel-gray">{item.slug}</p>
                 </Link>
-                <Link
-                  href={`/admin/applications?eventId=${item.id}`}
-                  className="inline-flex items-center gap-1 rounded-md border border-[var(--ghost-border)] px-2 py-1 text-[10px] text-steel-gray transition-colors hover:bg-white/5 hover:text-ice-white"
+              </td>
+              <td className="px-4 py-3">
+                <Badge
+                  variant="outline"
+                  className={
+                    item.status === "published"
+                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                      : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                  }
                 >
-                  <Users size={12} /> Applications
-                </Link>
-                <Link
-                  href={`/events/${item.slug}`}
-                  target="_blank"
-                  className="rounded-md p-1.5 text-steel-gray transition-colors hover:bg-white/5 hover:text-ice-white"
-                  title="View public page"
-                >
-                  <ExternalLink size={14} />
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => setConfirmDeleteId(item.id)}
-                  className="rounded-md p-1.5 text-steel-gray transition-colors hover:bg-red-500/5 hover:text-red-400"
-                  title="Delete event"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            </td>
-          </tr>
-        ))}
+                  {item.status}
+                </Badge>
+              </td>
+              <td className="px-4 py-3">
+                <Badge variant="secondary" className="bg-[var(--ghost-white)] border-[var(--ghost-border)] text-steel-gray capitalize">
+                  {item.type}
+                </Badge>
+              </td>
+              <td className="px-4 py-3">
+                <div className="space-y-1 min-w-[100px]">
+                  <span className="text-xs text-steel-gray">
+                    {item.registrationsCount}{item.capacity ? ` / ${item.capacity}` : ""}
+                  </span>
+                  {fillPercent !== null && (
+                    <Progress value={fillPercent} className="h-1" />
+                  )}
+                </div>
+              </td>
+              <td className="px-4 py-3 text-xs text-steel-gray">{formatDate(item.date)}</td>
+              <td className="px-4 py-3">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon-xs" className="text-steel-gray hover:text-ice-white">
+                      <MoreHorizontal size={14} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="border-[var(--ghost-border)] bg-midnight text-ice-white">
+                    <DropdownMenuItem asChild>
+                      <Link href={`/admin/events/${item.id}`} className="cursor-pointer">
+                        <Pencil size={14} /> Edit Event
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href={`/admin/applications?eventId=${item.id}`} className="cursor-pointer">
+                        <Users size={14} /> View Applications
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href={`/events/${item.slug}`} target="_blank" className="cursor-pointer">
+                        <ExternalLink size={14} /> View Public Page
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-[var(--ghost-border)]" />
+                    <DropdownMenuItem
+                      onClick={() => setConfirmDeleteId(item.id)}
+                      className="text-red-400 focus:text-red-400 cursor-pointer"
+                    >
+                      <Trash2 size={14} /> Delete Event
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </td>
+            </tr>
+          );
+        })}
       </AdminDataTable>
 
       <ConfirmActionModal

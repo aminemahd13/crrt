@@ -20,6 +20,7 @@ import {
   ChevronRight,
   LogOut,
   User,
+  Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,33 +32,46 @@ import {
   CommandList,
   CommandShortcut,
 } from "@/components/ui/command";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { appCopy } from "@/lib/copy";
 
 const navGroups = [
   {
-    label: "Operate",
+    label: "Overview",
     items: [
       { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
-      { label: "Applications", href: "/admin/applications", icon: Inbox },
     ],
   },
   {
-    label: "Build",
+    label: "Events",
     items: [
-      { label: "Theme Studio", href: "/admin/theme", icon: Palette },
-      { label: "Home Studio", href: "/admin/home", icon: Home },
-      { label: "Navigation", href: "/admin/navigation", icon: Navigation },
+      { label: "Events Hub", href: "/admin/events", icon: Calendar },
+      { label: "Applications", href: "/admin/applications", icon: Inbox },
     ],
   },
   {
     label: "Content",
     items: [
-      { label: "Events", href: "/admin/events", icon: Calendar },
       { label: "Projects", href: "/admin/projects", icon: FolderOpen },
       { label: "Posts", href: "/admin/posts", icon: FileText },
       { label: "Media", href: "/admin/media", icon: Image },
-      { label: "Resources", href: "/admin/resources", icon: FileText },
+      { label: "Resources", href: "/admin/resources", icon: Layers },
       { label: "Resource Categories", href: "/admin/resource-categories", icon: FolderOpen },
+    ],
+  },
+  {
+    label: "Site",
+    items: [
+      { label: "Home Studio", href: "/admin/home", icon: Home },
+      { label: "Navigation", href: "/admin/navigation", icon: Navigation },
+      { label: "Theme Studio", href: "/admin/theme", icon: Palette },
     ],
   },
   {
@@ -103,6 +117,22 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
       `${item.label} ${item.href} ${item.group}`.toLowerCase().includes(needle)
     );
   }, [commandSearch, flatItems]);
+
+  const breadcrumbs = useMemo(() => {
+    if (pathname === "/admin") return [];
+    const segments = pathname.replace(/^\/admin\/?/, "").split("/").filter(Boolean);
+    const crumbs: { label: string; href: string }[] = [];
+    let path = "/admin";
+    for (const segment of segments) {
+      path += `/${segment}`;
+      const navItem = flatItems.find((item) => item.href === path);
+      const label = navItem
+        ? navItem.label
+        : segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, " ");
+      crumbs.push({ label, href: path });
+    }
+    return crumbs;
+  }, [pathname, flatItems]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-midnight">
@@ -244,6 +274,33 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
         {session?.user?.mustRotatePassword && session.user.role === "admin" && (
           <div className="mx-6 mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-300">
             {messages.admin.securityBanner}
+          </div>
+        )}
+        {breadcrumbs.length > 0 && (
+          <div className="px-8 pt-6 pb-0">
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link href="/admin" className="text-steel-gray hover:text-ice-white">Dashboard</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                {breadcrumbs.map((crumb, i) => (
+                  <span key={crumb.href} className="contents">
+                    <BreadcrumbSeparator className="text-steel-gray/40" />
+                    <BreadcrumbItem>
+                      {i === breadcrumbs.length - 1 ? (
+                        <BreadcrumbPage className="text-ice-white">{crumb.label}</BreadcrumbPage>
+                      ) : (
+                        <BreadcrumbLink asChild>
+                          <Link href={crumb.href} className="text-steel-gray hover:text-ice-white">{crumb.label}</Link>
+                        </BreadcrumbLink>
+                      )}
+                    </BreadcrumbItem>
+                  </span>
+                ))}
+              </BreadcrumbList>
+            </Breadcrumb>
           </div>
         )}
         {children}

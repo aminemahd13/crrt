@@ -11,8 +11,10 @@ import { appCopy } from "@/lib/copy";
 
 export function GlassNav() {
   const pathname = usePathname();
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const messages = appCopy;
+  const isAdmin = (session?.user as { role?: string } | undefined)?.role === "admin";
+  const dashboardHref = isAdmin ? "/admin" : "/dashboard";
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -75,7 +77,7 @@ export function GlassNav() {
         <div className="hidden items-center gap-2 md:flex">
           {status === "authenticated" ? (
             <Button asChild size="sm" className="rounded-full px-4">
-              <Link href="/dashboard">{messages.nav.dashboard}</Link>
+              <Link href={dashboardHref}>{messages.nav.dashboard}</Link>
             </Button>
           ) : (
             <Button asChild size="sm" variant="outline" className="rounded-full border-[var(--ghost-border)] bg-transparent px-4 text-ice-white hover:bg-white/5">
@@ -127,7 +129,7 @@ export function GlassNav() {
                   className="w-full"
                   onClick={() => setMobileOpen(false)}
                 >
-                  <Link href="/dashboard">{messages.nav.dashboard}</Link>
+                  <Link href={dashboardHref}>{messages.nav.dashboard}</Link>
                 </Button>
               ) : (
                 <Button

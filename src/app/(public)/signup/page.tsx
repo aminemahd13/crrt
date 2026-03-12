@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { signupSchema, type SignupValues } from "@/lib/forms/auth-schemas";
 import { appCopy } from "@/lib/copy";
 
@@ -82,8 +83,14 @@ export default function SignupPage() {
   };
 
   return (
-    <section className="mx-auto max-w-md px-6 py-16">
-      <Card className="glass-card border-[var(--ghost-border)] py-0 text-ice-white">
+    <section className="relative mx-auto max-w-md px-6 py-16">
+      {/* Decorative background orbs */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-signal-orange/5 blur-3xl" />
+        <div className="absolute -bottom-20 -left-20 w-64 h-64 rounded-full bg-blue-500/5 blur-3xl" />
+      </div>
+
+      <Card className="relative glass-card border-[var(--ghost-border)] py-0 text-ice-white">
         <CardHeader className="space-y-2 border-b border-[var(--ghost-border)] px-8 py-6">
           <CardTitle className="font-heading text-3xl">
             {messages.auth.signupTitle}
@@ -183,9 +190,9 @@ export default function SignupPage() {
               />
 
               {serverError ? (
-                <p className="text-sm text-red-400" role="alert">
-                  {serverError}
-                </p>
+                <Alert variant="destructive" className="bg-red-500/10 border-red-500/20">
+                  <AlertDescription className="text-red-400">{serverError}</AlertDescription>
+                </Alert>
               ) : null}
 
               <Button
@@ -193,9 +200,14 @@ export default function SignupPage() {
                 disabled={form.formState.isSubmitting}
                 className="w-full"
               >
-                {form.formState.isSubmitting
-                  ? messages.auth.creatingAccount
-                  : messages.auth.createAccount}
+                {form.formState.isSubmitting ? (
+                  <span className="flex items-center gap-2">
+                    <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    {messages.auth.creatingAccount}
+                  </span>
+                ) : (
+                  messages.auth.createAccount
+                )}
               </Button>
             </form>
           </Form>

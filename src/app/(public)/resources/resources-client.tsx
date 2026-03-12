@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { FileText, Link as LinkIcon, Video, Folder, ExternalLink } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 
 interface ResourceItem {
   id: string;
@@ -110,9 +111,9 @@ export function ResourcesPage({ categories }: { categories: ResourceCategoryItem
                         >
                           {typeIcons[resource.type] || <FileText size={18} />}
                         </span>
-                        <span className="text-xs font-semibold uppercase tracking-wider text-steel-gray">
+                        <Badge variant="secondary" className="bg-[var(--ghost-white)] border-[var(--ghost-border)] text-steel-gray uppercase tracking-wider text-[10px]">
                           {resource.type}
-                        </span>
+                        </Badge>
                       </div>
                       <h3 className="font-heading font-semibold text-lg text-ice-white mb-2 leading-snug">
                         {resource.title}

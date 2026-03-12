@@ -1,6 +1,13 @@
 "use client";
 
 import { motion } from "framer-motion";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 interface Partner {
   id: string;
@@ -14,6 +21,8 @@ interface HomePartnersProps {
 }
 
 export function HomePartners({ partners }: HomePartnersProps) {
+  if (partners.length === 0) return null;
+
   return (
     <section className="relative max-w-7xl mx-auto px-6 py-20">
       <div className="section-divider mb-16" />
@@ -31,26 +40,35 @@ export function HomePartners({ partners }: HomePartnersProps) {
         <p className="text-sm text-steel-gray">Organizations backing our mission.</p>
       </motion.div>
 
-      <div className="flex items-center justify-center gap-12 flex-wrap">
-        {partners.map((partner, i) => (
-          <motion.a
-            key={partner.id}
-            href={partner.website ?? "#"}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center h-12 px-4 opacity-40 hover:opacity-100 transition-opacity grayscale hover:grayscale-0"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 0.4 }}
-            whileHover={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: i * 0.1, duration: 0.4 }}
-            title={partner.name}
-          >
-            <span className="font-heading font-bold text-lg text-steel-gray hover:text-ice-white transition-colors">
-              {partner.name}
-            </span>
-          </motion.a>
-        ))}
+      <div className="mx-auto max-w-4xl">
+        <Carousel
+          opts={{ align: "center", loop: true }}
+          className="w-full"
+        >
+          <CarouselContent className="-ml-4">
+            {partners.map((partner) => (
+              <CarouselItem key={partner.id} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4">
+                <a
+                  href={partner.website ?? "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center h-20 px-4 rounded-xl border border-[var(--ghost-border)] bg-midnight-light/50 opacity-60 hover:opacity-100 transition-all grayscale hover:grayscale-0 hover:border-signal-orange/30"
+                  title={partner.name}
+                >
+                  <span className="font-heading font-bold text-lg text-steel-gray hover:text-ice-white transition-colors text-center">
+                    {partner.name}
+                  </span>
+                </a>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          {partners.length > 4 && (
+            <>
+              <CarouselPrevious className="border-[var(--ghost-border)] bg-midnight text-steel-gray hover:text-ice-white hover:bg-white/5" />
+              <CarouselNext className="border-[var(--ghost-border)] bg-midnight text-steel-gray hover:text-ice-white hover:bg-white/5" />
+            </>
+          )}
+        </Carousel>
       </div>
     </section>
   );

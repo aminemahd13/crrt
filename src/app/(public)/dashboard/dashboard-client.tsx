@@ -11,6 +11,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Button } from "@/components/ui/button";
 
 interface UserProfile {
   name: string;
@@ -104,9 +107,9 @@ export function DashboardClient({
                 <Calendar size={14} className="text-signal-orange" />
                 Joined {new Date(user.joinedAt).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
               </span>
-              <span className="px-2 py-0.5 rounded-full bg-signal-orange/10 text-signal-orange border border-signal-orange/20 text-xs font-semibold uppercase tracking-wider">
+              <Badge variant="outline" className="bg-signal-orange/10 text-signal-orange border-signal-orange/20 uppercase tracking-wider text-xs font-semibold">
                 {user.role}
-              </span>
+              </Badge>
             </div>
           </div>
         </div>
@@ -123,12 +126,15 @@ export function DashboardClient({
           </div>
           <div className="glass-card p-5">
             {registrations.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-steel-gray text-sm">No event registrations yet.</p>
-                <Link href="/events" className="inline-flex mt-3 text-xs text-signal-orange hover:underline">
-                  Browse events
-                </Link>
-              </div>
+              <EmptyState
+                title="No event registrations yet"
+                description="Browse our upcoming events and register for ones that interest you."
+                action={
+                  <Button asChild size="sm">
+                    <Link href="/events">Browse Events</Link>
+                  </Button>
+                }
+              />
             ) : (
               <ul className="space-y-3">
                 {registrations.map((registration) => (
@@ -152,12 +158,13 @@ export function DashboardClient({
                         {registration.eventLocation ? ` · ${registration.eventLocation}` : ""}
                       </p>
                     </div>
-                    <span
-                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs capitalize ${registrationBadge(registration.status)}`}
+                    <Badge
+                      variant="outline"
+                      className={`gap-1 capitalize ${registrationBadge(registration.status)}`}
                     >
                       <Ticket size={12} />
                       {registration.status}
-                    </span>
+                    </Badge>
                   </li>
                 ))}
               </ul>
@@ -173,7 +180,10 @@ export function DashboardClient({
           </h2>
           <div className="glass-card p-4 space-y-2">
             {privateResources.length === 0 ? (
-              <p className="text-sm text-steel-gray px-2 py-3">No private resources published yet.</p>
+              <EmptyState
+                title="No private resources"
+                description="Private resources will appear here when published."
+              />
             ) : (
               privateResources.map((resource) => (
                 <a
