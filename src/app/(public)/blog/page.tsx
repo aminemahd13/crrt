@@ -4,6 +4,8 @@ import { Clock, ArrowUpRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
+export const dynamic = "force-dynamic";
+
 export default async function BlogPage() {
   const posts = await prisma.post.findMany({
     where: { published: true },

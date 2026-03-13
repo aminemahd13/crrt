@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { AboutPage } from "./about-client";
 import { buildAboutConfigSnapshot } from "@/lib/about-config";
 
+export const dynamic = "force-dynamic";
+
 type AboutConfigRecord = NonNullable<Parameters<typeof buildAboutConfigSnapshot>[0]>;
 
 interface AboutConfigDelegate {
