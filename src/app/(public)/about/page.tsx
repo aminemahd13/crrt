@@ -1,14 +1,17 @@
 import { prisma } from "@/lib/prisma";
 import { AboutPage } from "./about-client";
+import { buildAboutConfigSnapshot } from "@/lib/about-config";
 
 export default async function AboutServerPage() {
-  const [milestones, members] = await Promise.all([
+  const [milestones, members, aboutConfig] = await Promise.all([
     prisma.timelineMilestone.findMany({ orderBy: { order: "asc" } }),
     prisma.teamMember.findMany({ orderBy: { order: "asc" } }),
+    prisma.aboutConfig.findUnique({ where: { id: "default" } }),
   ]);
 
   return (
     <AboutPage
+      config={buildAboutConfigSnapshot(aboutConfig)}
       milestones={milestones.map((m) => ({
         id: m.id,
         year: m.year,

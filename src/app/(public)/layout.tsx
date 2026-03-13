@@ -2,7 +2,7 @@ import { GlassNav } from "@/components/layout/glass-nav";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { getPublicNavigationConfig } from "@/lib/site-config";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 120;
 
 export default async function PublicLayout({
   children,

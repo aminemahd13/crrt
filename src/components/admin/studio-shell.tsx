@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   Palette,
   Home,
+  BookOpen,
   Calendar,
   FolderOpen,
   FileText,
@@ -76,6 +77,7 @@ const navGroups = [
     label: "Site",
     items: [
       { label: "Home Studio", href: "/admin/home", icon: Home },
+      { label: "About Studio", href: "/admin/about", icon: BookOpen },
       { label: "Navigation", href: "/admin/navigation", icon: Navigation },
       { label: "Theme Studio", href: "/admin/theme", icon: Palette },
     ],

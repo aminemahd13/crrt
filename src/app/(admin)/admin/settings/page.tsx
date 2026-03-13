@@ -113,8 +113,8 @@ export default function SettingsPage() {
   }, []);
 
   const canSubmitPassword = useMemo(() => {
-    return currentPassword.length > 0 && newPassword.length >= 8 && newPassword === confirmPassword;
-  }, [currentPassword, newPassword, confirmPassword]);
+    return newPassword.length >= 8 && newPassword === confirmPassword;
+  }, [newPassword, confirmPassword]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -495,14 +495,15 @@ export default function SettingsPage() {
           <h3 className="font-heading font-semibold text-ice-white text-sm">Password Rotation</h3>
         </div>
         <p className="text-xs text-steel-gray">
-          Seeded admin credentials should be changed in production. This is a warning-only policy.
+          Seeded admin credentials should be changed in production. If this account has no password yet,
+          leave current password blank to set one.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <input
             type="password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
-            placeholder="Current password"
+            placeholder="Current password (if set)"
             className="px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white"
           />
           <input

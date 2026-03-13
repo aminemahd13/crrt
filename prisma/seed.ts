@@ -1,16 +1,17 @@
-import { PrismaClient } from "@prisma/client";
+﻿import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
 async function main() {
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // 0) ADMIN USER
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     const hashedPassword = await bcrypt.hash("crrt2026", 12);
     await prisma.user.upsert({
         where: { email: "admin@crrt.ma" },
         update: {
+            password: hashedPassword,
             mustRotatePassword: true,
         },
         create: {
@@ -21,7 +22,7 @@ async function main() {
             mustRotatePassword: true,
         },
     });
-    console.log("  ✓ Admin user (admin@crrt.ma / crrt2026)");
+    console.log("  âœ“ Admin user (admin@crrt.ma / crrt2026)");
 
     await prisma.user.upsert({
         where: { email: "member@crrt.ma" },
@@ -39,11 +40,11 @@ async function main() {
             city: "Agadir",
         },
     });
-    console.log("  ✓ Member user (member@crrt.ma / crrt2026)");
+    console.log("  âœ“ Member user (member@crrt.ma / crrt2026)");
 
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // 1) THEME SETTINGS (singleton)
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     await prisma.themeSettings.upsert({
         where: { id: "default" },
         update: {},
@@ -62,11 +63,11 @@ async function main() {
             timelineVariant: "blueprint",
         },
     });
-    console.log("  ✓ ThemeSettings");
+    console.log("  âœ“ ThemeSettings");
 
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // 2) HOME CONFIG (singleton)
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     await prisma.homeConfig.upsert({
         where: { id: "default" },
         update: {},
@@ -84,9 +85,29 @@ async function main() {
             ],
         },
     });
-    console.log("  ✓ HomeConfig");
+    console.log("  âœ“ HomeConfig");
 
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+    await prisma.aboutConfig.upsert({
+        where: { id: "default" },
+        update: {},
+        create: {
+            id: "default",
+            heroTitle: "About CRRT",
+            storyText:
+                "The Club Robotique & Recherche Technologique (CRRT) is ENSA Agadir's student-led engineering club, founded in 2008. We build robots, conduct research, and organize events that push the boundaries of what's possible with technology.",
+            valueCards: [
+                { title: "Innovation", desc: "Pushing boundaries through hands-on engineering and research." },
+                { title: "Education", desc: "Training the next generation of engineers through workshops and mentoring." },
+                { title: "Community", desc: "Building a network of passionate technologists across Morocco." },
+            ],
+            teamCurrentLabel: "Current Bureau",
+            teamAlumniLabel: "Alumni",
+            timelineHeading: "Since 2008",
+        },
+    });
+    console.log("  - AboutConfig");
+
     await prisma.platformSettings.upsert({
         where: { id: "default" },
         update: {},
@@ -116,7 +137,7 @@ async function main() {
                 : 90,
         },
     });
-    console.log("  ✓ PlatformSettings");
+    console.log("  âœ“ PlatformSettings");
 
     const templateSeeds = [
         {
@@ -156,21 +177,21 @@ async function main() {
             },
         });
     }
-    console.log("  ✓ Email templates");
+    console.log("  âœ“ Email templates");
 
     // 3) TAGS (unified across content)
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     const tagData = [
-        { name: "arduino", labelEn: "Arduino", labelFr: "Arduino", labelAr: "أردوينو", color: "#0ea5e9", icon: "cpu" },
-        { name: "ai", labelEn: "AI & ML", labelFr: "IA & ML", labelAr: "ذكاء اصطناعي", color: "#8b5cf6", icon: "brain" },
-        { name: "mini-projet", labelEn: "Mini-Project", labelFr: "Mini-Projet", labelAr: "مشروع صغير", color: "#10b981", icon: "rocket" },
-        { name: "competition", labelEn: "Competition", labelFr: "Compétition", labelAr: "مسابقة", color: "#f97316", icon: "trophy" },
-        { name: "raspberry-pi", labelEn: "Raspberry Pi", labelFr: "Raspberry Pi", labelAr: "راسبيري باي", color: "#ec4899", icon: "server" },
-        { name: "robotics", labelEn: "Robotics", labelFr: "Robotique", labelAr: "الروبوتيات", color: "#f59e0b", icon: "bot" },
-        { name: "iot", labelEn: "IoT", labelFr: "IdO", labelAr: "إنترنت الأشياء", color: "#06b6d4", icon: "wifi" },
-        { name: "python", labelEn: "Python", labelFr: "Python", labelAr: "بايثون", color: "#3b82f6", icon: "code" },
-        { name: "pcb-design", labelEn: "PCB Design", labelFr: "Conception PCB", labelAr: "تصميم الدوائر", color: "#14b8a6", icon: "circuit-board" },
-        { name: "3d-printing", labelEn: "3D Printing", labelFr: "Impression 3D", labelAr: "طباعة ثلاثية", color: "#a855f7", icon: "printer" },
+        { name: "arduino", labelEn: "Arduino", labelFr: "Arduino", labelAr: "Ø£Ø±Ø¯ÙˆÙŠÙ†Ùˆ", color: "#0ea5e9", icon: "cpu" },
+        { name: "ai", labelEn: "AI & ML", labelFr: "IA & ML", labelAr: "Ø°ÙƒØ§Ø¡ Ø§ØµØ·Ù†Ø§Ø¹ÙŠ", color: "#8b5cf6", icon: "brain" },
+        { name: "mini-projet", labelEn: "Mini-Project", labelFr: "Mini-Projet", labelAr: "Ù…Ø´Ø±ÙˆØ¹ ØµØºÙŠØ±", color: "#10b981", icon: "rocket" },
+        { name: "competition", labelEn: "Competition", labelFr: "CompÃ©tition", labelAr: "Ù…Ø³Ø§Ø¨Ù‚Ø©", color: "#f97316", icon: "trophy" },
+        { name: "raspberry-pi", labelEn: "Raspberry Pi", labelFr: "Raspberry Pi", labelAr: "Ø±Ø§Ø³Ø¨ÙŠØ±ÙŠ Ø¨Ø§ÙŠ", color: "#ec4899", icon: "server" },
+        { name: "robotics", labelEn: "Robotics", labelFr: "Robotique", labelAr: "Ø§Ù„Ø±ÙˆØ¨ÙˆØªÙŠØ§Øª", color: "#f59e0b", icon: "bot" },
+        { name: "iot", labelEn: "IoT", labelFr: "IdO", labelAr: "Ø¥Ù†ØªØ±Ù†Øª Ø§Ù„Ø£Ø´ÙŠØ§Ø¡", color: "#06b6d4", icon: "wifi" },
+        { name: "python", labelEn: "Python", labelFr: "Python", labelAr: "Ø¨Ø§ÙŠØ«ÙˆÙ†", color: "#3b82f6", icon: "code" },
+        { name: "pcb-design", labelEn: "PCB Design", labelFr: "Conception PCB", labelAr: "ØªØµÙ…ÙŠÙ… Ø§Ù„Ø¯ÙˆØ§Ø¦Ø±", color: "#14b8a6", icon: "circuit-board" },
+        { name: "3d-printing", labelEn: "3D Printing", labelFr: "Impression 3D", labelAr: "Ø·Ø¨Ø§Ø¹Ø© Ø«Ù„Ø§Ø«ÙŠØ©", color: "#a855f7", icon: "printer" },
     ];
 
     const tags: Record<string, { id: string }> = {};
@@ -181,11 +202,11 @@ async function main() {
             create: t,
         });
     }
-    console.log("  ✓ Tags (10)");
+    console.log("  âœ“ Tags (10)");
 
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // 4) EVENTS (minimal realistic set)
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     const event1 = await prisma.event.upsert({
         where: { slug: "arduino-training-2026" },
         update: {},
@@ -222,7 +243,7 @@ Build a traffic light system with 3 LEDs that cycles automatically.
 - Sending commands from PC to Arduino
 
 ### LCD Displays
-- Wiring a 16×2 LCD with I2C
+- Wiring a 16Ã—2 LCD with I2C
 - Displaying sensor data in real-time
 
 ### Final Mini-Project
@@ -251,7 +272,7 @@ void loop() {
 \`\`\``,
             type: "training",
             status: "published",
-            location: "ENSA Agadir — Salle TP Informatique",
+            location: "ENSA Agadir â€” Salle TP Informatique",
             startDate: new Date("2026-03-15T09:00:00"),
             endDate: new Date("2026-03-16T17:00:00"),
             capacity: 30,
@@ -311,7 +332,7 @@ Highlights:
 
     console.log("  - Events (3)");
     // 5) EVENT SPEAKERS
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     const speakerData = [
         { eventId: event3.id, name: "Youness Ahallal", role: "Speaker", order: 0 },
         { eventId: event3.id, name: "Wissam Jenkal", role: "Speaker", order: 1 },
@@ -324,9 +345,9 @@ Highlights:
     }
     console.log(`  - Speakers (${speakerData.length})`);
 
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // 6) PROJECTS (6 projects)
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     const project1 = await prisma.project.upsert({
         where: { slug: "line-follower-v3" },
         update: {},
@@ -398,8 +419,8 @@ Complete IoT solution for greenhouse monitoring using ESP32 and environmental se
 ## Architecture
 
 \`\`\`
-[Sensors] → [ESP32] → [MQTT Broker] → [Node.js API] → [React Dashboard]
-                                         ↓
+[Sensors] â†’ [ESP32] â†’ [MQTT Broker] â†’ [Node.js API] â†’ [React Dashboard]
+                                         â†“
                                     [InfluxDB]
 \`\`\`
 
@@ -445,12 +466,12 @@ Design and build a delivery drone prototype capable of autonomous navigation bet
 
 ## Current Status
 
-- ✅ Frame assembly and motor testing
-- ✅ GPS waypoint navigation (tested in simulation)
-- ✅ ArUco marker landing pad detection
-- 🔄 Obstacle avoidance with depth camera
-- 🔄 Package drop mechanism
-- ⬜ Full autonomous flight test
+- âœ… Frame assembly and motor testing
+- âœ… GPS waypoint navigation (tested in simulation)
+- âœ… ArUco marker landing pad detection
+- ðŸ”„ Obstacle avoidance with depth camera
+- ðŸ”„ Package drop mechanism
+- â¬œ Full autonomous flight test
 
 ## Technical Stack
 
@@ -494,7 +515,7 @@ A 6-DOF robotic arm built with 3D-printed parts and MG996R servos. Features inve
 | DOF | 6 |
 | Reach | 45 cm |
 | Payload | 200g |
-| Servos | MG996R × 6 |
+| Servos | MG996R Ã— 6 |
 | Controller | Arduino Mega + Servo Shield |
 | Interface | Web UI (React + WebSocket) |
 
@@ -563,7 +584,7 @@ Optimal path finding: the robot maps the maze on first run, then computes the sh
 ## Hardware
 
 - Arduino Nano Every
-- 3× VL53L0X ToF distance sensors (front, left, right)
+- 3Ã— VL53L0X ToF distance sensors (front, left, right)
 - N20 micro gear motors with encoders
 - Custom PCB with DRV8833 driver
 - 3D-printed chassis
@@ -580,18 +601,18 @@ Optimal path finding: the robot maps the maze on first run, then computes the sh
         },
     });
 
-    console.log("  ✓ Projects (6)");
+    console.log("  âœ“ Projects (6)");
 
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // 7) POSTS (6 blog articles)
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     await prisma.post.upsert({
         where: { slug: "getting-started-with-arduino" },
         update: {},
         create: {
             title: "Getting Started with Arduino: A Beginner's Guide",
             slug: "getting-started-with-arduino",
-            excerpt: "Everything you need to know to start your Arduino journey — from unboxing to your first sensor project.",
+            excerpt: "Everything you need to know to start your Arduino journey â€” from unboxing to your first sensor project.",
             content: `## What is Arduino?
 
 Arduino is an open-source electronics platform based on easy-to-use hardware and software. It's the gateway into embedded systems for millions of makers worldwide.
@@ -599,7 +620,7 @@ Arduino is an open-source electronics platform based on easy-to-use hardware and
 ## Your First Sketch
 
 \`\`\`cpp
-// Blink — the "Hello, World!" of electronics
+// Blink â€” the "Hello, World!" of electronics
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
 }
@@ -650,25 +671,25 @@ PID (Proportional-Integral-Derivative) is a control loop mechanism that continuo
 
 ### Proportional (P)
 - Reacts to the **current** error
-- Larger error → stronger correction
-- Too high → oscillation
+- Larger error â†’ stronger correction
+- Too high â†’ oscillation
 
 ### Integral (I)
 - Reacts to the **accumulated** error over time
 - Eliminates steady-state error
-- Too high → overshoot and instability
+- Too high â†’ overshoot and instability
 
 ### Derivative (D)
 - Reacts to the **rate of change** of error
 - Dampens oscillation
-- Too high → noise sensitivity
+- Too high â†’ noise sensitivity
 
 ## Tuning Method (Ziegler-Nichols)
 
 1. Set Ki = 0, Kd = 0
 2. Increase Kp until the system oscillates steadily
 3. Note this critical Kp and the oscillation period Tu
-4. Apply: Kp = 0.6×Ku, Ki = 2×Kp/Tu, Kd = Kp×Tu/8
+4. Apply: Kp = 0.6Ã—Ku, Ki = 2Ã—Kp/Tu, Kd = KpÃ—Tu/8
 
 ## Code Example
 
@@ -791,7 +812,7 @@ void loop() {
 ## Architecture Pattern
 
 \`\`\`
-ESP32 → MQTT Broker → Node.js Backend → InfluxDB → Grafana
+ESP32 â†’ MQTT Broker â†’ Node.js Backend â†’ InfluxDB â†’ Grafana
 \`\`\``,
             published: true,
         },
@@ -806,7 +827,7 @@ ESP32 → MQTT Broker → Node.js Backend → InfluxDB → Grafana
             excerpt: "Designing and printing custom parts for your robot projects. Material selection, tolerances, and assembly tips.",
             content: `## Why 3D Print?
 
-Custom brackets, chassis, gears, and enclosures — 3D printing lets you iterate designs in hours, not weeks.
+Custom brackets, chassis, gears, and enclosures â€” 3D printing lets you iterate designs in hours, not weeks.
 
 ## Material Selection
 
@@ -827,7 +848,7 @@ Custom brackets, chassis, gears, and enclosures — 3D printing lets you iterate
 
 ## CRRT Lab Equipment
 
-- **Printers**: Bambu Lab P1P × 2, Ender 3 S1 × 3
+- **Printers**: Bambu Lab P1P Ã— 2, Ender 3 S1 Ã— 3
 - **Materials**: PLA, PLA+, PETG, TPU available in the lab
 - **Software**: Fusion 360 (free for students), BambuStudio`,
             published: true,
@@ -843,7 +864,7 @@ Custom brackets, chassis, gears, and enclosures — 3D printing lets you iterate
             excerpt: "Introduction to the Robot Operating System 2: nodes, topics, and your first robot simulation.",
             content: `## What is ROS 2?
 
-ROS 2 (Robot Operating System 2) is not an actual OS — it's a middleware framework that provides tools, libraries, and conventions for building robot applications.
+ROS 2 (Robot Operating System 2) is not an actual OS â€” it's a middleware framework that provides tools, libraries, and conventions for building robot applications.
 
 ## Key Concepts
 
@@ -889,11 +910,11 @@ rclpy.spin(HelloPublisher())
         },
     });
 
-    console.log("  ✓ Posts (6)");
+    console.log("  âœ“ Posts (6)");
 
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // 8) CONTENT TAGS (cross-references)
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     const contentTags = [
         { tagId: tags["arduino"].id, eventId: event1.id },
         { tagId: tags["ai"].id, eventId: event2.id },
@@ -920,9 +941,9 @@ rclpy.spin(HelloPublisher())
     }
     console.log(`  - ContentTags (${contentTags.length})`);
 
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // 9) TIMELINE MILESTONES
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     const milestones = [
         { year: 2008, title: "CRRT Founded", description: "Club Robotique & Recherche Technologique established at ENSA Agadir by a group of 12 students passionate about electronics and robotics.", order: 0 },
         { year: 2010, title: "First Competition Win", description: "CRRT team wins the regional robotics competition in Casablanca, putting the club on the national map.", order: 1 },
@@ -938,21 +959,24 @@ rclpy.spin(HelloPublisher())
     for (const m of milestones) {
         await prisma.timelineMilestone.create({ data: m });
     }
-    console.log("  ✓ Milestones (10)");
+    console.log("  âœ“ Milestones (10)");
 
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // 10) TEAM MEMBERS (current + alumni)
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     const members = [
         // Current Bureau 2025-2026
-        { name: "Yassine El Amrani", role: "President", linkedIn: "https://linkedin.com/in/yassine-elamrani", order: 0 },
-        { name: "Fatima Zahra Ouali", role: "Vice President", linkedIn: "https://linkedin.com/in/fz-ouali", order: 1 },
-        { name: "Ahmed Benali", role: "Technical Lead", linkedIn: "https://linkedin.com/in/ahmed-benali", order: 2 },
-        { name: "Sara Idrissi", role: "Communications Manager", linkedIn: "https://linkedin.com/in/sara-idrissi", order: 3 },
-        { name: "Omar Tazi", role: "Treasurer", linkedIn: "https://linkedin.com/in/omar-tazi", order: 4 },
-        { name: "Khadija Rachidi", role: "Events Coordinator", linkedIn: "https://linkedin.com/in/khadija-rachidi", order: 5 },
-        { name: "Mehdi Lahlou", role: "AI Team Lead", linkedIn: "https://linkedin.com/in/mehdi-lahlou", order: 6 },
-        { name: "Imane Berrada", role: "IoT Team Lead", linkedIn: "https://linkedin.com/in/imane-berrada", order: 7 },
+        { name: "Nour El Houda Boulondoum", role: "President", order: 0 },
+        { name: "Ibtissame OUADIA", role: "Vice-President", order: 1 },
+        { name: "Wissal Bahi", role: "General Secretary", order: 2 },
+        { name: "Aymene Bermaki", role: "Treasurer", order: 3 },
+        { name: "Fatima Zahra Lafssal", role: "Sponsorship Manager", order: 4 },
+        { name: "Chaima Ait Allal", role: "Event Manager", order: 5 },
+        { name: "Soufiane El Barji", role: "R&D Lead", order: 6 },
+        { name: "Meryem Saidi", role: "Training Manager", order: 7 },
+        { name: "Abdesslam Daddaha", role: "Electrical R&D Manager", order: 8 },
+        { name: "Abdellatif Khobane", role: "Mechanical R&D Manager", order: 9 },
+        { name: "Abdellah Oubihi", role: "Equipment Manager", order: 10 },
         // Alumni
         { name: "Amine Kettani", role: "Founder", isAlumni: true, linkedIn: "https://linkedin.com/in/amine-kettani", order: 100 },
         { name: "Nadia Fassi Fehri", role: "President 2018-2020", isAlumni: true, linkedIn: "https://linkedin.com/in/nadia-ff", order: 101 },
@@ -962,11 +986,11 @@ rclpy.spin(HelloPublisher())
     for (const m of members) {
         await prisma.teamMember.create({ data: m });
     }
-    console.log("  ✓ Team Members (12 — 8 current, 4 alumni)");
+    console.log("  - Team Members (15 - 11 current, 4 alumni)");
 
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // 11) PARTNERS
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     const partners = [
         { name: "ENSA Agadir", logoUrl: "/partners/ensa.svg", website: "https://www.ensa-agadir.ac.ma", order: 0 },
         { name: "OCP Group", logoUrl: "/partners/ocp.svg", website: "https://www.ocpgroup.ma", order: 1 },
@@ -978,11 +1002,11 @@ rclpy.spin(HelloPublisher())
     for (const p of partners) {
         await prisma.partner.create({ data: p });
     }
-    console.log("  ✓ Partners (6)");
+    console.log("  âœ“ Partners (6)");
 
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // 12) NAVIGATION
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     const navItems = [
         // Header
         { label: "Home", href: "/", order: 0, section: "header", visible: true },
@@ -999,11 +1023,11 @@ rclpy.spin(HelloPublisher())
     for (const n of navItems) {
         await prisma.navItem.create({ data: n });
     }
-    console.log("  ✓ Navigation (9 items)");
+    console.log("  âœ“ Navigation (9 items)");
 
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // 13) FORMS (2 published with fields)
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // 13) RESOURCE CATEGORIES + RESOURCES (public + private)
     const resourceCategories = [
         {
@@ -1089,7 +1113,7 @@ rclpy.spin(HelloPublisher())
             create: resource,
         });
     }
-    console.log("  ✓ Resources (4 - 2 public, 2 private)");
+    console.log("  âœ“ Resources (4 - 2 public, 2 private)");
 
     // 14) FORMS (2 published with fields)
     const trainingForm = await prisma.form.create({
@@ -1105,8 +1129,8 @@ rclpy.spin(HelloPublisher())
                     { label: "Full Name", type: "text", required: true, placeholder: "Your full name", order: 0 },
                     { label: "Email", type: "text", required: true, placeholder: "your.email@ensa-agadir.ac.ma", order: 1 },
                     { label: "Student ID (CNE)", type: "text", required: true, placeholder: "R130...", order: 2 },
-                    { label: "Year of Study", type: "select", required: true, options: "1ère année,2ème année,3ème année,4ème année,5ème année", order: 3 },
-                    { label: "Filière", type: "select", required: true, options: "Génie Informatique,Génie Industriel,Génie Électrique,Génie Civil,Autre", order: 4 },
+                    { label: "Year of Study", type: "select", required: true, options: "1Ã¨re annÃ©e,2Ã¨me annÃ©e,3Ã¨me annÃ©e,4Ã¨me annÃ©e,5Ã¨me annÃ©e", order: 3 },
+                    { label: "FiliÃ¨re", type: "select", required: true, options: "GÃ©nie Informatique,GÃ©nie Industriel,GÃ©nie Ã‰lectrique,GÃ©nie Civil,Autre", order: 4 },
                     { label: "Prior Arduino Experience", type: "select", required: false, options: "None,Beginner,Intermediate,Advanced", order: 5 },
                     { label: "Do you have your own Arduino board?", type: "checkbox", required: false, placeholder: "Yes, I have an Arduino board", order: 6 },
                     { label: "Anything else we should know?", type: "textarea", required: false, placeholder: "Special needs, questions, etc.", order: 7 },
@@ -1130,7 +1154,7 @@ rclpy.spin(HelloPublisher())
                     { label: "Captain Email", type: "text", required: true, placeholder: "captain@ensa-agadir.ac.ma", order: 2 },
                     { label: "Captain Phone", type: "text", required: true, placeholder: "+212 6XX XXX XXX", order: 3 },
                     { label: "Number of Team Members", type: "select", required: true, options: "2,3,4", order: 4 },
-                    { label: "Team Members (names and roles)", type: "textarea", required: true, placeholder: "List all members:\n- Name 1 — Role\n- Name 2 — Role", order: 5 },
+                    { label: "Team Members (names and roles)", type: "textarea", required: true, placeholder: "List all members:\n- Name 1 â€” Role\n- Name 2 â€” Role", order: 5 },
                     { label: "University / School", type: "text", required: true, placeholder: "e.g. ENSA Agadir", order: 6 },
                     { label: "Robot Name", type: "text", required: false, placeholder: "Your robot's name (if decided)", order: 7 },
                     { label: "Brief Robot Description", type: "textarea", required: true, placeholder: "Describe your robot concept in 2-3 sentences", order: 8 },
@@ -1140,11 +1164,11 @@ rclpy.spin(HelloPublisher())
         },
     });
 
-    console.log("  ✓ Forms (2 published)");
+    console.log("  âœ“ Forms (2 published)");
 
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // 14) FORM SUBMISSIONS (sample data)
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     const submissions = [
         {
             formId: trainingForm.id,
@@ -1153,8 +1177,8 @@ rclpy.spin(HelloPublisher())
                 "Full Name": "Hamza Ait Brahim",
                 "Email": "hamza.aitbrahim@ensa-agadir.ac.ma",
                 "Student ID (CNE)": "R130456789",
-                "Year of Study": "2ème année",
-                "Filière": "Génie Informatique",
+                "Year of Study": "2Ã¨me annÃ©e",
+                "FiliÃ¨re": "GÃ©nie Informatique",
                 "Prior Arduino Experience": "Beginner",
                 "Do you have your own Arduino board?": "true",
                 "Anything else we should know?": "",
@@ -1167,8 +1191,8 @@ rclpy.spin(HelloPublisher())
                 "Full Name": "Zineb El Khatiri",
                 "Email": "zineb.elkhatiri@ensa-agadir.ac.ma",
                 "Student ID (CNE)": "R130567890",
-                "Year of Study": "1ère année",
-                "Filière": "Génie Électrique",
+                "Year of Study": "1Ã¨re annÃ©e",
+                "FiliÃ¨re": "GÃ©nie Ã‰lectrique",
                 "Prior Arduino Experience": "None",
                 "Do you have your own Arduino board?": "false",
                 "Anything else we should know?": "I'm very excited to learn electronics!",
@@ -1181,8 +1205,8 @@ rclpy.spin(HelloPublisher())
                 "Full Name": "Mohammed Ezzahiri",
                 "Email": "m.ezzahiri@ensa-agadir.ac.ma",
                 "Student ID (CNE)": "R130678901",
-                "Year of Study": "3ème année",
-                "Filière": "Génie Industriel",
+                "Year of Study": "3Ã¨me annÃ©e",
+                "FiliÃ¨re": "GÃ©nie Industriel",
                 "Prior Arduino Experience": "Intermediate",
                 "Do you have your own Arduino board?": "true",
                 "Anything else we should know?": "I'd like to bring my own sensor kit.",
@@ -1197,7 +1221,7 @@ rclpy.spin(HelloPublisher())
                 "Captain Email": "y.moustaid@ensa-agadir.ac.ma",
                 "Captain Phone": "+212 612 345 678",
                 "Number of Team Members": "3",
-                "Team Members (names and roles)": "- Younes Moustaid — Captain / Software\n- Aicha Belkacem — Hardware\n- Karim Idrissi — Mechanical",
+                "Team Members (names and roles)": "- Younes Moustaid â€” Captain / Software\n- Aicha Belkacem â€” Hardware\n- Karim Idrissi â€” Mechanical",
                 "University / School": "ENSA Agadir",
                 "Robot Name": "NeuroRacer",
                 "Brief Robot Description": "Autonomous line-following robot with PID control and obstacle avoidance using 3 ultrasonic sensors.",
@@ -1213,7 +1237,7 @@ rclpy.spin(HelloPublisher())
                 "Captain Email": "l.amrani@est-agadir.ac.ma",
                 "Captain Phone": "+212 623 456 789",
                 "Number of Team Members": "4",
-                "Team Members (names and roles)": "- Leila Amrani — Captain / AI\n- Saad Benali — Electronics\n- Nora Hajji — Software\n- Amine Kettani — Mechanical",
+                "Team Members (names and roles)": "- Leila Amrani â€” Captain / AI\n- Saad Benali â€” Electronics\n- Nora Hajji â€” Software\n- Amine Kettani â€” Mechanical",
                 "University / School": "EST Agadir",
                 "Robot Name": "AtlasBot",
                 "Brief Robot Description": "Maze-solving robot using flood-fill algorithm with custom ToF sensor array and ESP32.",
@@ -1224,11 +1248,11 @@ rclpy.spin(HelloPublisher())
     for (const s of submissions) {
         await prisma.formSubmission.create({ data: s });
     }
-    console.log("  ✓ Form Submissions (5)");
+    console.log("  âœ“ Form Submissions (5)");
 
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // 15) MEDIA (sample entries)
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     const mediaItems = [
         { filename: "crrt-logo.svg", url: "/media/crrt-logo.svg", mimeType: "image/svg+xml", size: 4200, alt: "CRRT Logo", usedIn: "Theme Settings" },
         { filename: "arduino-training-cover.jpg", url: "/media/arduino-training-cover.jpg", mimeType: "image/jpeg", size: 245000, alt: "Arduino Training workshop photo", usedIn: "Event: Arduino Training", width: 1200, height: 800 },
@@ -1240,11 +1264,11 @@ rclpy.spin(HelloPublisher())
     for (const m of mediaItems) {
         await prisma.media.create({ data: m });
     }
-    console.log("  ✓ Media (6 entries)");
+    console.log("  âœ“ Media (6 entries)");
 
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     // Update HomeConfig with featured project IDs
-    // ═══════════════════════════════════════════════
+    // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
     await prisma.homeConfig.update({
         where: { id: "default" },
         data: {
@@ -1252,9 +1276,9 @@ rclpy.spin(HelloPublisher())
             pinnedEventId: event1.id,
         },
     });
-    console.log("  ✓ HomeConfig updated with featured projects + pinned event");
+    console.log("  âœ“ HomeConfig updated with featured projects + pinned event");
 
-    console.log("\n✅ Full seed complete! Database populated with realistic CRRT data.\n");
+    console.log("\nâœ… Full seed complete! Database populated with realistic CRRT data.\n");
 }
 
 main()
@@ -1265,3 +1289,5 @@ main()
     .finally(async () => {
         await prisma.$disconnect();
     });
+
+

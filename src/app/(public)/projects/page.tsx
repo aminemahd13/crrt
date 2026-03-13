@@ -6,7 +6,26 @@ export default async function ProjectsServerPage() {
   const projects = await prisma.project.findMany({
     where: { published: true },
     orderBy: { createdAt: "desc" },
-    include: { tags: { include: { tag: true } } },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      description: true,
+      status: true,
+      stackTags: true,
+      year: true,
+      repoUrl: true,
+      demoUrl: true,
+      tags: {
+        select: {
+          tag: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
+    },
   });
 
   return (

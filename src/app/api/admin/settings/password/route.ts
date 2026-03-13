@@ -20,8 +20,8 @@ export async function PUT(request: Request) {
     const currentPassword = typeof body.currentPassword === "string" ? body.currentPassword : "";
     const newPassword = typeof body.newPassword === "string" ? body.newPassword : "";
 
-    if (!currentPassword || !newPassword) {
-      return NextResponse.json({ error: "Current and new password are required" }, { status: 400 });
+    if (!newPassword) {
+      return NextResponse.json({ error: "New password is required" }, { status: 400 });
     }
     if (newPassword.length < 8) {
       return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
@@ -31,13 +31,19 @@ export async function PUT(request: Request) {
       where: { id: session.user.id },
       select: { id: true, password: true },
     });
-    if (!user?.password) {
-      return NextResponse.json({ error: "Password credentials unavailable" }, { status: 400 });
+    if (!user) {
+      return NextResponse.json({ error: "User account not found" }, { status: 404 });
     }
 
-    const matches = await bcrypt.compare(currentPassword, user.password);
-    if (!matches) {
-      return NextResponse.json({ error: "Current password is incorrect" }, { status: 400 });
+    if (user.password) {
+      if (!currentPassword) {
+        return NextResponse.json({ error: "Current password is required" }, { status: 400 });
+      }
+
+      const matches = await bcrypt.compare(currentPassword, user.password);
+      if (!matches) {
+        return NextResponse.json({ error: "Current password is incorrect" }, { status: 400 });
+      }
     }
 
     const nextHash = await bcrypt.hash(newPassword, 12);

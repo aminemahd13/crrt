@@ -151,7 +151,7 @@ export default async function AdminDashboard() {
       color: "text-cyan-400",
       bg: "bg-cyan-500/10",
       border: "border-cyan-500/20",
-      href: "/admin/home",
+      href: "/admin/about",
     },
   ];
 

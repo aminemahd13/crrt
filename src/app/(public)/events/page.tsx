@@ -7,8 +7,30 @@ export default async function EventsServerPage() {
   const events = await prisma.event.findMany({
     where: getVisibleEventsWhere(now),
     orderBy: { startDate: "desc" },
-    include: {
-      tags: { include: { tag: true } },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      description: true,
+      type: true,
+      startDate: true,
+      endDate: true,
+      location: true,
+      coverImage: true,
+      themePreset: true,
+      themeAccent: true,
+      registrationMode: true,
+      registrationLabel: true,
+      registrationUrl: true,
+      tags: {
+        select: {
+          tag: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
     },
   });
 

@@ -3,10 +3,25 @@ import { ResourcesPage } from "./resources-client";
 
 export default async function ResourcesServerPage() {
   const categories = await prisma.resourceCategory.findMany({
-    include: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      description: true,
+      color: true,
+      icon: true,
       resources: {
         where: { isPublic: true },
         orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          description: true,
+          url: true,
+          type: true,
+          createdAt: true,
+        },
       },
     },
     orderBy: { name: "asc" },
