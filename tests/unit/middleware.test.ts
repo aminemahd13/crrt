@@ -10,7 +10,7 @@ vi.mock("next-auth/jwt", () => ({
 describe("middleware auth and security guards", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.NEXTAUTH_URL = "http://localhost:3000";
+    process.env.NEXTAUTH_URL = "http://localhost:3300";
     process.env.NEXTAUTH_SECRET = "test-secret";
   });
 

@@ -36,7 +36,7 @@ If you use PowerShell, step 2 is:
 Copy-Item .env.example .env
 ```
 
-Open [http://localhost:3000](http://localhost:3000) for the public site and [http://localhost:3000/login](http://localhost:3000/login) for sign-in (members, editors, and admins).
+Open [http://localhost:3300](http://localhost:3300) for the public site and [http://localhost:3300/login](http://localhost:3300/login) for sign-in (members, editors, and admins).
 
 Seeded credentials:
 - `admin@crrt.ma / crrt2026`
@@ -68,7 +68,7 @@ npm run dev:docker:reset # Reset database + reseed
 ```
 
 Notes:
-- App URL remains `http://localhost:3000`.
+- App URL remains `http://localhost:3300`.
 - The dev stack uses an internal Docker DB URL (`postgres:5432`) and does not require local Postgres on your host.
 - `npm run dev:docker` uses Docker Compose watch mode, so dependency/config changes can rebuild or restart automatically.
 - Docker dev reads `NEXTAUTH_SECRET` from your project `.env`, so keep it stable across `npm run dev` and `npm run dev:docker`.
@@ -176,8 +176,8 @@ Admin UI shows a warning banner until the seeded admin password is rotated.
 ### 4) Health and first-login verification
 
 ```bash
-curl -fsS http://127.0.0.1:3000/api/health
-curl -fsS http://127.0.0.1:3000/api/metrics
+curl -fsS http://127.0.0.1:3300/api/health
+curl -fsS http://127.0.0.1:3300/api/metrics
 ```
 
 Then verify in browser:

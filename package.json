@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --port 3300",
     "dev:docker": "docker compose -f docker-compose.dev.yml up --build --watch",
     "dev:docker:up": "docker compose -f docker-compose.dev.yml up --build",
     "dev:docker:down": "docker compose -f docker-compose.dev.yml down",
@@ -11,7 +11,7 @@
     "dev:docker:seed": "docker compose -f docker-compose.dev.yml run --rm app npm run db:seed",
     "dev:docker:reset": "docker compose -f docker-compose.dev.yml run --rm app npm run db:reset",
     "build": "next build --webpack",
-    "start": "next start",
+    "start": "next start --port 3300",
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",

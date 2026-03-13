@@ -34,8 +34,8 @@ RUN mkdir -p /app/public/uploads && chown -R nextjs:nodejs /app/public/uploads
 
 USER nextjs
 
-EXPOSE 3000
-ENV PORT=3000
+EXPOSE 3300
+ENV PORT=3300
 ENV HOSTNAME=0.0.0.0
 
 CMD ["node", "server.js"]

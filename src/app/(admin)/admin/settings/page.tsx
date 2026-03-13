@@ -34,7 +34,7 @@ interface SettingsState {
 
 const INITIAL_SETTINGS: SettingsState = {
   siteTitle: "CRRT - ENSA Agadir",
-  siteUrl: "http://localhost:3000",
+  siteUrl: "http://localhost:3300",
   smtpHost: "smtp.purelymail.com",
   smtpPort: 465,
   smtpFrom: "",

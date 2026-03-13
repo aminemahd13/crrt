@@ -69,7 +69,7 @@ export function getDefaultPlatformSettings(): PlatformSettingsSnapshot {
   const initialSyncDays = Number.parseInt(process.env.IMAP_INITIAL_SYNC_DAYS ?? "90", 10);
   return {
     siteTitle: "CRRT - ENSA Agadir",
-    siteUrl: process.env.NEXTAUTH_URL ?? "http://localhost:3000",
+    siteUrl: process.env.NEXTAUTH_URL ?? "http://localhost:3300",
     adminEmail: process.env.ADMIN_EMAIL ?? "contact@crrt.tech",
     smtpHost: process.env.SMTP_HOST ?? "smtp.purelymail.com",
     smtpPort: Number.isFinite(envPort) ? envPort : 465,

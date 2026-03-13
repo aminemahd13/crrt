@@ -289,9 +289,12 @@ export class ImapMailboxProvider implements MailboxProvider {
     const lock = await this.client.getMailboxLock(input.sourceFolder, { description: "mailbox-move" });
     try {
       const moved = await this.client.messageMove([input.uid], input.destinationFolder, { uid: true });
+      if (!moved) {
+        return { uidValidity: null, uid: null };
+      }
       return {
-        uidValidity: moved?.uidValidity ?? null,
-        uid: moved?.uidMap?.get(input.uid) ?? null,
+        uidValidity: moved.uidValidity ?? null,
+        uid: moved.uidMap?.get(input.uid) ?? null,
       };
     } finally {
       lock.release();

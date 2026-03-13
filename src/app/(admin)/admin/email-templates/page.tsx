@@ -130,7 +130,7 @@ export default function EmailTemplatesPage() {
   const selectedTemplateVariables = useMemo(() => {
     if (!selected) return AVAILABLE_TEMPLATE_VARIABLES;
     const variables = AVAILABLE_TEMPLATE_VARIABLES.filter((variable) =>
-      variable.templates.includes(selected.key)
+      variable.templates.some((templateKey) => templateKey === selected.key)
     );
     return variables.length > 0 ? variables : AVAILABLE_TEMPLATE_VARIABLES;
   }, [selected]);

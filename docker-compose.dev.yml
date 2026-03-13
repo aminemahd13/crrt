@@ -33,7 +33,7 @@ services:
       NPM_CONFIG_UPDATE_NOTIFIER: "false"
       DATABASE_URL: postgresql://crrt:crrt@postgres:5432/crrt?schema=public
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-crrt-dev-secret-change-in-production}
-      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_URL: http://localhost:3300
       ADMIN_EMAIL: contact@crrt.tech
       SMTP_HOST: ""
       SMTP_PORT: "587"
@@ -56,7 +56,7 @@ services:
       CHOKIDAR_USEPOLLING: "1"
       WATCHPACK_POLLING: "true"
     ports:
-      - "3000:3000"
+      - "3300:3300"
     volumes:
       - .:/app
       - dev-node-modules:/app/node_modules
@@ -91,7 +91,7 @@ services:
       fi &&
       npx prisma generate &&
       npx prisma migrate deploy &&
-      npm run dev -- --hostname 0.0.0.0 --port 3000"
+      npm run dev -- --hostname 0.0.0.0 --port 3300"
 
 volumes:
   postgres-dev-data:

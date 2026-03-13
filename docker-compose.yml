@@ -40,7 +40,7 @@ services:
       migrate:
         condition: service_completed_successfully
     ports:
-      - "3000:3000"
+      - "3300:3300"
     environment:
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?NEXTAUTH_SECRET is required}
@@ -68,7 +68,7 @@ services:
       - ${MEDIA_UPLOAD_DIR_HOST:-./data/uploads}:/app/public/uploads
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health | grep -q '\"ok\":true'"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3300/api/health | grep -q '\"ok\":true'"]
       interval: 30s
       timeout: 10s
       retries: 5
