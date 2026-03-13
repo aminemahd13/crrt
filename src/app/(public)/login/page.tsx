@@ -163,6 +163,15 @@ export default function LoginPage() {
                 )}
               />
 
+              <div className="flex justify-end">
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-signal-orange hover:underline"
+                >
+                  {messages.auth.forgotPassword}
+                </Link>
+              </div>
+
               {serverError ? (
                 <Alert variant="destructive" className="bg-red-500/10 border-red-500/20">
                   <AlertDescription className="text-red-400">{serverError}</AlertDescription>

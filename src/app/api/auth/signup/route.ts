@@ -4,6 +4,11 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { logError, logInfo } from "@/lib/logger";
 import { recordApiError, recordApiRequest } from "@/lib/metrics";
+import {
+  ACCOUNT_ACTION,
+  issueAccountActionToken,
+  sendEmailVerificationEmail,
+} from "@/lib/account-actions";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
@@ -91,6 +96,20 @@ export async function POST(request: Request) {
       },
     });
 
+    const verifyToken = await issueAccountActionToken({
+      userId: user.id,
+      action: ACCOUNT_ACTION.EMAIL_VERIFY,
+      ttlMinutes: 60 * 24,
+    });
+
+    if (user.email) {
+      await sendEmailVerificationEmail({
+        to: user.email,
+        name: user.name,
+        token: verifyToken,
+      });
+    }
+
     logInfo("member_signup_created", {
       pathname: "/api/auth/signup",
       method: "POST",
@@ -99,7 +118,7 @@ export async function POST(request: Request) {
       details: { userId: user.id, email: user.email },
     });
 
-    return NextResponse.json(user, { status: 201 });
+    return NextResponse.json({ ...user, verificationEmailSent: true }, { status: 201 });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return NextResponse.json({ error: "An account with this email already exists." }, { status: 409 });

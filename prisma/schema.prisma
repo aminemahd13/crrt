@@ -24,6 +24,7 @@ model User {
   city          String?
   accounts      Account[]
   sessions      Session[]
+  accountActionTokens AccountActionToken[]
   registrations EventRegistration[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -61,6 +62,21 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model AccountActionToken {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action       String
+  tokenHash    String    @unique
+  pendingEmail String?
+  expiresAt    DateTime
+  consumedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([userId, action])
+  @@index([expiresAt])
 }
 
 // ─── Content ─────────────────────────────────────

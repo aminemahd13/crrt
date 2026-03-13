@@ -51,6 +51,18 @@ export interface AppCopy {
     noAccount: string;
     signInLink: string;
     signupLink: string;
+    forgotPassword: string;
+    resetPasswordTitle: string;
+    resetPasswordSubtitle: string;
+    requestReset: string;
+    sendResetLink: string;
+    resetLinkSent: string;
+    verifyEmailTitle: string;
+    verifyEmailSubtitle: string;
+    verifyEmailAction: string;
+    emailChange: string;
+    requestEmailChange: string;
+    resendVerification: string;
   };
   admin: {
     studio: string;
@@ -118,6 +130,18 @@ export const appCopy: AppCopy = {
     noAccount: "No account yet?",
     signInLink: "Sign in",
     signupLink: "Create one",
+    forgotPassword: "Forgot password?",
+    resetPasswordTitle: "Reset Password",
+    resetPasswordSubtitle: "Request a secure link to reset your password.",
+    requestReset: "Reset password",
+    sendResetLink: "Send reset link",
+    resetLinkSent: "If an account exists for this email, we sent a reset link.",
+    verifyEmailTitle: "Verify Email",
+    verifyEmailSubtitle: "Confirm your email to complete account security actions.",
+    verifyEmailAction: "Verify email",
+    emailChange: "Change email",
+    requestEmailChange: "Send verification to new email",
+    resendVerification: "Resend verification",
   },
   admin: {
     studio: "Studio",

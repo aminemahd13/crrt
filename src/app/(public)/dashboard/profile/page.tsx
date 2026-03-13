@@ -15,6 +15,7 @@ export default async function ProfilePage() {
     select: {
       name: true,
       email: true,
+      emailVerified: true,
       phone: true,
       bio: true,
       organization: true,

@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Check, Save } from "lucide-react";
+import { useState } from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -21,6 +22,7 @@ import {
 interface ProfileData {
   name: string | null;
   email: string | null;
+  emailVerified: Date | null;
   phone: string | null;
   bio: string | null;
   organization: string | null;
@@ -38,6 +40,8 @@ const profileSchema = z.object({
 type ProfileValues = z.infer<typeof profileSchema>;
 
 export function ProfileForm({ initialData }: { initialData: ProfileData }) {
+  const [newEmail, setNewEmail] = useState("");
+  const [emailActionBusy, setEmailActionBusy] = useState<"change" | "resend" | null>(null);
   const form = useForm<ProfileValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
@@ -67,6 +71,57 @@ export function ProfileForm({ initialData }: { initialData: ProfileData }) {
       form.reset(values);
     } catch {
       toast.error("Failed to update profile.");
+    }
+  };
+
+  const requestEmailChange = async () => {
+    const candidate = newEmail.trim().toLowerCase();
+    if (!candidate) {
+      toast.error("Please enter your new email.");
+      return;
+    }
+
+    setEmailActionBusy("change");
+    try {
+      const response = await fetch("/api/user/email-change/request", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: candidate }),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => ({}))) as { error?: string };
+        toast.error(payload.error ?? "Unable to request email change.");
+        return;
+      }
+
+      toast.success("Verification sent to your new email address.");
+      setNewEmail("");
+    } catch {
+      toast.error("Unable to request email change.");
+    } finally {
+      setEmailActionBusy(null);
+    }
+  };
+
+  const resendVerification = async () => {
+    setEmailActionBusy("resend");
+    try {
+      const response = await fetch("/api/user/email-verification/request", {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => ({}))) as { error?: string };
+        toast.error(payload.error ?? "Unable to resend verification.");
+        return;
+      }
+
+      toast.success("Verification email sent.");
+    } catch {
+      toast.error("Unable to resend verification.");
+    } finally {
+      setEmailActionBusy(null);
     }
   };
 
@@ -104,7 +159,42 @@ export function ProfileForm({ initialData }: { initialData: ProfileData }) {
             disabled
             className="cursor-not-allowed border-[var(--ghost-border)] bg-midnight text-steel-gray"
           />
-          <p className="text-[10px] text-steel-gray/60">Email cannot be changed.</p>
+
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <Input
+              type="email"
+              value={newEmail}
+              onChange={(event) => setNewEmail(event.target.value)}
+              placeholder="new-email@example.com"
+              className="border-[var(--ghost-border)] bg-midnight text-ice-white placeholder:text-steel-gray/40"
+            />
+            <Button
+              type="button"
+              onClick={requestEmailChange}
+              disabled={emailActionBusy !== null}
+              variant="outline"
+              className="border-[var(--ghost-border)]"
+            >
+              {emailActionBusy === "change" ? "Sending..." : "Send verification to new email"}
+            </Button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 text-[11px] text-steel-gray/80">
+            <span>
+              Status: {initialData.emailVerified ? "Verified" : "Not verified"}
+            </span>
+            {!initialData.emailVerified ? (
+              <Button
+                type="button"
+                onClick={resendVerification}
+                disabled={emailActionBusy !== null}
+                variant="link"
+                className="h-auto p-0 text-[11px] text-signal-orange"
+              >
+                {emailActionBusy === "resend" ? "Sending..." : "Resend verification"}
+              </Button>
+            ) : null}
+          </div>
         </div>
 
         <Form {...form}>

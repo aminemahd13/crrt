@@ -14,6 +14,7 @@ export async function GET() {
     select: {
       name: true,
       email: true,
+      emailVerified: true,
       phone: true,
       bio: true,
       organization: true,
@@ -52,6 +53,7 @@ export async function PUT(request: Request) {
     select: {
       name: true,
       email: true,
+      emailVerified: true,
       phone: true,
       bio: true,
       organization: true,

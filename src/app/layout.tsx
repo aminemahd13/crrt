@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { getThemeCSS } from "@/lib/theme";
 import { AuthProvider } from "@/components/auth-provider";
@@ -15,6 +15,12 @@ const DEFAULT_KEYWORDS = [
   "Arduino",
   "AI",
 ];
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getPlatformSettingsSnapshot();

@@ -8,6 +8,14 @@ const prismaMock = {
   },
 };
 
+const accountActionsMock = {
+  ACCOUNT_ACTION: {
+    EMAIL_VERIFY: "email_verify",
+  },
+  issueAccountActionToken: vi.fn(),
+  sendEmailVerificationEmail: vi.fn(),
+};
+
 vi.mock("@/lib/prisma", () => ({
   prisma: prismaMock,
 }));
@@ -22,9 +30,13 @@ vi.mock("@/lib/metrics", () => ({
   recordApiError: vi.fn(),
 }));
 
+vi.mock("@/lib/account-actions", () => accountActionsMock);
+
 describe("signup API", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    accountActionsMock.issueAccountActionToken.mockResolvedValue("verify-token");
+    accountActionsMock.sendEmailVerificationEmail.mockResolvedValue({ ok: true });
   });
 
   it("rejects invalid payloads", async () => {
@@ -88,5 +100,15 @@ describe("signup API", () => {
     expect(createArgs.data.role).toBe("member");
     expect(createArgs.data.password).not.toBe("Password123!");
     await expect(bcrypt.compare("Password123!", createArgs.data.password)).resolves.toBe(true);
+
+    expect(accountActionsMock.issueAccountActionToken).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: "user-2",
+        action: "email_verify",
+      })
+    );
+    expect(accountActionsMock.sendEmailVerificationEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ to: "new.user@example.com" })
+    );
   });
 });

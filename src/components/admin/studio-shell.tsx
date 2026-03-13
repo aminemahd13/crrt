@@ -21,6 +21,7 @@ import {
   ChevronRight,
   LogOut,
   User,
+  Users,
   Layers,
   Menu,
   X,
@@ -84,6 +85,7 @@ const navGroups = [
     items: [
       { label: "Inbox", href: "/admin/inbox", icon: Inbox },
       { label: "Email Templates", href: "/admin/email-templates", icon: Mail },
+      { label: "Users", href: "/admin/users", icon: Users },
       { label: "Settings", href: "/admin/settings", icon: Settings },
     ],
   },

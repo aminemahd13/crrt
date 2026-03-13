@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -31,6 +30,7 @@ export default function SignupPage() {
   }, [searchParams]);
 
   const [serverError, setServerError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const form = useForm<SignupValues>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
@@ -43,6 +43,7 @@ export default function SignupPage() {
 
   const handleSubmit = async (values: SignupValues) => {
     setServerError(null);
+    setSuccessMessage(null);
     try {
       const response = await fetch("/api/auth/signup", {
         method: "POST",
@@ -61,21 +62,12 @@ export default function SignupPage() {
         toast.error(message);
         return;
       }
-
-      const signInResult = await signIn("credentials", {
-        email: values.email.trim(),
-        password: values.password,
-        callbackUrl,
-        redirect: false,
-      });
-
-      if (signInResult?.error) {
+      setSuccessMessage("Account created. Please check your inbox to verify your email.");
+      form.reset();
+      setTimeout(() => {
         router.push(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
-        return;
-      }
-
-      router.push(signInResult?.url ?? callbackUrl);
-      router.refresh();
+        router.refresh();
+      }, 1400);
     } catch {
       setServerError(messages.auth.unableToSignup);
       toast.error(messages.auth.unableToSignup);
@@ -192,6 +184,12 @@ export default function SignupPage() {
               {serverError ? (
                 <Alert variant="destructive" className="bg-red-500/10 border-red-500/20">
                   <AlertDescription className="text-red-400">{serverError}</AlertDescription>
+                </Alert>
+              ) : null}
+
+              {successMessage ? (
+                <Alert className="border-emerald-500/20 bg-emerald-500/10">
+                  <AlertDescription className="text-emerald-300">{successMessage}</AlertDescription>
                 </Alert>
               ) : null}
 

@@ -28,7 +28,7 @@ export function HomeProjects({ projects }: HomeProjectsProps) {
       <div className="section-divider mb-16" />
 
       <motion.div
-        className="flex items-center justify-between mb-8"
+        className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
