@@ -88,7 +88,7 @@ services:
         condition: service_completed_successfully
     environment:
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
-    command: ["npm", "exec", "--", "prisma", "db", "seed"]
+    command: ["npx", "tsx", "prisma/seed.ts"]
     restart: "no"
 
 volumes:
