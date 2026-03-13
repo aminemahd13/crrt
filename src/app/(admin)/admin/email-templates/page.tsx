@@ -13,6 +13,13 @@ interface EmailTemplate {
   enabled: boolean;
 }
 
+interface TemplateVariable {
+  key: string;
+  description: string;
+  sample: string;
+  templates: readonly string[];
+}
+
 const EMPTY_TEMPLATE: EmailTemplate = {
   key: "",
   name: "New Template",
@@ -21,7 +28,7 @@ const EMPTY_TEMPLATE: EmailTemplate = {
   enabled: true,
 };
 
-const AVAILABLE_TEMPLATE_VARIABLES = [
+const AVAILABLE_TEMPLATE_VARIABLES: ReadonlyArray<TemplateVariable> = [
   {
     key: "name",
     description: "Recipient name (falls back to email when name is unavailable).",
@@ -65,7 +72,7 @@ const AVAILABLE_TEMPLATE_VARIABLES = [
     sample: "General Inquiry",
     templates: ["form-submission-received"],
   },
-] as const;
+];
 
 const PREVIEW_DEFAULT_VALUES: Record<string, string> = Object.fromEntries(
   AVAILABLE_TEMPLATE_VARIABLES.map((variable) => [variable.key, variable.sample])
