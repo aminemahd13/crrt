@@ -184,7 +184,7 @@ async function main() {
     console.log("  ✓ Tags (10)");
 
     // ═══════════════════════════════════════════════
-    // 4) EVENTS (6 events covering all types)
+    // 4) EVENTS (minimal realistic set)
     // ═══════════════════════════════════════════════
     const event1 = await prisma.event.upsert({
         where: { slug: "arduino-training-2026" },
@@ -260,240 +260,69 @@ void loop() {
     });
 
     const event2 = await prisma.event.upsert({
-        where: { slug: "ai-conference-2026" },
+        where: { slug: "south-robotics-gathering-2026" },
         update: {},
         create: {
-            title: "AI & Robotics Conference 2026",
-            slug: "ai-conference-2026",
+            title: "South Robotics Gathering 3rd Edition",
+            slug: "south-robotics-gathering-2026",
             description:
-                "Annual conference featuring industry speakers on artificial intelligence, computer vision, and autonomous systems. Open to students and professionals.",
-            content: `## Morning Session — 08:30 to 12:30
+                "Flagship scientific event organized by CRRT at ENSA Agadir. Theme: AI & Intelligent Robotics: From Mobility to Innovation.",
+            content: `Three-day edition with talks, workshops, exhibitions, and robotics competitions.
 
-### Opening Keynote: The Future of AI in Morocco
-Dr. Amina El Fassi — INPT Rabat
-An overview of Morocco's AI strategy and the role universities play in developing AI talent.
+Publicly announced dates: March 26-28, 2026.
 
-### Computer Vision in Production
-Prof. Youssef Berrada — UM6P
-From academic research to deployed systems: lessons learned building CV pipelines at scale.
-
-### Coffee Break & Networking
-10:30 – 11:00
-
-### Panel Discussion: Ethics in AI
-Moderated by Dr. Laila Bennis with industry panelists.
-
-## Afternoon Session — 14:00 to 18:00
-
-### Reinforcement Learning Workshop
-Karim Tazi — ML Engineer, OCP Group
-Hands-on workshop using OpenAI Gym and stable-baselines3.
-
-### Natural Language Processing for Arabic
-Dr. Hassan Ouazzani — EMI Rabat
-Challenges and breakthroughs in Arabic NLP, with live demos.
-
-### Closing Ceremony & Awards
-Best poster presentation and best demo awards.`,
+Format:
+- Scientific talks and debates
+- Team competitions
+- Project exhibition stands`,
             type: "conference",
             status: "published",
-            location: "ENSA Agadir — Amphithéâtre A",
-            startDate: new Date("2026-04-20T08:30:00"),
-            endDate: new Date("2026-04-20T18:00:00"),
-            capacity: 200,
+            location: "ENSA Agadir",
+            startDate: new Date("2026-03-26T09:00:00"),
+            endDate: new Date("2026-03-28T18:00:00"),
+            capacity: 350,
             published: true,
         },
     });
 
     const event3 = await prisma.event.upsert({
-        where: { slug: "robotics-competition-2026" },
+        where: { slug: "south-robotics-gathering-2025" },
         update: {},
         create: {
-            title: "CRRT Robotics Challenge 2026",
-            slug: "robotics-competition-2026",
+            title: "South Robotics Gathering 2nd Edition",
+            slug: "south-robotics-gathering-2025",
             description:
-                "Annual inter-university robotics competition. Build an autonomous robot that can navigate an obstacle course, collect objects, and return to base.",
-            content: `## Competition Rules
+                "Second SRG edition at ENSA Agadir under the theme: Shaping Morocco's Future: Robotics Across Diverse Sectors.",
+            content: `Two-day event held on April 11-12, 2025.
 
-### General
-1. Teams of 2–4 members (at least 1 from ENSA Agadir)
-2. Robot must be fully autonomous — no remote control
-3. Maximum dimensions: 30×30×30 cm
-4. Weight limit: 2 kg
-5. Time limit: 3 minutes per run
-
-### Arena
-- 2×3 meter flat surface with black track lines
-- 4 colored objects placed randomly
-- Start zone and return zone marked with tape
-
-### Scoring
-| Action | Points |
-|--------|--------|
-| Complete lap | 20 |
-| Object collected | 10 |
-| Return to base | 15 |
-| Time bonus (<90s) | 5 |
-
-### Judging Criteria
-- Reliability and repeatability
-- Code quality and documentation
-- Design innovation
-- Presentation (5-minute pitch after run)
-
-## Schedule
-
-### Day 1 — Qualification Rounds
-09:00–12:00 — Technical inspection
-14:00–18:00 — Qualification runs (each team gets 3 attempts)
-
-### Day 2 — Finals
-09:00–12:00 — Semi-finals (top 8 teams)
-14:00–16:00 — Grand finale (top 4)
-16:30–17:30 — Awards ceremony + closing`,
-            type: "competition",
+Highlights:
+- Talks and workshops
+- Robotics competitions (including Free Robotics and WarBot)
+- Project exhibition and networking`,
+            type: "conference",
             status: "published",
-            location: "ENSA Agadir — Hall Principal",
-            startDate: new Date("2026-05-10T09:00:00"),
-            endDate: new Date("2026-05-11T17:00:00"),
-            capacity: 50,
+            location: "ENSA Agadir",
+            startDate: new Date("2025-04-11T09:00:00"),
+            endDate: new Date("2025-04-12T18:00:00"),
+            capacity: 300,
             published: true,
         },
     });
 
-    const event4 = await prisma.event.upsert({
-        where: { slug: "raspberry-pi-workshop-2026" },
-        update: {},
-        create: {
-            title: "Raspberry Pi & Linux Workshop",
-            slug: "raspberry-pi-workshop-2026",
-            description:
-                "Introduction to single-board computers. Learn Linux basics, GPIO programming, and build a smart home sensor hub.",
-            content: `## Workshop Outline
-
-### Part 1: Linux Fundamentals
-- Flashing Raspberry Pi OS
-- Terminal navigation and package management
-- SSH and remote access
-
-### Part 2: GPIO Programming
-- Controlling LEDs and reading sensors with Python
-- Using RPi.GPIO and gpiozero libraries
-- I2C and SPI communication
-
-### Part 3: Build a Sensor Hub
-- Connect DHT22 (temp/humidity), BMP280 (pressure), and PIR (motion)
-- Log data to a SQLite database
-- Serve a real-time dashboard with Flask`,
-            type: "workshop",
-            status: "published",
-            location: "ENSA Agadir — Salle TP Électronique",
-            startDate: new Date("2026-06-05T09:00:00"),
-            endDate: new Date("2026-06-05T17:00:00"),
-            capacity: 25,
-            published: true,
-        },
-    });
-
-    const event5 = await prisma.event.upsert({
-        where: { slug: "pcb-design-training-2026" },
-        update: {},
-        create: {
-            title: "PCB Design with KiCad",
-            slug: "pcb-design-training-2026",
-            description:
-                "Learn to design professional PCBs using KiCad 8. From schematic capture to manufacturing-ready Gerber files.",
-            content: `## Topics Covered
-
-### Schematic Capture
-- Component symbols and libraries
-- Wiring and net labels
-- Electrical rules check (ERC)
-
-### PCB Layout
-- Footprint assignment
-- Trace routing (manual and auto)
-- Design rules check (DRC)
-- Ground planes and via placement
-
-### Manufacturing
-- Generating Gerber files
-- BOM and pick-and-place files
-- Choosing a PCB fab (JLCPCB, PCBWay)`,
-            type: "training",
-            status: "published",
-            location: "ENSA Agadir — Salle TP Informatique",
-            startDate: new Date("2026-07-12T09:00:00"),
-            endDate: new Date("2026-07-12T17:00:00"),
-            capacity: 20,
-            published: true,
-        },
-    });
-
-    const event6 = await prisma.event.upsert({
-        where: { slug: "iot-hackathon-2026" },
-        update: {},
-        create: {
-            title: "IoT Innovation Hackathon",
-            slug: "iot-hackathon-2026",
-            description:
-                "48-hour hackathon building IoT solutions for smart campus challenges. Prizes worth 10,000 MAD.",
-            content: `## Themes
-
-### Smart Campus
-- Classroom occupancy monitoring
-- Energy consumption optimization
-- Smart parking system
-
-### Agriculture Tech
-- Soil moisture monitoring at scale
-- Automated irrigation
-- Crop disease detection with edge AI
-
-## Schedule
-
-### Friday Evening — Kickoff
-18:00 — Registration
-19:00 — Theme reveal and team formation
-20:00 — Hacking begins
-
-### Saturday — Build Day
-08:00 — Breakfast & check-in
-12:00 — Lunch + mentor sessions
-18:00 — Progress pitches (2 min each)
-
-### Sunday — Demo Day
-09:00 — Final polish
-12:00 — Demo presentations (5 min + 3 min Q&A)
-14:00 — Judging & awards ceremony`,
-            type: "competition",
-            status: "published",
-            location: "ENSA Agadir — Incubateur",
-            startDate: new Date("2026-11-15T18:00:00"),
-            endDate: new Date("2026-11-17T15:00:00"),
-            capacity: 100,
-            published: true,
-        },
-    });
-
-    console.log("  ✓ Events (6)");
-
-    // ═══════════════════════════════════════════════
+    console.log("  - Events (3)");
     // 5) EVENT SPEAKERS
     // ═══════════════════════════════════════════════
     const speakerData = [
-        { eventId: event2.id, name: "Dr. Amina El Fassi", role: "Keynote Speaker", bio: "AI researcher and associate professor at INPT Rabat. Led Morocco's first autonomous vehicle pilot.", order: 0 },
-        { eventId: event2.id, name: "Prof. Youssef Berrada", role: "Speaker", bio: "Computer vision lab lead at UM6P. Published 30+ papers in top-tier CV venues.", order: 1 },
-        { eventId: event2.id, name: "Karim Tazi", role: "Workshop Lead", bio: "ML engineer at OCP Group. Builds production RL systems for industrial automation.", order: 2 },
-        { eventId: event2.id, name: "Dr. Laila Bennis", role: "Panel Moderator", bio: "Ethics in AI researcher. Author of 'Responsible AI in North Africa'.", order: 3 },
-        { eventId: event2.id, name: "Dr. Hassan Ouazzani", role: "Speaker", bio: "NLP researcher at EMI Rabat. Creator of the ArabicBERT open-source model.", order: 4 },
-        { eventId: event3.id, name: "Prof. Mohammed Alami", role: "Judge", bio: "Robotics professor at ENSA Agadir. Founded the embedded systems lab.", order: 0 },
-        { eventId: event3.id, name: "Eng. Nadia Hakim", role: "Judge", bio: "Senior engineer at Royal Air Maroc. Expertise in autonomous systems.", order: 1 },
+        { eventId: event3.id, name: "Youness Ahallal", role: "Speaker", order: 0 },
+        { eventId: event3.id, name: "Wissam Jenkal", role: "Speaker", order: 1 },
+        { eventId: event3.id, name: "Omar JNIOIH", role: "Speaker", order: 2 },
+        { eventId: event3.id, name: "Hamza Guirrou", role: "Speaker", order: 3 },
+        { eventId: event3.id, name: "Amine Saddik", role: "Speaker", order: 4 },
     ];
     for (const s of speakerData) {
         await prisma.eventSpeaker.create({ data: s });
     }
-    console.log("  ✓ Speakers (7)");
+    console.log(`  - Speakers (${speakerData.length})`);
 
     // ═══════════════════════════════════════════════
     // 6) PROJECTS (6 projects)
@@ -1068,12 +897,11 @@ rclpy.spin(HelloPublisher())
     const contentTags = [
         { tagId: tags["arduino"].id, eventId: event1.id },
         { tagId: tags["ai"].id, eventId: event2.id },
+        { tagId: tags["competition"].id, eventId: event2.id },
+        { tagId: tags["robotics"].id, eventId: event2.id },
+        { tagId: tags["ai"].id, eventId: event3.id },
         { tagId: tags["competition"].id, eventId: event3.id },
         { tagId: tags["robotics"].id, eventId: event3.id },
-        { tagId: tags["raspberry-pi"].id, eventId: event4.id },
-        { tagId: tags["iot"].id, eventId: event4.id },
-        { tagId: tags["pcb-design"].id, eventId: event5.id },
-        { tagId: tags["iot"].id, eventId: event6.id },
         { tagId: tags["arduino"].id, projectId: project1.id },
         { tagId: tags["pcb-design"].id, projectId: project1.id },
         { tagId: tags["3d-printing"].id, projectId: project1.id },
@@ -1090,7 +918,7 @@ rclpy.spin(HelloPublisher())
     for (const ct of contentTags) {
         await prisma.contentTag.create({ data: ct });
     }
-    console.log("  ✓ ContentTags (20)");
+    console.log(`  - ContentTags (${contentTags.length})`);
 
     // ═══════════════════════════════════════════════
     // 9) TIMELINE MILESTONES
@@ -1289,9 +1117,9 @@ rclpy.spin(HelloPublisher())
 
     const competitionForm = await prisma.form.create({
         data: {
-            title: "Robotics Competition Registration",
-            slug: "robotics-competition-2026",
-            description: "Register your team for the CRRT Robotics Challenge 2026.",
+            title: "SRG 2026 Competition Registration",
+            slug: "srg-2026-competition-registration",
+            description: "Register your team for South Robotics Gathering 2026 competition tracks.",
             status: "published",
             version: 1,
             template: "competition",
@@ -1405,7 +1233,7 @@ rclpy.spin(HelloPublisher())
         { filename: "crrt-logo.svg", url: "/media/crrt-logo.svg", mimeType: "image/svg+xml", size: 4200, alt: "CRRT Logo", usedIn: "Theme Settings" },
         { filename: "arduino-training-cover.jpg", url: "/media/arduino-training-cover.jpg", mimeType: "image/jpeg", size: 245000, alt: "Arduino Training workshop photo", usedIn: "Event: Arduino Training", width: 1200, height: 800 },
         { filename: "line-follower-v3.jpg", url: "/media/line-follower-v3.jpg", mimeType: "image/jpeg", size: 320000, alt: "Line Follower Robot v3", usedIn: "Project: Line Follower v3", width: 1600, height: 900 },
-        { filename: "ai-conference-2026.jpg", url: "/media/ai-conference-2026.jpg", mimeType: "image/jpeg", size: 180000, alt: "AI Conference 2026 poster", usedIn: "Event: AI Conference", width: 1200, height: 630 },
+        { filename: "srg-2026-poster.jpg", url: "/media/srg-2026-poster.jpg", mimeType: "image/jpeg", size: 180000, alt: "South Robotics Gathering 2026 poster", usedIn: "Event: SRG 2026", width: 1200, height: 630 },
         { filename: "drone-prototype.jpg", url: "/media/drone-prototype.jpg", mimeType: "image/jpeg", size: 410000, alt: "Autonomous delivery drone prototype", usedIn: "Project: Autonomous Drone", width: 2000, height: 1333 },
         { filename: "crrt-lab-panorama.jpg", url: "/media/crrt-lab-panorama.jpg", mimeType: "image/jpeg", size: 520000, alt: "CRRT lab panoramic view", usedIn: "About page", width: 2400, height: 800 },
     ];
