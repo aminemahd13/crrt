@@ -69,7 +69,7 @@ export function BlogDetailView({ post }: { post: Post }) {
 
   // Markdown rendering with heading IDs for TOC linking
   const contentHtml = post.content
-    .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre class="my-4 p-4 rounded-xl bg-midnight border border-[var(--ghost-border)] overflow-x-auto"><code class="text-sm text-emerald-400">$2</code></pre>')
+    .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre class="my-4 max-w-full overflow-x-auto rounded-xl border border-[var(--ghost-border)] bg-midnight p-4"><code class="block w-max min-w-full text-sm text-emerald-400">$2</code></pre>')
     .replace(/^### (.+)$/gm, (_m, text) => {
       const id = text.replace(/\*\*/g, "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
       return `<h3 id="${id}" class="font-heading font-semibold text-lg text-ice-white mt-6 mb-2 scroll-mt-24">${text}</h3>`;
@@ -79,7 +79,7 @@ export function BlogDetailView({ post }: { post: Post }) {
       return `<h2 id="${id}" class="font-heading font-bold text-xl text-ice-white mt-8 mb-3 scroll-mt-24">${text}</h2>`;
     })
     .replace(/\*\*(.+?)\*\*/g, '<strong class="text-ice-white font-medium">$1</strong>')
-    .replace(/`([^`]+)`/g, '<code class="text-xs bg-midnight-light px-1.5 py-0.5 rounded text-signal-orange border border-[var(--ghost-border)]">$1</code>')
+    .replace(/`([^`]+)`/g, '<code class="break-all text-xs bg-midnight-light px-1.5 py-0.5 rounded text-signal-orange border border-[var(--ghost-border)]">$1</code>')
     .replace(/^\|(.+)\|$/gm, (row) => {
       const cells = row.split("|").filter(Boolean).map((c) => c.trim());
       if (cells.every((c) => /^[-:]+$/.test(c))) return "";
@@ -138,7 +138,7 @@ export function BlogDetailView({ post }: { post: Post }) {
         )}
 
         {/* Article */}
-        <article className={`max-w-3xl flex-1 ${tocItems.length <= 2 ? "mx-auto" : ""}`}>
+        <article className={`min-w-0 max-w-3xl flex-1 ${tocItems.length <= 2 ? "mx-auto" : ""}`}>
           <Link
             href="/blog"
             className="inline-flex items-center gap-2 text-sm text-steel-gray hover:text-ice-white transition-colors mb-8"
@@ -168,7 +168,7 @@ export function BlogDetailView({ post }: { post: Post }) {
           </motion.div>
 
           <motion.div
-            className="space-y-2"
+            className="space-y-2 min-w-0"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}

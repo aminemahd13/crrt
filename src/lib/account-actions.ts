@@ -44,6 +44,42 @@ async function buildActionUrl(pathname: string, token: string): Promise<string> 
   return url.toString();
 }
 
+const EMAIL_ACTION_LINK_STYLE = [
+  "display:inline-block",
+  "padding:12px 18px",
+  "border-radius:8px",
+  "background:#f97316",
+  "color:#ffffff",
+  "font-weight:600",
+  "text-decoration:none",
+  "font-family:Arial,sans-serif",
+].join(";");
+
+const EMAIL_RAW_LINK_STYLE = [
+  "color:#f97316",
+  "text-decoration:underline",
+  "word-break:break-all",
+  "font-family:Arial,sans-serif",
+].join(";");
+
+function buildActionEmailBody(input: {
+  intro: string;
+  ctaLabel: string;
+  urlVariable: "resetUrl" | "verifyUrl";
+  expiryText: string;
+}): string {
+  const urlPlaceholder = `{{${input.urlVariable}}}`;
+
+  return [
+    "<p>Hello {{name}},</p>",
+    `<p>${input.intro}</p>`,
+    `<p><a href="${urlPlaceholder}" style="${EMAIL_ACTION_LINK_STYLE}" target="_blank" rel="noopener noreferrer">${input.ctaLabel}</a></p>`,
+    `<p>${input.expiryText}</p>`,
+    '<p style="margin-top:20px;font-size:12px;color:#64748b;font-family:Arial,sans-serif;">If the button is not clickable, copy and paste this link into your browser:</p>',
+    `<p><a href="${urlPlaceholder}" style="${EMAIL_RAW_LINK_STYLE}" target="_blank" rel="noopener noreferrer">${urlPlaceholder}</a></p>`,
+  ].join("");
+}
+
 export async function issueAccountActionToken(input: IssueTokenInput): Promise<string> {
   const ttlMinutes = Number.isFinite(input.ttlMinutes) ? Math.max(1, input.ttlMinutes ?? 0) : 60;
   const expiresAt = new Date(Date.now() + ttlMinutes * 60_000);
@@ -115,8 +151,12 @@ export async function sendPasswordResetEmail(params: {
       resetUrl,
     },
     fallbackSubject: "Reset your CRRT password",
-    fallbackBody:
-      "<p>Hello {{name}},</p><p>You requested a password reset for your CRRT account.</p><p><a href=\"{{resetUrl}}\">Reset your password</a></p><p>This link expires in 1 hour.</p>",
+    fallbackBody: buildActionEmailBody({
+      intro: "You requested a password reset for your CRRT account.",
+      ctaLabel: "Reset your password",
+      urlVariable: "resetUrl",
+      expiryText: "This link expires in 1 hour.",
+    }),
   });
 }
 
@@ -136,8 +176,12 @@ export async function sendEmailVerificationEmail(params: {
       verifyUrl,
     },
     fallbackSubject: "Verify your CRRT email",
-    fallbackBody:
-      "<p>Hello {{name}},</p><p>Please verify your email to activate your CRRT account actions.</p><p><a href=\"{{verifyUrl}}\">Verify email</a></p><p>This link expires in 24 hours.</p>",
+    fallbackBody: buildActionEmailBody({
+      intro: "Please verify your email to activate your CRRT account actions.",
+      ctaLabel: "Verify email",
+      urlVariable: "verifyUrl",
+      expiryText: "This link expires in 24 hours.",
+    }),
   });
 }
 
@@ -157,7 +201,11 @@ export async function sendEmailChangeVerificationEmail(params: {
       verifyUrl,
     },
     fallbackSubject: "Confirm your new email",
-    fallbackBody:
-      "<p>Hello {{name}},</p><p>We received a request to change your CRRT account email.</p><p><a href=\"{{verifyUrl}}\">Confirm new email</a></p><p>This link expires in 24 hours.</p>",
+    fallbackBody: buildActionEmailBody({
+      intro: "We received a request to change your CRRT account email.",
+      ctaLabel: "Confirm new email",
+      urlVariable: "verifyUrl",
+      expiryText: "This link expires in 24 hours.",
+    }),
   });
 }
