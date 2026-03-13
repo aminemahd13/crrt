@@ -119,10 +119,10 @@ cd /opt/crrt
 git clone <YOUR_REPO_URL> .
 
 mkdir -p data/uploads backups
-cp .env.production.example .env.production
+cp .env.production.example .env
 ```
 
-Required `.env.production` values:
+Required `.env` values:
 
 ```dotenv
 POSTGRES_DB=crrt
@@ -156,14 +156,14 @@ MEDIA_UPLOAD_DIR_HOST=./data/uploads
 
 ```bash
 # Build and start postgres + migration + app
-docker compose --env-file .env.production --profile production up -d --build
+docker compose --env-file .env --profile production up -d --build
 
 # Optional deterministic reset + reseed (recommended for first production cutover)
-docker compose --env-file .env.production --profile production run --rm app npx prisma migrate reset --force --skip-generate --skip-seed
-docker compose --env-file .env.production --profile production --profile seed run --rm seed
+docker compose --env-file .env --profile production run --rm app npx prisma migrate reset --force --skip-generate --skip-seed
+docker compose --env-file .env --profile production --profile seed run --rm seed
 
 # Bring app back up after reset
-docker compose --env-file .env.production --profile production up -d app
+docker compose --env-file .env --profile production up -d app
 ```
 
 Seeded credentials after reset/reseed:
@@ -197,9 +197,9 @@ Then verify in browser:
 Backup:
 
 ```bash
-set -a; source .env.production; set +a
+set -a; source .env; set +a
 mkdir -p backups
-docker compose --env-file .env.production exec -T postgres \
+docker compose --env-file .env exec -T postgres \
   pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" | gzip > "backups/db-$(date +%F-%H%M).sql.gz"
 tar -czf "backups/uploads-$(date +%F-%H%M).tar.gz" data/uploads
 ```
@@ -207,8 +207,8 @@ tar -czf "backups/uploads-$(date +%F-%H%M).tar.gz" data/uploads
 Restore:
 
 ```bash
-set -a; source .env.production; set +a
-gunzip -c backups/db-YYYY-MM-DD-HHMM.sql.gz | docker compose --env-file .env.production exec -T postgres \
+set -a; source .env; set +a
+gunzip -c backups/db-YYYY-MM-DD-HHMM.sql.gz | docker compose --env-file .env exec -T postgres \
   psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
 tar -xzf backups/uploads-YYYY-MM-DD-HHMM.tar.gz
 ```
@@ -221,7 +221,7 @@ Update:
 cd /opt/crrt
 git fetch --all --tags
 git checkout <release-tag-or-commit>
-docker compose --env-file .env.production --profile production up -d --build
+docker compose --env-file .env --profile production up -d --build
 ```
 
 Rollback:
@@ -229,7 +229,7 @@ Rollback:
 ```bash
 cd /opt/crrt
 git checkout <previous-release-tag-or-commit>
-docker compose --env-file .env.production --profile production up -d --build
+docker compose --env-file .env --profile production up -d --build
 ```
 
 If rollback requires data rollback, restore both DB dump and uploads tarball from the same backup timestamp.
@@ -257,7 +257,7 @@ Routine deploy:
 
 Incident response:
 1. Confirm blast radius (`/api/health`, `/api/metrics`, user-facing pages).
-2. Capture logs: `docker compose --env-file .env.production logs --since=30m app postgres`.
+2. Capture logs: `docker compose --env-file .env logs --since=30m app postgres`.
 3. If release regression, rollback to previous tag.
 4. If data issue, restore DB + uploads from matching backup snapshot.
 5. Re-run smoke checklist and keep incident notes.
