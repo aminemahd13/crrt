@@ -100,7 +100,11 @@ export interface MailboxProvider {
     mailboxAddress: string;
   }): Promise<FolderSyncResult>;
   setSeen(input: { folderName: string; uid: number; seen: boolean }): Promise<void>;
-  moveMessage(input: { sourceFolder: string; uid: number; destinationFolder: string }): Promise<void>;
+  moveMessage(input: { sourceFolder: string; uid: number; destinationFolder: string }): Promise<{
+    uidValidity: bigint | null;
+    uid: number | null;
+  }>;
+  deleteMessage(input: { folderName: string; uid: number }): Promise<void>;
   appendMessage(input: {
     folderName: string;
     content: Buffer;

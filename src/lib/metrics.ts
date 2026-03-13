@@ -47,7 +47,7 @@ export function recordInboxDraft(action: "create" | "update" | "delete" | "send"
   inc(`admin_inbox_draft_total{action="${action}",result="${result}"}`);
 }
 
-export function recordInboxMessageAction(action: "mark_read" | "move", result: "success" | "failure") {
+export function recordInboxMessageAction(action: "mark_read" | "move" | "delete", result: "success" | "failure") {
   inc("admin_inbox_message_action_total");
   inc(`admin_inbox_message_action_total{action="${action}",result="${result}"}`);
 }

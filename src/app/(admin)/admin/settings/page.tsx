@@ -326,7 +326,7 @@ export default function SettingsPage() {
               type="email"
               value={testEmail}
               onChange={(e) => setTestEmail(e.target.value)}
-              placeholder="test@ensa-agadir.ac.ma"
+              placeholder="test@test.com"
               className="flex-1 px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white placeholder:text-steel-gray"
             />
             <button

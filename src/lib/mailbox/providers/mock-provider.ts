@@ -76,14 +76,25 @@ export class MockMailboxProvider implements MailboxProvider {
     sourceFolder: string;
     uid: number;
     destinationFolder: string;
-  }): Promise<void> {
+  }): Promise<{ uidValidity: bigint | null; uid: number | null }> {
     const sourceMessages = state.folders[input.sourceFolder] ?? [];
     const targetIndex = sourceMessages.findIndex((message) => message.uid === input.uid);
-    if (targetIndex === -1) return;
+    if (targetIndex === -1) {
+      return { uidValidity: null, uid: null };
+    }
     const [moved] = sourceMessages.splice(targetIndex, 1);
     moved.folderName = input.destinationFolder;
     state.folders[input.destinationFolder] = state.folders[input.destinationFolder] ?? [];
     state.folders[input.destinationFolder].push(moved);
+    return { uidValidity: BigInt(1), uid: moved.uid };
+  }
+
+  async deleteMessage(input: { folderName: string; uid: number }): Promise<void> {
+    const messages = state.folders[input.folderName] ?? [];
+    const index = messages.findIndex((message) => message.uid === input.uid);
+    if (index >= 0) {
+      messages.splice(index, 1);
+    }
   }
 
   async appendMessage(input: {

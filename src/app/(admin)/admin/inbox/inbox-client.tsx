@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type ClipboardEvent as ReactClipboardEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import {
   Archive,
   ArrowLeft,
@@ -18,10 +26,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { PageHeader } from "@/components/ui/page-header";
 
 const OUTGOING_ATTACHMENT_MAX_TOTAL_BYTES = 25 * 1024 * 1024;
 const DEFAULT_POLL_SECONDS = 30;
+const AUTO_SAVE_DRAFT_DELAY_MS = 1500;
 
 const FOLDERS = [
   { key: "inbox", label: "Inbox" },
@@ -161,6 +176,33 @@ type ComposerState = {
   attachments: ComposerAttachment[];
 };
 
+type ComposerRecipientField = "toInput" | "ccInput" | "bccInput";
+
+type ParsedComposerAddress = {
+  name: string | null;
+  address: string;
+};
+
+type ParsedComposerAddressInput = {
+  valid: ParsedComposerAddress[];
+  invalid: string[];
+};
+
+type DraftSavePayload = {
+  threadId: string | null;
+  to: ParsedComposerAddress[];
+  cc: ParsedComposerAddress[];
+  bcc: ParsedComposerAddress[];
+  subject: string;
+  htmlBody: string;
+  textBody: string;
+  attachments: Array<{
+    filename: string;
+    mimeType: string;
+    contentBase64: string;
+  }>;
+};
+
 function parseAddressList(input: unknown): MailAddress[] {
   if (!Array.isArray(input)) return [];
   const parsed: MailAddress[] = [];
@@ -193,25 +235,135 @@ function stringifyAddressList(addresses: MailAddress[]): string {
     .join(", ");
 }
 
-function parseComposerAddresses(value: string): Array<{ name: string | null; address: string }> {
-  return value
-    .split(/[,\n;]/)
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .map((raw) => {
-      const match = raw.match(/^(.*)<([^>]+)>$/);
-      if (match) {
-        return {
-          name: match[1].trim().replace(/^"|"$/g, "") || null,
-          address: match[2].trim().toLowerCase(),
-        };
+function formatAddressDisplay(
+  entry: { name?: string | null; address?: string | null; email?: string | null } | null | undefined,
+  fallback = "Unknown sender"
+): string {
+  if (!entry) return fallback;
+  const name = entry.name?.trim() || "";
+  const address = (entry.address || entry.email || "").trim();
+  if (name && address) return `${name} <${address}>`;
+  if (address) return address;
+  if (name) return name;
+  return fallback;
+}
+
+function parseComposerAddressInput(value: string): ParsedComposerAddressInput {
+  const valid: ParsedComposerAddress[] = [];
+  const invalid: string[] = [];
+  const seen = new Set<string>();
+  const normalizedValue = value
+    .replace(/\r\n/g, "\n")
+    .replace(/\t+/g, ";")
+    .trim();
+  if (!normalizedValue) {
+    return { valid, invalid };
+  }
+
+  const addValid = (name: string | null, address: string) => {
+    const normalizedAddress = address.toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedAddress)) return;
+    if (seen.has(normalizedAddress)) return;
+    seen.add(normalizedAddress);
+    valid.push({
+      name: name?.trim() || null,
+      address: normalizedAddress,
+    });
+  };
+
+  for (const item of normalizedValue.split(/[,\n;]+/)) {
+    const raw = item.trim().replace(/^(to|cc|bcc)\s*:\s*/i, "");
+    if (!raw) continue;
+
+    const bracketMatch = raw.match(/^(.*)<([^>]+)>$/);
+    if (bracketMatch) {
+      const name = bracketMatch[1].trim().replace(/^"|"$/g, "") || null;
+      const address = bracketMatch[2].trim();
+      if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address.toLowerCase())) {
+        addValid(name, address);
+      } else {
+        invalid.push(raw);
       }
-      return {
-        name: null,
-        address: raw.toLowerCase(),
-      };
-    })
-    .filter((entry) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(entry.address));
+      continue;
+    }
+
+    const emailMatches = raw.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) ?? [];
+    if (emailMatches.length === 0) {
+      invalid.push(raw);
+      continue;
+    }
+
+    if (emailMatches.length === 1) {
+      const email = emailMatches[0];
+      const nameCandidate = raw.replace(email, "").replace(/["()]/g, "").trim() || null;
+      addValid(nameCandidate, email);
+      continue;
+    }
+
+    for (const email of emailMatches) {
+      addValid(null, email);
+    }
+  }
+
+  return { valid, invalid };
+}
+
+function buildDraftSavePayload(composer: ComposerState): DraftSavePayload {
+  const toAddresses = parseComposerAddressInput(composer.toInput).valid;
+  const ccAddresses = parseComposerAddressInput(composer.ccInput).valid;
+  const bccAddresses = parseComposerAddressInput(composer.bccInput).valid;
+  const normalizedTextBody = composer.textBody.trim() ? composer.textBody : htmlToPlainText(composer.htmlBody);
+
+  return {
+    threadId: composer.threadId,
+    to: toAddresses,
+    cc: ccAddresses,
+    bcc: bccAddresses,
+    subject: composer.subject,
+    htmlBody: composer.htmlBody,
+    textBody: normalizedTextBody,
+    attachments: composer.attachments.map((attachment) => ({
+      filename: attachment.filename,
+      mimeType: attachment.mimeType,
+      contentBase64: attachment.contentBase64,
+    })),
+  };
+}
+
+function serializeDraftSavePayload(payload: DraftSavePayload): string {
+  return JSON.stringify(payload);
+}
+
+function hasDraftPayloadContent(payload: DraftSavePayload): boolean {
+  return Boolean(
+    payload.subject.trim()
+      || payload.to.length > 0
+      || payload.cc.length > 0
+      || payload.bcc.length > 0
+      || htmlToPlainText(payload.htmlBody).trim()
+      || payload.textBody.trim()
+      || payload.attachments.length > 0
+  );
+}
+
+function htmlToPlainText(html: string): string {
+  if (!html.trim()) return "";
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|h[1-6]|li)>/gi, "\n")
+    .replace(/<li>/gi, "- ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, "\"")
+    .replace(/&#39;/gi, "'")
+    .replace(/\r\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 function formatDateTime(iso: string): string {
@@ -226,7 +378,7 @@ function formatFileSize(bytes: number): string {
 }
 
 function buildReplyHtmlQuote(message: ThreadMessage): string {
-  const author = message.from.name || message.from.email || "Unknown sender";
+  const author = formatAddressDisplay(message.from);
   const body = message.htmlBody || `<pre>${message.textBody || ""}</pre>`;
   return `<p><br/></p><hr/><p><strong>On ${formatDateTime(message.date)}, ${author} wrote:</strong></p>${body}`;
 }
@@ -277,13 +429,13 @@ function RichTextEditor({
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-1">
-        <Button type="button" size="xs" variant="outline" onClick={() => runCommand("bold")}>Bold</Button>
-        <Button type="button" size="xs" variant="outline" onClick={() => runCommand("italic")}>Italic</Button>
-        <Button type="button" size="xs" variant="outline" onClick={() => runCommand("underline")}>Underline</Button>
-        <Button type="button" size="xs" variant="outline" onClick={() => runCommand("insertUnorderedList")}>List</Button>
+        <Button type="button" size="sm" variant="outline" onClick={() => runCommand("bold")}>Bold</Button>
+        <Button type="button" size="sm" variant="outline" onClick={() => runCommand("italic")}>Italic</Button>
+        <Button type="button" size="sm" variant="outline" onClick={() => runCommand("underline")}>Underline</Button>
+        <Button type="button" size="sm" variant="outline" onClick={() => runCommand("insertUnorderedList")}>List</Button>
         <Button
           type="button"
-          size="xs"
+          size="sm"
           variant="outline"
           onClick={() => {
             const link = window.prompt("Link URL");
@@ -330,6 +482,7 @@ export function InboxClient() {
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
 
   const [composerSaving, setComposerSaving] = useState(false);
+  const [composerAutoSaving, setComposerAutoSaving] = useState(false);
   const [composerError, setComposerError] = useState<string | null>(null);
   const [composerInfo, setComposerInfo] = useState<string | null>(null);
   const [composer, setComposer] = useState<ComposerState>({
@@ -343,15 +496,60 @@ export function InboxClient() {
     ccInput: "",
     bccInput: "",
     subject: "",
-    htmlBody: "<p></p>",
+    htmlBody: "",
     textBody: "",
     attachments: [],
   });
+  const [showComposerCc, setShowComposerCc] = useState(false);
+  const [showComposerBcc, setShowComposerBcc] = useState(false);
+  const [showPlainTextFallback, setShowPlainTextFallback] = useState(false);
+  const autoSaveTimerRef = useRef<number | null>(null);
+  const autoMarkedReadMessageIdRef = useRef<string | null>(null);
+  const syncInFlightRef = useRef(false);
+  const initialDraftSnapshotRef = useRef<string | null>(null);
+  const lastSavedDraftSnapshotRef = useRef<string | null>(null);
 
   const selectedMessage = useMemo(
     () => messages.find((item) => item.id === selectedMessageId) ?? null,
     [messages, selectedMessageId]
   );
+
+  const composerAttachmentBytes = useMemo(
+    () => composer.attachments.reduce((sum, item) => sum + item.size, 0),
+    [composer.attachments]
+  );
+
+  const composerWordCount = useMemo(() => {
+    const text = htmlToPlainText(composer.htmlBody);
+    if (!text) return 0;
+    return text.split(/\s+/).filter(Boolean).length;
+  }, [composer.htmlBody]);
+
+  const composerDraftPayload = useMemo(() => buildDraftSavePayload(composer), [composer]);
+
+  const composerDraftSnapshot = useMemo(
+    () => serializeDraftSavePayload(composerDraftPayload),
+    [composerDraftPayload]
+  );
+
+  const composerHasDraftContent = useMemo(
+    () => hasDraftPayloadContent(composerDraftPayload),
+    [composerDraftPayload]
+  );
+
+  const composerTitle = useMemo(() => {
+    if (composer.mode === "reply") return "Reply";
+    if (composer.mode === "reply_all") return "Reply all";
+    if (composer.mode === "draft") return "Edit draft";
+    return "Compose";
+  }, [composer.mode]);
+
+  const composerDescription = useMemo(() => {
+    if (composer.mode === "reply" || composer.mode === "reply_all") {
+      return "Use Ctrl+Enter (or Cmd+Enter) to send quickly.";
+    }
+    return "Draft in a focused composer. Use Ctrl+Enter (or Cmd+Enter) to send.";
+  }, [composer.mode]);
 
   const selectedThreadCursor = useMemo(() => {
     if (!status) return null;
@@ -452,15 +650,52 @@ export function InboxClient() {
       setMessages(items);
       if (items.length === 0) {
         setSelectedMessageId(null);
-      } else if (!selectedMessageId || !items.some((message) => message.id === selectedMessageId)) {
-        setSelectedMessageId(items[items.length - 1].id);
+        return;
+      }
+
+      const currentFolderName = status?.folders[folder];
+      const folderCandidates = currentFolderName
+        ? items.filter((message) => message.folder === currentFolderName)
+        : [];
+      const sentCandidates = folder === "sent"
+        ? items.filter((message) => message.direction === "outbound")
+        : [];
+      const preferredMessages = folderCandidates.length > 0
+        ? folderCandidates
+        : sentCandidates.length > 0
+          ? sentCandidates
+          : items;
+      const preferredId = preferredMessages[preferredMessages.length - 1]?.id ?? items[items.length - 1].id;
+
+      if (!selectedMessageId || !items.some((message) => message.id === selectedMessageId)) {
+        setSelectedMessageId(preferredId);
+        return;
+      }
+
+      const selectedMessage = items.find((message) => message.id === selectedMessageId);
+      if (!selectedMessage) {
+        setSelectedMessageId(preferredId);
+        return;
+      }
+
+      if (folderCandidates.length > 0 && selectedMessage.folder !== currentFolderName) {
+        setSelectedMessageId(preferredId);
+        return;
+      }
+
+      if (
+        folder === "sent"
+        && sentCandidates.length > 0
+        && selectedMessage.direction !== "outbound"
+      ) {
+        setSelectedMessageId(preferredId);
       }
     } catch (error) {
       setMessageError(error instanceof Error ? error.message : "Failed to load messages.");
     } finally {
       setMessageLoading(false);
     }
-  }, [selectedMessageId]);
+  }, [folder, selectedMessageId, status?.folders]);
 
   const refreshCurrentFolder = useCallback(async () => {
     if (folder === "drafts") {
@@ -472,6 +707,60 @@ export function InboxClient() {
       await loadThreadMessages(selectedThreadId);
     }
   }, [folder, loadDrafts, loadThreadMessages, loadThreads, selectedThreadId]);
+
+  const syncMailbox = useCallback(
+    async ({ silent = false }: { silent?: boolean } = {}) => {
+      if (syncInFlightRef.current) {
+        if (!silent) {
+          setSyncMessage("Another sync is already running.");
+        }
+        return;
+      }
+
+      syncInFlightRef.current = true;
+      if (!silent) {
+        setSyncing(true);
+        setSyncMessage(null);
+      }
+
+      try {
+        const response = await fetch("/api/admin/inbox/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ folderKey: folder }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (response.status === 409) {
+          if (!silent) {
+            setSyncMessage("Another sync is already running.");
+          }
+          return;
+        }
+        if (!response.ok) {
+          throw new Error(payload.error || "Sync failed.");
+        }
+
+        if (!silent) {
+          const imported = Number(payload.imported ?? 0);
+          const updated = Number(payload.updated ?? 0);
+          setSyncMessage(`Sync complete. Imported ${imported}, updated ${updated}.`);
+        }
+
+        await loadStatus();
+        await refreshCurrentFolder();
+      } catch (error) {
+        if (!silent) {
+          setSyncMessage(error instanceof Error ? error.message : "Sync failed.");
+        }
+      } finally {
+        syncInFlightRef.current = false;
+        if (!silent) {
+          setSyncing(false);
+        }
+      }
+    },
+    [folder, loadStatus, refreshCurrentFolder]
+  );
 
   useEffect(() => {
     void loadStatus();
@@ -504,55 +793,256 @@ export function InboxClient() {
   }, [page, pageCount]);
 
   useEffect(() => {
+    if (folder !== "inbox") return;
+    if (!selectedMessage) return;
+    if (selectedMessage.isRead) return;
+    if (autoMarkedReadMessageIdRef.current === selectedMessage.id) return;
+
+    const messageId = selectedMessage.id;
+    const threadId = selectedMessage.threadId;
+    autoMarkedReadMessageIdRef.current = messageId;
+
+    let cancelled = false;
+    const markOpenedMessageAsRead = async () => {
+      try {
+        const response = await fetch(`/api/admin/inbox/messages/${messageId}/read`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ seen: true }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(payload.error || "Failed to update read state.");
+        }
+        if (cancelled) return;
+
+        setMessages((prev) =>
+          prev.map((message) => (
+            message.id === messageId ? { ...message, isRead: true } : message
+          ))
+        );
+        setThreads((prev) =>
+          prev.map((thread) => (
+            thread.threadId === threadId
+              ? { ...thread, unreadCount: Math.max(0, thread.unreadCount - 1) }
+              : thread
+          ))
+        );
+      } catch (error) {
+        if (cancelled) return;
+        setMessageError(error instanceof Error ? error.message : "Failed to update read state.");
+      }
+    };
+
+    void markOpenedMessageAsRead();
+    return () => {
+      cancelled = true;
+    };
+  }, [folder, selectedMessage]);
+
+  useEffect(() => {
     const intervalSeconds = Math.max(
       10,
       status?.syncIntervalSeconds && status.syncIntervalSeconds > 0
         ? status.syncIntervalSeconds
         : DEFAULT_POLL_SECONDS
     );
-    const timer = window.setInterval(() => {
+
+    const poll = () => {
+      if (status?.hasImapSecrets) {
+        void syncMailbox({ silent: true });
+        return;
+      }
       void loadStatus();
       void refreshCurrentFolder();
-    }, intervalSeconds * 1000);
+    };
+
+    const timer = window.setInterval(poll, intervalSeconds * 1000);
     return () => window.clearInterval(timer);
-  }, [loadStatus, refreshCurrentFolder, status?.syncIntervalSeconds]);
+  }, [loadStatus, refreshCurrentFolder, status?.hasImapSecrets, status?.syncIntervalSeconds, syncMailbox]);
 
   const runSync = useCallback(async () => {
-    setSyncing(true);
-    setSyncMessage(null);
-    try {
-      const response = await fetch("/api/admin/inbox/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ folderKey: folder }),
-      });
-      const payload = await response.json().catch(() => ({}));
-      if (response.status === 409) {
-        setSyncMessage("Another sync is already running.");
-      } else if (!response.ok) {
-        throw new Error(payload.error || "Sync failed.");
-      } else {
-        const imported = Number(payload.imported ?? 0);
-        const updated = Number(payload.updated ?? 0);
-        setSyncMessage(`Sync complete. Imported ${imported}, updated ${updated}.`);
-      }
-      await loadStatus();
-      await refreshCurrentFolder();
-    } catch (error) {
-      setSyncMessage(error instanceof Error ? error.message : "Sync failed.");
-    } finally {
-      setSyncing(false);
-    }
-  }, [folder, loadStatus, refreshCurrentFolder]);
+    await syncMailbox({ silent: false });
+  }, [syncMailbox]);
 
   const setComposerField = <K extends keyof ComposerState>(key: K, value: ComposerState[K]) => {
     setComposer((prev) => ({ ...prev, [key]: value }));
   };
 
+  const handleComposerRecipientPaste = (
+    field: ComposerRecipientField,
+    event: ReactClipboardEvent<HTMLInputElement>
+  ) => {
+    if (composer.mode === "reply" || composer.mode === "reply_all") return;
+    const pastedText = event.clipboardData.getData("text");
+    if (!pastedText.trim()) return;
+
+    const looksLikeBulkList = /[,\n;\t]/.test(pastedText) || /(?:^|\s)(to|cc|bcc)\s*:/i.test(pastedText);
+    if (!looksLikeBulkList) return;
+
+    event.preventDefault();
+    setComposerError(null);
+    setComposerInfo(null);
+
+    const parsedPasted = parseComposerAddressInput(pastedText);
+    if (parsedPasted.valid.length === 0) {
+      setComposerError("No valid email addresses found in pasted text.");
+      return;
+    }
+
+    const existing = parseComposerAddressInput(composer[field]).valid;
+    const seen = new Set(existing.map((entry) => entry.address.toLowerCase()));
+    const merged = [...existing];
+    let addedCount = 0;
+
+    for (const entry of parsedPasted.valid) {
+      const normalizedAddress = entry.address.toLowerCase();
+      if (seen.has(normalizedAddress)) continue;
+      seen.add(normalizedAddress);
+      merged.push(entry);
+      addedCount += 1;
+    }
+
+    setComposer((prev) => ({
+      ...prev,
+      [field]: stringifyAddressList(merged),
+    }));
+
+    if (parsedPasted.invalid.length > 0) {
+      setComposerInfo(`Added ${addedCount} recipient(s); skipped ${parsedPasted.invalid.length} invalid entr${parsedPasted.invalid.length === 1 ? "y" : "ies"}.`);
+    }
+  };
+
+  const persistDraftSnapshot = useCallback(
+    async (
+      snapshot: ComposerState,
+      {
+        auto = false,
+        navigateToDrafts = !auto,
+        showSavedMessage = !auto,
+        manageSavingState = !auto,
+      }: {
+        auto?: boolean;
+        navigateToDrafts?: boolean;
+        showSavedMessage?: boolean;
+        manageSavingState?: boolean;
+      } = {}
+    ): Promise<boolean> => {
+      const payload = buildDraftSavePayload(snapshot);
+      const payloadSnapshot = serializeDraftSavePayload(payload);
+      if (auto) {
+        const unchanged = payloadSnapshot === lastSavedDraftSnapshotRef.current;
+        const untouchedSession = !snapshot.draftId && payloadSnapshot === initialDraftSnapshotRef.current;
+        if (unchanged || untouchedSession || !hasDraftPayloadContent(payload)) {
+          return false;
+        }
+      }
+
+      if (manageSavingState) {
+        setComposerSaving(true);
+      } else if (auto) {
+        setComposerAutoSaving(true);
+      }
+
+      if (!auto) {
+        setComposerError(null);
+      }
+      if (showSavedMessage) {
+        setComposerInfo(null);
+      }
+
+      try {
+        const isUpdate = Boolean(snapshot.draftId);
+        const response = await fetch(
+          isUpdate ? `/api/admin/inbox/drafts/${snapshot.draftId}` : "/api/admin/inbox/drafts",
+          {
+            method: isUpdate ? "PUT" : "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(
+              isUpdate
+                ? {
+                    ...payload,
+                    version: snapshot.draftVersion,
+                  }
+                : payload
+            ),
+          }
+        );
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to save draft.");
+        }
+        const saved = data as DraftDetail;
+        lastSavedDraftSnapshotRef.current = payloadSnapshot;
+        setComposer((prev) => ({
+          ...prev,
+          draftId: saved.id,
+          draftVersion: saved.version,
+          threadId: saved.threadId ?? prev.threadId,
+        }));
+        if (showSavedMessage) {
+          setComposerInfo("Draft saved.");
+        }
+        if (navigateToDrafts) {
+          setFolder("drafts");
+          await loadDrafts();
+        }
+        return true;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to save draft.";
+        setComposerError(auto ? `Auto-save failed: ${message}` : message);
+        return false;
+      } finally {
+        if (manageSavingState) {
+          setComposerSaving(false);
+        } else if (auto) {
+          setComposerAutoSaving(false);
+        }
+      }
+    },
+    [loadDrafts]
+  );
+
+  const openComposer = useCallback((nextComposer: ComposerState) => {
+    setShowComposerCc(Boolean(nextComposer.ccInput.trim()));
+    setShowComposerBcc(Boolean(nextComposer.bccInput.trim()));
+    setShowPlainTextFallback(Boolean(nextComposer.textBody.trim()));
+    const nextSnapshot = serializeDraftSavePayload(buildDraftSavePayload(nextComposer));
+    initialDraftSnapshotRef.current = nextSnapshot;
+    lastSavedDraftSnapshotRef.current = nextComposer.draftId ? nextSnapshot : null;
+    if (autoSaveTimerRef.current) {
+      window.clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+    }
+    setComposerAutoSaving(false);
+    setComposer(nextComposer);
+  }, []);
+
+  const closeComposer = useCallback((options?: { skipAutoSave?: boolean }) => {
+    if (autoSaveTimerRef.current) {
+      window.clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+    }
+    if (
+      !options?.skipAutoSave
+      && composer.open
+      && composerHasDraftContent
+      && composerDraftSnapshot !== lastSavedDraftSnapshotRef.current
+    ) {
+      void persistDraftSnapshot(composer, {
+        auto: true,
+        navigateToDrafts: false,
+        showSavedMessage: false,
+        manageSavingState: false,
+      });
+    }
+    setComposer((prev) => ({ ...prev, open: false }));
+  }, [composer, composerDraftSnapshot, composerHasDraftContent, persistDraftSnapshot]);
+
   const openNewComposer = () => {
     setComposerError(null);
     setComposerInfo(null);
-    setComposer({
+    openComposer({
       open: true,
       mode: "new",
       sourceMessageId: null,
@@ -563,7 +1053,7 @@ export function InboxClient() {
       ccInput: "",
       bccInput: "",
       subject: "",
-      htmlBody: "<p></p>",
+      htmlBody: "",
       textBody: "",
       attachments: [],
     });
@@ -586,7 +1076,7 @@ export function InboxClient() {
 
     setComposerError(null);
     setComposerInfo(null);
-    setComposer({
+    openComposer({
       open: true,
       mode,
       sourceMessageId: selectedMessage.id,
@@ -614,7 +1104,7 @@ export function InboxClient() {
         throw new Error(payload.error || "Failed to load draft.");
       }
       const draft = payload as DraftDetail;
-      setComposer({
+      const nextComposer: ComposerState = {
         open: true,
         mode: "draft",
         sourceMessageId: null,
@@ -625,7 +1115,7 @@ export function InboxClient() {
         ccInput: stringifyAddressList(parseAddressList(draft.cc)),
         bccInput: stringifyAddressList(parseAddressList(draft.bcc)),
         subject: draft.subject,
-        htmlBody: draft.htmlBody || "<p></p>",
+        htmlBody: draft.htmlBody || "",
         textBody: draft.textBody || "",
         attachments: draft.attachments
           .filter((attachment) => typeof attachment.contentBase64 === "string")
@@ -636,7 +1126,8 @@ export function InboxClient() {
             size: attachment.size,
             contentBase64: attachment.contentBase64 || "",
           })),
-      });
+      };
+      openComposer(nextComposer);
       if (draft.attachments.some((attachment) => !attachment.contentBase64)) {
         setComposerInfo("Some existing draft attachments were not loaded and may need re-upload.");
       }
@@ -650,9 +1141,8 @@ export function InboxClient() {
   const onAddComposerAttachments = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     setComposerError(null);
-    const existingBytes = composer.attachments.reduce((sum, item) => sum + item.size, 0);
     const incomingBytes = Array.from(files).reduce((sum, file) => sum + file.size, 0);
-    if (existingBytes + incomingBytes > OUTGOING_ATTACHMENT_MAX_TOTAL_BYTES) {
+    if (composerAttachmentBytes + incomingBytes > OUTGOING_ATTACHMENT_MAX_TOTAL_BYTES) {
       setComposerError("Attachments exceed 25 MB total.");
       return;
     }
@@ -696,66 +1186,78 @@ export function InboxClient() {
   };
 
   const saveDraft = async () => {
-    setComposerSaving(true);
-    setComposerError(null);
-    setComposerInfo(null);
-    try {
-      const payload = {
-        threadId: composer.threadId,
-        to: parseComposerAddresses(composer.toInput),
-        cc: parseComposerAddresses(composer.ccInput),
-        bcc: parseComposerAddresses(composer.bccInput),
-        subject: composer.subject,
-        htmlBody: composer.htmlBody,
-        textBody: composer.textBody,
-        attachments: composer.attachments.map((attachment) => ({
-          filename: attachment.filename,
-          mimeType: attachment.mimeType,
-          contentBase64: attachment.contentBase64,
-        })),
-      };
-
-      const isUpdate = Boolean(composer.draftId);
-      const response = await fetch(
-        isUpdate ? `/api/admin/inbox/drafts/${composer.draftId}` : "/api/admin/inbox/drafts",
-        {
-          method: isUpdate ? "PUT" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(
-            isUpdate
-              ? {
-                  ...payload,
-                  version: composer.draftVersion,
-                }
-              : payload
-          ),
-        }
-      );
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to save draft.");
-      }
-      const saved = data as DraftDetail;
-      setComposer((prev) => ({
-        ...prev,
-        draftId: saved.id,
-        draftVersion: saved.version,
-      }));
-      setComposerInfo("Draft saved.");
-      setFolder("drafts");
-      await loadDrafts();
-    } catch (error) {
-      setComposerError(error instanceof Error ? error.message : "Failed to save draft.");
-    } finally {
-      setComposerSaving(false);
-    }
+    await persistDraftSnapshot(composer, {
+      auto: false,
+      navigateToDrafts: true,
+      showSavedMessage: true,
+      manageSavingState: true,
+    });
   };
 
+  useEffect(() => {
+    if (!composer.open) return;
+    if (composerSaving) return;
+    if (!composerHasDraftContent) return;
+    if (!composer.draftId && composerDraftSnapshot === initialDraftSnapshotRef.current) return;
+    if (composerDraftSnapshot === lastSavedDraftSnapshotRef.current) return;
+
+    if (autoSaveTimerRef.current) {
+      window.clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+    }
+
+    const snapshot = composer;
+    autoSaveTimerRef.current = window.setTimeout(() => {
+      void persistDraftSnapshot(snapshot, {
+        auto: true,
+        navigateToDrafts: false,
+        showSavedMessage: false,
+        manageSavingState: false,
+      });
+    }, AUTO_SAVE_DRAFT_DELAY_MS);
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        window.clearTimeout(autoSaveTimerRef.current);
+        autoSaveTimerRef.current = null;
+      }
+    };
+  }, [
+    composer,
+    composer.draftId,
+    composer.open,
+    composerDraftSnapshot,
+    composerHasDraftContent,
+    composerSaving,
+    persistDraftSnapshot,
+  ]);
+
   const sendFromComposer = async () => {
+    const normalizedTextBody = composer.textBody.trim() ? composer.textBody : htmlToPlainText(composer.htmlBody);
+    if (autoSaveTimerRef.current) {
+      window.clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = null;
+    }
     setComposerSaving(true);
     setComposerError(null);
     setComposerInfo(null);
     try {
+      const hasUnsavedDraftChanges = Boolean(
+        composer.draftId
+        && composerDraftSnapshot !== lastSavedDraftSnapshotRef.current
+      );
+      if (hasUnsavedDraftChanges) {
+        const persisted = await persistDraftSnapshot(composer, {
+          auto: false,
+          navigateToDrafts: false,
+          showSavedMessage: false,
+          manageSavingState: false,
+        });
+        if (!persisted) {
+          return;
+        }
+      }
+
       let response: Response;
       if (composer.draftId) {
         response = await fetch(`/api/admin/inbox/drafts/${composer.draftId}/send`, {
@@ -772,7 +1274,7 @@ export function InboxClient() {
             messageId: composer.sourceMessageId,
             mode: composer.mode,
             htmlBody: composer.htmlBody,
-            textBody: composer.textBody,
+            textBody: normalizedTextBody,
             attachments: composer.attachments.map((attachment) => ({
               filename: attachment.filename,
               mimeType: attachment.mimeType,
@@ -781,16 +1283,27 @@ export function InboxClient() {
           }),
         });
       } else {
+        const toAddresses = parseComposerAddressInput(composer.toInput);
+        const ccAddresses = parseComposerAddressInput(composer.ccInput);
+        const bccAddresses = parseComposerAddressInput(composer.bccInput);
+        const invalid = [...toAddresses.invalid, ...ccAddresses.invalid, ...bccAddresses.invalid];
+        if (invalid.length > 0) {
+          throw new Error(`Fix invalid recipient(s): ${invalid.slice(0, 3).join(", ")}`);
+        }
+        const recipientCount = toAddresses.valid.length + ccAddresses.valid.length + bccAddresses.valid.length;
+        if (recipientCount === 0) {
+          throw new Error("Add at least one recipient.");
+        }
         response = await fetch("/api/admin/inbox/send", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            to: parseComposerAddresses(composer.toInput),
-            cc: parseComposerAddresses(composer.ccInput),
-            bcc: parseComposerAddresses(composer.bccInput),
+            to: toAddresses.valid,
+            cc: ccAddresses.valid,
+            bcc: bccAddresses.valid,
             subject: composer.subject,
             htmlBody: composer.htmlBody,
-            textBody: composer.textBody,
+            textBody: normalizedTextBody,
             attachments: composer.attachments.map((attachment) => ({
               filename: attachment.filename,
               mimeType: attachment.mimeType,
@@ -806,7 +1319,7 @@ export function InboxClient() {
       }
 
       setComposerInfo("Message sent.");
-      setComposer((prev) => ({ ...prev, open: false }));
+      closeComposer({ skipAutoSave: true });
       setFolder("sent");
       setPage(1);
       await loadThreads();
@@ -854,6 +1367,40 @@ export function InboxClient() {
       }
     } catch (error) {
       setMessageError(error instanceof Error ? error.message : "Failed to move message.");
+    }
+  };
+
+  const hardDeleteSelectedMessage = async () => {
+    if (!selectedMessage) return;
+    const messageId = selectedMessage.id;
+    const confirmed = window.confirm("Permanently delete this message? This action cannot be undone.");
+    if (!confirmed) return;
+    try {
+      const response = await fetch(`/api/admin/inbox/messages/${messageId}`, {
+        method: "DELETE",
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error || "Failed to delete message.");
+      }
+      await refreshCurrentFolder();
+    } catch (error) {
+      setMessageError(error instanceof Error ? error.message : "Failed to delete message.");
+    }
+  };
+
+  const handleComposerDialogOpenChange = (open: boolean) => {
+    if (composerSaving) return;
+    if (!open) {
+      closeComposer();
+    }
+  };
+
+  const handleComposerKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
+    if (composerSaving) return;
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "enter") {
+      event.preventDefault();
+      void sendFromComposer();
     }
   };
 
@@ -1007,7 +1554,7 @@ export function InboxClient() {
                     ) : null}
                   </div>
                   <p className="line-clamp-1 text-xs text-steel-gray">
-                    {thread.from.name || thread.from.email || "Unknown sender"}
+                    {formatAddressDisplay(thread.from)}
                   </p>
                   <p className="line-clamp-2 text-xs text-steel-gray">
                     {thread.snippet || "No preview"}
@@ -1099,9 +1646,14 @@ export function InboxClient() {
                       <Trash2 size={12} /> Trash
                     </Button>
                   ) : (
-                    <Button size="xs" variant="outline" onClick={() => void moveSelectedMessage("inbox")}>
-                      <ArrowLeft size={12} /> Restore
-                    </Button>
+                    <>
+                      <Button size="xs" variant="outline" onClick={() => void moveSelectedMessage("inbox")}>
+                        <ArrowLeft size={12} /> Restore
+                      </Button>
+                      <Button size="xs" variant="destructive" onClick={() => void hardDeleteSelectedMessage()}>
+                        <Trash2 size={12} /> Delete forever
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
@@ -1115,7 +1667,7 @@ export function InboxClient() {
               <div className="space-y-1 text-xs text-steel-gray">
                 <p>
                   <span className="text-ice-white">From:</span>{" "}
-                  {selectedMessage.from.name || selectedMessage.from.email || "Unknown sender"}
+                  {formatAddressDisplay(selectedMessage.from)}
                 </p>
                 <p>
                   <span className="text-ice-white">To:</span>{" "}
@@ -1170,101 +1722,191 @@ export function InboxClient() {
         </section>
       </div>
 
-      {composer.open ? (
-        <section className="rounded-xl border border-[var(--ghost-border)] bg-midnight-light p-4">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-[var(--ghost-border)] pb-3">
-            <h3 className="text-base font-heading font-semibold text-ice-white">
-              {composer.mode === "new" && "Compose"}
-              {composer.mode === "reply" && "Reply"}
-              {composer.mode === "reply_all" && "Reply all"}
-              {composer.mode === "draft" && "Edit draft"}
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {composer.draftId ? (
+      <Dialog open={composer.open} onOpenChange={handleComposerDialogOpenChange}>
+        <DialogContent
+          className="top-4 max-h-[calc(100dvh-2rem)] w-[min(1000px,calc(100%-1rem))] translate-y-0 overflow-y-auto overscroll-contain border-[var(--ghost-border)] bg-midnight-light p-0 text-ice-white sm:top-8 sm:max-h-[calc(100dvh-4rem)] sm:w-[min(1000px,calc(100%-2rem))] sm:max-w-[1000px]"
+          showCloseButton={false}
+          onEscapeKeyDown={(event) => {
+            if (composerSaving) event.preventDefault();
+          }}
+          onPointerDownOutside={(event) => {
+            if (composerSaving) event.preventDefault();
+          }}
+        >
+          <div onKeyDown={handleComposerKeyDown}>
+            <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--ghost-border)] px-4 py-3">
+              <div className="space-y-1">
+                <DialogTitle className="font-heading text-base text-ice-white">{composerTitle}</DialogTitle>
+                <DialogDescription className="text-xs text-steel-gray">{composerDescription}</DialogDescription>
+                {composerAutoSaving ? (
+                  <p className="text-[11px] text-steel-gray">Autosaving draft...</p>
+                ) : null}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {composer.draftId ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void deleteDraft(composer.draftId!)}
+                    disabled={composerSaving}
+                  >
+                    <Trash2 size={12} /> Delete draft
+                  </Button>
+                ) : null}
                 <Button
                   type="button"
-                  size="xs"
+                  size="sm"
                   variant="outline"
-                  onClick={() => void deleteDraft(composer.draftId!)}
+                  onClick={() => closeComposer()}
                   disabled={composerSaving}
                 >
-                  <Trash2 size={12} /> Delete draft
+                  <CornerDownLeft size={12} /> Close
                 </Button>
-              ) : null}
-              <Button
-                type="button"
-                size="xs"
-                variant="outline"
-                onClick={() => setComposer((prev) => ({ ...prev, open: false }))}
-                disabled={composerSaving}
-              >
-                <CornerDownLeft size={12} /> Close
-              </Button>
-              <Button type="button" size="xs" variant="outline" onClick={saveDraft} disabled={composerSaving}>
-                <Save size={12} /> {composerSaving ? "Saving..." : "Save draft"}
-              </Button>
-              <Button type="button" size="xs" onClick={sendFromComposer} disabled={composerSaving}>
-                <Send size={12} /> {composerSaving ? "Sending..." : "Send"}
-              </Button>
+                <Button type="button" size="sm" variant="outline" onClick={saveDraft} disabled={composerSaving}>
+                  <Save size={12} /> {composerSaving ? "Saving..." : "Save draft"}
+                </Button>
+                <Button type="button" size="sm" onClick={sendFromComposer} disabled={composerSaving}>
+                  <Send size={12} /> {composerSaving ? "Sending..." : "Send"}
+                </Button>
+              </div>
             </div>
-          </div>
 
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="space-y-1">
-              <label className="text-xs text-steel-gray">To</label>
-              <Input
-                value={composer.toInput}
-                onChange={(event) => setComposerField("toInput", event.target.value)}
-                placeholder="name@example.com, Other <other@example.com>"
-                className="border-[var(--ghost-border)] bg-midnight text-ice-white"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-steel-gray">Cc</label>
-              <Input
-                value={composer.ccInput}
-                onChange={(event) => setComposerField("ccInput", event.target.value)}
-                placeholder="Optional"
-                className="border-[var(--ghost-border)] bg-midnight text-ice-white"
-              />
-            </div>
-            <div className="space-y-1 md:col-span-2">
-              <label className="text-xs text-steel-gray">Bcc</label>
-              <Input
-                value={composer.bccInput}
-                onChange={(event) => setComposerField("bccInput", event.target.value)}
-                placeholder="Optional"
-                className="border-[var(--ghost-border)] bg-midnight text-ice-white"
-              />
-            </div>
-            <div className="space-y-1 md:col-span-2">
-              <label className="text-xs text-steel-gray">Subject</label>
-              <Input
-                value={composer.subject}
-                onChange={(event) => setComposerField("subject", event.target.value)}
-                placeholder="Subject"
-                className="border-[var(--ghost-border)] bg-midnight text-ice-white"
-              />
-            </div>
-            <div className="space-y-1 md:col-span-2">
-              <label className="text-xs text-steel-gray">HTML body</label>
-              <RichTextEditor
-                value={composer.htmlBody}
-                onChange={(html) => setComposerField("htmlBody", html)}
-              />
-            </div>
-            <div className="space-y-1 md:col-span-2">
-              <label className="text-xs text-steel-gray">Plain text fallback (optional)</label>
-              <textarea
-                value={composer.textBody}
-                onChange={(event) => setComposerField("textBody", event.target.value)}
-                className="min-h-20 w-full rounded-md border border-[var(--ghost-border)] bg-midnight px-3 py-2 text-sm text-ice-white"
-              />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <label className="text-xs text-steel-gray">Attachments (max 25 MB total)</label>
-              <div className="flex flex-wrap items-center gap-2">
-                <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-[var(--ghost-border)] px-3 py-1.5 text-xs text-steel-gray hover:bg-white/[0.03] hover:text-ice-white">
+            <div className="space-y-4 px-4 py-3">
+              <div className="space-y-2 rounded-lg border border-[var(--ghost-border)] bg-midnight p-3">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-xs text-steel-gray">To</label>
+                    {composer.mode !== "reply" && composer.mode !== "reply_all" ? (
+                      <div className="flex items-center gap-1 text-[11px]">
+                        {!showComposerCc ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-xs text-steel-gray hover:text-ice-white"
+                            onClick={() => setShowComposerCc(true)}
+                          >
+                            Add Cc
+                          </Button>
+                        ) : null}
+                        {!showComposerBcc ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-xs text-steel-gray hover:text-ice-white"
+                            onClick={() => setShowComposerBcc(true)}
+                          >
+                            Add Bcc
+                          </Button>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                  <Input
+                    value={composer.toInput}
+                    onChange={(event) => setComposerField("toInput", event.target.value)}
+                    onPaste={(event) => handleComposerRecipientPaste("toInput", event)}
+                    placeholder="name@example.com (paste comma, semicolon, or newline list)"
+                    readOnly={composer.mode === "reply" || composer.mode === "reply_all"}
+                    className="border-[var(--ghost-border)] bg-midnight text-ice-white read-only:cursor-not-allowed read-only:opacity-80"
+                  />
+                </div>
+
+                {showComposerCc || composer.ccInput.trim() ? (
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <label className="text-xs text-steel-gray">Cc</label>
+                      {composer.mode !== "reply" && composer.mode !== "reply_all" ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-xs text-steel-gray hover:text-ice-white"
+                          onClick={() => {
+                            setShowComposerCc(false);
+                            setComposerField("ccInput", "");
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      ) : null}
+                    </div>
+                    <Input
+                      value={composer.ccInput}
+                      onChange={(event) => setComposerField("ccInput", event.target.value)}
+                      onPaste={(event) => handleComposerRecipientPaste("ccInput", event)}
+                      placeholder="Optional (paste recipient list)"
+                      readOnly={composer.mode === "reply" || composer.mode === "reply_all"}
+                      className="border-[var(--ghost-border)] bg-midnight text-ice-white read-only:cursor-not-allowed read-only:opacity-80"
+                    />
+                  </div>
+                ) : null}
+
+                {showComposerBcc || composer.bccInput.trim() ? (
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <label className="text-xs text-steel-gray">Bcc</label>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-2 text-xs text-steel-gray hover:text-ice-white"
+                        onClick={() => {
+                          setShowComposerBcc(false);
+                          setComposerField("bccInput", "");
+                        }}
+                        disabled={composer.mode === "reply" || composer.mode === "reply_all"}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                    <Input
+                      value={composer.bccInput}
+                      onChange={(event) => setComposerField("bccInput", event.target.value)}
+                      onPaste={(event) => handleComposerRecipientPaste("bccInput", event)}
+                      placeholder="Optional (paste recipient list)"
+                      readOnly={composer.mode === "reply" || composer.mode === "reply_all"}
+                      className="border-[var(--ghost-border)] bg-midnight text-ice-white read-only:cursor-not-allowed read-only:opacity-80"
+                    />
+                  </div>
+                ) : null}
+
+                {(composer.mode === "reply" || composer.mode === "reply_all") ? (
+                  <p className="text-[11px] text-steel-gray">Recipients are fixed by reply mode for this thread.</p>
+                ) : null}
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs text-steel-gray">Subject</label>
+                <Input
+                  value={composer.subject}
+                  onChange={(event) => setComposerField("subject", event.target.value)}
+                  placeholder="Subject"
+                  className="border-[var(--ghost-border)] bg-midnight text-ice-white"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <label className="text-xs text-steel-gray">Message</label>
+                  <span className="text-[11px] text-steel-gray">
+                    {composerWordCount} word{composerWordCount === 1 ? "" : "s"}
+                  </span>
+                </div>
+                <RichTextEditor
+                  value={composer.htmlBody}
+                  onChange={(html) => setComposerField("htmlBody", html)}
+                />
+              </div>
+
+              <div className="space-y-2 rounded-lg border border-[var(--ghost-border)] bg-midnight p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs text-steel-gray">Attachments (max 25 MB total)</p>
+                  <span className="text-[11px] text-steel-gray">{formatFileSize(composerAttachmentBytes)} used</span>
+                </div>
+                <label className="inline-flex w-fit cursor-pointer items-center gap-2 rounded-md border border-[var(--ghost-border)] px-3 py-2 text-sm text-steel-gray hover:bg-white/[0.03] hover:text-ice-white">
                   <FilePlus2 size={12} />
                   Add file(s)
                   <input
@@ -1277,54 +1919,79 @@ export function InboxClient() {
                     }}
                   />
                 </label>
-                <span className="text-xs text-steel-gray">
-                  {formatFileSize(composer.attachments.reduce((sum, item) => sum + item.size, 0))}
-                </span>
-              </div>
-              {composer.attachments.length > 0 ? (
-                <div className="space-y-1">
-                  {composer.attachments.map((attachment) => (
-                    <div
-                      key={attachment.id}
-                      className="flex items-center justify-between rounded-md border border-[var(--ghost-border)] bg-midnight px-2 py-1 text-xs text-steel-gray"
-                    >
-                      <span className="truncate">
-                        {attachment.filename} ({formatFileSize(attachment.size)})
-                      </span>
-                      <Button
-                        type="button"
-                        size="xs"
-                        variant="ghost"
-                        onClick={() => {
-                          setComposer((prev) => ({
-                            ...prev,
-                            attachments: prev.attachments.filter((item) => item.id !== attachment.id),
-                          }));
-                        }}
+                {composer.attachments.length > 0 ? (
+                  <div className="space-y-1">
+                    {composer.attachments.map((attachment) => (
+                      <div
+                        key={attachment.id}
+                        className="flex items-center justify-between rounded-md border border-[var(--ghost-border)] bg-midnight-light px-2 py-1 text-xs text-steel-gray"
                       >
-                        Remove
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-steel-gray">No attachments.</p>
-              )}
-            </div>
-          </div>
+                        <span className="truncate">
+                          {attachment.filename} ({formatFileSize(attachment.size)})
+                        </span>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setComposer((prev) => ({
+                              ...prev,
+                              attachments: prev.attachments.filter((item) => item.id !== attachment.id),
+                            }));
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-steel-gray">No attachments.</p>
+                )}
+              </div>
 
-          {composerError ? (
-            <div className="mt-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
-              {composerError}
+              <div className="space-y-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 w-fit px-0 text-xs text-steel-gray hover:bg-transparent hover:text-ice-white"
+                  onClick={() => setShowPlainTextFallback((prev) => !prev)}
+                >
+                  {showPlainTextFallback ? "Hide plain text fallback" : "Edit plain text fallback"}
+                </Button>
+                {showPlainTextFallback ? (
+                  <textarea
+                    value={composer.textBody}
+                    onChange={(event) => setComposerField("textBody", event.target.value)}
+                    className="min-h-24 w-full rounded-md border border-[var(--ghost-border)] bg-midnight px-3 py-2 text-sm text-ice-white"
+                    placeholder="Optional plain text version"
+                  />
+                ) : (
+                  <p className="text-[11px] text-steel-gray">
+                    Plain text is generated from your message body when left empty.
+                  </p>
+                )}
+              </div>
             </div>
-          ) : null}
-          {composerInfo ? (
-            <div className="mt-3 rounded-md border border-[var(--ghost-border)] bg-midnight px-3 py-2 text-xs text-steel-gray">
-              {composerInfo}
-            </div>
-          ) : null}
-        </section>
-      ) : null}
+
+            {(composerError || composerInfo) ? (
+              <div className="space-y-2 border-t border-[var(--ghost-border)] px-4 py-3">
+                {composerError ? (
+                  <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                    {composerError}
+                  </div>
+                ) : null}
+                {composerInfo ? (
+                  <div className="rounded-md border border-[var(--ghost-border)] bg-midnight px-3 py-2 text-xs text-steel-gray">
+                    {composerInfo}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

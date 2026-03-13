@@ -16,6 +16,7 @@ export {
 export {
   getMailboxAttachmentContent,
   getMailboxStatus,
+  hardDeleteMessage,
   getThreadMessages,
   listInboxThreads,
   moveMessageToFolder,

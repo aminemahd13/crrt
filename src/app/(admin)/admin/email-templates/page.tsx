@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Save, Check, Plus, Eye, AlertCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
 interface EmailTemplate {
   id?: string;
@@ -20,6 +21,31 @@ const EMPTY_TEMPLATE: EmailTemplate = {
   enabled: true,
 };
 
+const PREVIEW_DEFAULT_VALUES: Record<string, string> = {
+  name: "Alex Doe",
+  eventTitle: "Community Workshop",
+  status: "confirmed",
+  note: "Bring a photo ID at check-in.",
+  formTitle: "General Inquiry",
+  email: "alex@example.com",
+};
+
+function extractTemplateVariables(input: string): string[] {
+  const seen = new Set<string>();
+  const matches = input.matchAll(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g);
+  for (const match of matches) {
+    if (!match[1]) continue;
+    seen.add(match[1]);
+  }
+  return Array.from(seen);
+}
+
+function renderTemplatePreview(template: string, values: Record<string, string>): string {
+  return template.replace(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g, (_, variable: string) => {
+    return values[variable] ?? `example_${variable}`;
+  });
+}
+
 export default function EmailTemplatesPage() {
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [selectedKey, setSelectedKey] = useState<string>("");
@@ -27,6 +53,7 @@ export default function EmailTemplatesPage() {
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -51,6 +78,31 @@ export default function EmailTemplatesPage() {
     () => templates.find((template) => template.key === selectedKey),
     [templates, selectedKey]
   );
+
+  const previewVariables = useMemo(() => {
+    if (!selected) return [];
+    return extractTemplateVariables(`${selected.subject}\n${selected.body}`);
+  }, [selected]);
+
+  const previewValues = useMemo(() => {
+    const values: Record<string, string> = {};
+    for (const variable of previewVariables) {
+      values[variable] = PREVIEW_DEFAULT_VALUES[variable] ?? `example_${variable}`;
+    }
+    return values;
+  }, [previewVariables]);
+
+  const previewSubject = useMemo(() => {
+    if (!selected) return "";
+    return renderTemplatePreview(selected.subject, previewValues);
+  }, [previewValues, selected]);
+
+  const previewBody = useMemo(() => {
+    if (!selected) return "";
+    return renderTemplatePreview(selected.body, previewValues);
+  }, [previewValues, selected]);
+
+  const previewBodyLooksHtml = /<[a-z][\s\S]*>/i.test(previewBody);
 
   const updateTemplate = (key: keyof EmailTemplate, value: string | boolean) => {
     setTemplates((prev) =>
@@ -133,7 +185,10 @@ export default function EmailTemplatesPage() {
             <div className="flex items-center justify-between gap-4">
               <h1 className="text-xl font-heading font-bold text-ice-white">{selected.name}</h1>
               <div className="flex items-center gap-2">
-                <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--ghost-border)] text-xs text-steel-gray hover:text-ice-white hover:bg-white/5">
+                <button
+                  onClick={() => setPreviewOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--ghost-border)] text-xs text-steel-gray hover:text-ice-white hover:bg-white/5"
+                >
                   <Eye size={12} /> Preview
                 </button>
                 <button
@@ -212,6 +267,45 @@ export default function EmailTemplatesPage() {
           <p className="text-steel-gray text-sm text-center py-20">Select a template to edit.</p>
         )}
       </div>
+
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-[var(--ghost-border)] bg-midnight-light text-ice-white sm:max-w-3xl">
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <DialogTitle className="text-base font-semibold text-ice-white">
+                Template Preview{selected?.name ? `: ${selected.name}` : ""}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-steel-gray">
+                Uses sample values for template variables.
+              </DialogDescription>
+            </div>
+
+            <div className="space-y-2 rounded-lg border border-[var(--ghost-border)] bg-midnight p-3">
+              <p className="text-xs text-steel-gray">
+                <span className="text-ice-white">Subject:</span> {previewSubject || "(No subject)"}
+              </p>
+              {previewVariables.length > 0 ? (
+                <p className="text-[11px] text-steel-gray">
+                  Variables: {previewVariables.map((variable) => `{{${variable}}}`).join(", ")}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="rounded-lg border border-[var(--ghost-border)] bg-midnight p-4 text-sm text-ice-white">
+              {previewBodyLooksHtml ? (
+                <div
+                  className="prose prose-sm max-w-none prose-a:text-signal-orange prose-strong:text-ice-white"
+                  dangerouslySetInnerHTML={{ __html: previewBody || "<p>(No body)</p>" }}
+                />
+              ) : (
+                <pre className="whitespace-pre-wrap break-words font-sans text-sm">
+                  {previewBody || "(No body)"}
+                </pre>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

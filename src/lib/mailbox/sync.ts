@@ -418,10 +418,14 @@ export async function moveMessageToFolder(messageId: string, targetFolderKey: "i
   const destinationFolder = mapFolder(config, targetFolderKey);
   let provider: ReturnType<typeof createMailboxProvider> | null = null;
   try {
+    let moveResult: { uidValidity: bigint | null; uid: number | null } = {
+      uidValidity: null,
+      uid: null,
+    };
     if (existing.imapUid !== null) {
       assertImapConfigured(config);
       provider = createMailboxProvider(config);
-      await provider.moveMessage({
+      moveResult = await provider.moveMessage({
         sourceFolder: existing.imapFolder,
         uid: existing.imapUid,
         destinationFolder,
@@ -431,15 +435,50 @@ export async function moveMessageToFolder(messageId: string, targetFolderKey: "i
       where: { id: existing.id },
       data: {
         imapFolder: destinationFolder,
-        // IMAP MOVE usually assigns a new UID in destination mailbox.
-        imapUid: null,
-        imapUidValidity: null,
+        imapUid: moveResult.uid,
+        imapUidValidity: moveResult.uidValidity,
       },
     });
     await refreshThreadSummaries([existing.threadId]);
     recordInboxMessageAction("move", "success");
   } catch (error) {
     recordInboxMessageAction("move", "failure");
+    throw error;
+  } finally {
+    if (provider) await provider.close();
+  }
+}
+
+export async function hardDeleteMessage(messageId: string) {
+  assertMailboxPrismaDelegates();
+  const config = await resolveMailboxConfig();
+  const existing = await prisma.mailMessage.findUnique({
+    where: { id: messageId },
+    select: { id: true, threadId: true, imapFolder: true, imapUid: true },
+  });
+  if (!existing) throw new Error("Message not found.");
+  if (existing.imapFolder !== mapFolder(config, "trash")) {
+    throw new Error("Only messages in Trash can be permanently deleted.");
+  }
+
+  let provider: ReturnType<typeof createMailboxProvider> | null = null;
+  try {
+    if (existing.imapUid !== null) {
+      assertImapConfigured(config);
+      provider = createMailboxProvider(config);
+      await provider.deleteMessage({
+        folderName: existing.imapFolder,
+        uid: existing.imapUid,
+      });
+    }
+
+    await prisma.mailMessage.delete({
+      where: { id: existing.id },
+    });
+    await refreshThreadSummaries([existing.threadId]);
+    recordInboxMessageAction("delete", "success");
+  } catch (error) {
+    recordInboxMessageAction("delete", "failure");
     throw error;
   } finally {
     if (provider) await provider.close();

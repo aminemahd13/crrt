@@ -284,11 +284,25 @@ export class ImapMailboxProvider implements MailboxProvider {
     sourceFolder: string;
     uid: number;
     destinationFolder: string;
-  }): Promise<void> {
+  }): Promise<{ uidValidity: bigint | null; uid: number | null }> {
     await this.ensureConnected();
     const lock = await this.client.getMailboxLock(input.sourceFolder, { description: "mailbox-move" });
     try {
-      await this.client.messageMove([input.uid], input.destinationFolder, { uid: true });
+      const moved = await this.client.messageMove([input.uid], input.destinationFolder, { uid: true });
+      return {
+        uidValidity: moved?.uidValidity ?? null,
+        uid: moved?.uidMap?.get(input.uid) ?? null,
+      };
+    } finally {
+      lock.release();
+    }
+  }
+
+  async deleteMessage(input: { folderName: string; uid: number }): Promise<void> {
+    await this.ensureConnected();
+    const lock = await this.client.getMailboxLock(input.folderName, { description: "mailbox-delete" });
+    try {
+      await this.client.messageDelete([input.uid], { uid: true });
     } finally {
       lock.release();
     }

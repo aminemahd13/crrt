@@ -308,7 +308,7 @@ model HomeConfig {
 model PlatformSettings {
   id          String   @id @default("default")
   siteTitle   String   @default("CRRT - ENSA Agadir")
-  siteUrl     String   @default("https://crrt.ensa-agadir.ac.ma")
+  siteUrl     String   @default("https://crrt.ma")
   adminEmail  String?
   smtpHost    String?
   smtpPort    Int?
