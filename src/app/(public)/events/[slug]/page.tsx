@@ -71,7 +71,7 @@ export default async function EventDetailPage({
         registrationLabel: event.registrationLabel,
         registrationUrl: event.registrationUrl,
         registrationReviewMode: event.registrationReviewMode,
-        speakers: event.speakers.map((s) => ({
+        speakers: event.speakers.map((s: any) => ({
           id: s.id,
           name: s.name,
           role: s.role,
@@ -84,7 +84,7 @@ export default async function EventDetailPage({
           logoUrl: partner.logoUrl,
           website: partner.website,
         })),
-        tags: Array.from(new Set(event.tags.map((ct) => ct.tag.name))),
+        tags: Array.from(new Set(event.tags.map((ct: any) => ct.tag.name))),
       }}
     />
   );
