@@ -20,13 +20,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: deps
     profiles: ["production"]
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
-    command: ["npx", "prisma", "migrate", "deploy"]
+    command: ["npm", "exec", "--", "prisma", "migrate", "deploy"]
     restart: "no"
 
   app:
@@ -78,6 +79,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: deps
     profiles: ["seed"]
     depends_on:
       postgres:
@@ -86,7 +88,7 @@ services:
         condition: service_completed_successfully
     environment:
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
-    command: ["npx", "prisma", "db", "seed"]
+    command: ["npm", "exec", "--", "prisma", "db", "seed"]
     restart: "no"
 
 volumes:

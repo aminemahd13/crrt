@@ -159,8 +159,8 @@ MEDIA_UPLOAD_DIR_HOST=./data/uploads
 docker compose --env-file .env --profile production up -d --build
 
 # Optional deterministic reset + reseed (recommended for first production cutover)
-docker compose --env-file .env --profile production run --rm app npx prisma migrate reset --force --skip-generate --skip-seed
-docker compose --env-file .env --profile production --profile seed run --rm seed
+docker compose --env-file .env --profile production run --rm --no-deps migrate npm exec -- prisma migrate reset --force --skip-generate --skip-seed
+docker compose --env-file .env --profile production --profile seed run --rm --no-deps seed
 
 # Bring app back up after reset
 docker compose --env-file .env --profile production up -d app
