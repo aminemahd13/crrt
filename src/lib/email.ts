@@ -7,6 +7,7 @@ interface EmailOptions {
   subject: string;
   html: string;
   from?: string;
+  replyTo?: string;
 }
 
 async function resolveSmtpConfig() {
@@ -23,6 +24,7 @@ async function resolveSmtpConfig() {
     user,
     pass,
     from: settings.smtpFrom || fallbackFrom,
+    replyTo: settings.adminEmail || "contact@crrt.tech",
   };
 }
 
@@ -51,6 +53,7 @@ export async function sendEmail(opts: EmailOptions): Promise<{ ok: boolean; erro
   try {
     await transporter.sendMail({
       from: opts.from || smtp.from,
+      replyTo: opts.replyTo || smtp.replyTo,
       to: opts.to,
       subject: opts.subject,
       html: opts.html,
