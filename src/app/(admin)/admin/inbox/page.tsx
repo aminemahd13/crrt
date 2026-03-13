@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation";
+import { InboxClient } from "./inbox-client";
 
 export default function InboxPage() {
-  redirect("/admin/applications");
+  return <InboxClient />;
 }

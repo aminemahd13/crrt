@@ -20,15 +20,35 @@ interface SettingsState {
   smtpPort: number;
   smtpFrom: string;
   adminEmail: string;
+  imapHost: string;
+  imapPort: number;
+  imapSecure: boolean;
+  imapFolderInbox: string;
+  imapFolderSent: string;
+  imapFolderDrafts: string;
+  imapFolderArchive: string;
+  imapFolderTrash: string;
+  imapSyncIntervalSeconds: number;
+  imapInitialSyncDays: number;
 }
 
 const INITIAL_SETTINGS: SettingsState = {
   siteTitle: "CRRT - ENSA Agadir",
   siteUrl: "http://localhost:3000",
-  smtpHost: "",
+  smtpHost: "mail.purelymail.com",
   smtpPort: 587,
   smtpFrom: "",
   adminEmail: "",
+  imapHost: "mail.purelymail.com",
+  imapPort: 993,
+  imapSecure: true,
+  imapFolderInbox: "INBOX",
+  imapFolderSent: "Sent",
+  imapFolderDrafts: "Drafts",
+  imapFolderArchive: "Archive",
+  imapFolderTrash: "Trash",
+  imapSyncIntervalSeconds: 30,
+  imapInitialSyncDays: 90,
 };
 
 export default function SettingsPage() {
@@ -41,6 +61,9 @@ export default function SettingsPage() {
   const [testEmail, setTestEmail] = useState("");
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [imapTesting, setImapTesting] = useState(false);
+  const [imapTestResult, setImapTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [imapSecretsPresent, setImapSecretsPresent] = useState<boolean | null>(null);
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -57,11 +80,28 @@ export default function SettingsPage() {
         setSettings({
           siteTitle: payload.siteTitle ?? INITIAL_SETTINGS.siteTitle,
           siteUrl: payload.siteUrl ?? INITIAL_SETTINGS.siteUrl,
-          smtpHost: payload.smtpHost ?? "",
+          smtpHost: payload.smtpHost ?? "mail.purelymail.com",
           smtpPort: payload.smtpPort ?? 587,
           smtpFrom: payload.smtpFrom ?? "",
           adminEmail: payload.adminEmail ?? "",
+          imapHost: payload.imapHost ?? "mail.purelymail.com",
+          imapPort: payload.imapPort ?? 993,
+          imapSecure: typeof payload.imapSecure === "boolean" ? payload.imapSecure : true,
+          imapFolderInbox: payload.imapFolderInbox ?? "INBOX",
+          imapFolderSent: payload.imapFolderSent ?? "Sent",
+          imapFolderDrafts: payload.imapFolderDrafts ?? "Drafts",
+          imapFolderArchive: payload.imapFolderArchive ?? "Archive",
+          imapFolderTrash: payload.imapFolderTrash ?? "Trash",
+          imapSyncIntervalSeconds: payload.imapSyncIntervalSeconds ?? 30,
+          imapInitialSyncDays: payload.imapInitialSyncDays ?? 90,
         });
+        const inboxStatusResponse = await fetch("/api/admin/inbox/sync", { cache: "no-store" });
+        const inboxPayload = await inboxStatusResponse.json().catch(() => ({}));
+        if (inboxStatusResponse.ok && typeof inboxPayload.hasImapSecrets === "boolean") {
+          setImapSecretsPresent(inboxPayload.hasImapSecrets);
+        } else {
+          setImapSecretsPresent(null);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load settings");
       } finally {
@@ -147,6 +187,26 @@ export default function SettingsPage() {
       setPasswordMessage({ ok: false, text: "Failed to update password" });
     } finally {
       setPasswordSaving(false);
+    }
+  };
+
+  const handleTestImap = async () => {
+    setImapTesting(true);
+    setImapTestResult(null);
+    try {
+      const response = await fetch("/api/admin/inbox/test-imap", {
+        method: "POST",
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (response.ok) {
+        setImapTestResult({ ok: true, message: "IMAP connection succeeded." });
+      } else {
+        setImapTestResult({ ok: false, message: payload.error || "IMAP test failed." });
+      }
+    } catch {
+      setImapTestResult({ ok: false, message: "Network error while testing IMAP." });
+    } finally {
+      setImapTesting(false);
     }
   };
 
@@ -284,6 +344,148 @@ export default function SettingsPage() {
               {testResult.message}
             </div>
           )}
+        </div>
+      </div>
+
+      <div className="glass-card p-6 space-y-4">
+        <div className="flex items-center gap-2">
+          <Mail size={16} className="text-signal-orange" />
+          <h3 className="font-heading font-semibold text-ice-white text-sm">IMAP Metadata</h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-1">
+            <label className="text-xs text-steel-gray">IMAP Host</label>
+            <input
+              type="text"
+              value={settings.imapHost}
+              onChange={(e) => setSettings((prev) => ({ ...prev, imapHost: e.target.value }))}
+              className="w-full px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-steel-gray">IMAP Port</label>
+            <input
+              type="number"
+              value={settings.imapPort}
+              onChange={(e) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  imapPort: Number.parseInt(e.target.value || "993", 10),
+                }))
+              }
+              className="w-full px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white"
+            />
+          </div>
+          <label className="flex items-center gap-2 self-end text-xs text-steel-gray">
+            <input
+              type="checkbox"
+              checked={settings.imapSecure}
+              onChange={(e) => setSettings((prev) => ({ ...prev, imapSecure: e.target.checked }))}
+            />
+            Use TLS/SSL
+          </label>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="space-y-1">
+            <label className="text-xs text-steel-gray">Inbox Folder</label>
+            <input
+              type="text"
+              value={settings.imapFolderInbox}
+              onChange={(e) => setSettings((prev) => ({ ...prev, imapFolderInbox: e.target.value }))}
+              className="w-full px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-steel-gray">Sent Folder</label>
+            <input
+              type="text"
+              value={settings.imapFolderSent}
+              onChange={(e) => setSettings((prev) => ({ ...prev, imapFolderSent: e.target.value }))}
+              className="w-full px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-steel-gray">Drafts Folder</label>
+            <input
+              type="text"
+              value={settings.imapFolderDrafts}
+              onChange={(e) => setSettings((prev) => ({ ...prev, imapFolderDrafts: e.target.value }))}
+              className="w-full px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-steel-gray">Archive Folder</label>
+            <input
+              type="text"
+              value={settings.imapFolderArchive}
+              onChange={(e) => setSettings((prev) => ({ ...prev, imapFolderArchive: e.target.value }))}
+              className="w-full px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-steel-gray">Trash Folder</label>
+            <input
+              type="text"
+              value={settings.imapFolderTrash}
+              onChange={(e) => setSettings((prev) => ({ ...prev, imapFolderTrash: e.target.value }))}
+              className="w-full px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white"
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <label className="text-xs text-steel-gray">Auto Sync Interval (seconds)</label>
+            <input
+              type="number"
+              value={settings.imapSyncIntervalSeconds}
+              onChange={(e) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  imapSyncIntervalSeconds: Number.parseInt(e.target.value || "30", 10),
+                }))
+              }
+              className="w-full px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-steel-gray">Initial Sync Window (days)</label>
+            <input
+              type="number"
+              value={settings.imapInitialSyncDays}
+              onChange={(e) =>
+                setSettings((prev) => ({
+                  ...prev,
+                  imapInitialSyncDays: Number.parseInt(e.target.value || "90", 10),
+                }))
+              }
+              className="w-full px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white"
+            />
+          </div>
+        </div>
+
+        <div className="border-t border-[var(--ghost-border)] pt-4 space-y-3">
+          <p className="text-xs text-steel-gray">
+            IMAP credentials (`IMAP_USER`, `IMAP_PASS`) remain environment-only.
+          </p>
+          {imapSecretsPresent === false ? (
+            <p className="text-xs text-amber-300">
+              IMAP secrets are currently missing from environment.
+            </p>
+          ) : null}
+          <button
+            onClick={handleTestImap}
+            disabled={imapTesting}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[var(--ghost-border)] text-xs text-steel-gray hover:text-ice-white hover:bg-white/5 transition-colors disabled:opacity-50"
+          >
+            <Mail size={12} />
+            {imapTesting ? "Testing..." : "Test IMAP Connection"}
+          </button>
+          {imapTestResult ? (
+            <div className={`text-xs ${imapTestResult.ok ? "text-emerald-400" : "text-red-400"} flex items-center gap-2`}>
+              {imapTestResult.ok ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+              {imapTestResult.message}
+            </div>
+          ) : null}
         </div>
       </div>
 

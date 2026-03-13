@@ -57,6 +57,25 @@ export async function PUT(request: Request) {
         smtpHost: typeof body.smtpHost === "string" ? body.smtpHost.trim() : null,
         smtpPort: Number.isFinite(body.smtpPort) ? Number(body.smtpPort) : null,
         smtpFrom: typeof body.smtpFrom === "string" ? body.smtpFrom.trim() : null,
+        imapHost: typeof body.imapHost === "string" ? body.imapHost.trim() : null,
+        imapPort: Number.isFinite(body.imapPort) ? Number(body.imapPort) : null,
+        imapSecure: typeof body.imapSecure === "boolean" ? body.imapSecure : null,
+        imapFolderInbox:
+          typeof body.imapFolderInbox === "string" ? body.imapFolderInbox.trim() : null,
+        imapFolderSent:
+          typeof body.imapFolderSent === "string" ? body.imapFolderSent.trim() : null,
+        imapFolderDrafts:
+          typeof body.imapFolderDrafts === "string" ? body.imapFolderDrafts.trim() : null,
+        imapFolderArchive:
+          typeof body.imapFolderArchive === "string" ? body.imapFolderArchive.trim() : null,
+        imapFolderTrash:
+          typeof body.imapFolderTrash === "string" ? body.imapFolderTrash.trim() : null,
+        imapSyncIntervalSeconds: Number.isFinite(body.imapSyncIntervalSeconds)
+          ? Number(body.imapSyncIntervalSeconds)
+          : null,
+        imapInitialSyncDays: Number.isFinite(body.imapInitialSyncDays)
+          ? Number(body.imapInitialSyncDays)
+          : null,
       },
       create: {
         id: "default",
@@ -66,6 +85,25 @@ export async function PUT(request: Request) {
         smtpHost: typeof body.smtpHost === "string" ? body.smtpHost.trim() : null,
         smtpPort: Number.isFinite(body.smtpPort) ? Number(body.smtpPort) : null,
         smtpFrom: typeof body.smtpFrom === "string" ? body.smtpFrom.trim() : null,
+        imapHost: typeof body.imapHost === "string" ? body.imapHost.trim() : null,
+        imapPort: Number.isFinite(body.imapPort) ? Number(body.imapPort) : null,
+        imapSecure: typeof body.imapSecure === "boolean" ? body.imapSecure : null,
+        imapFolderInbox:
+          typeof body.imapFolderInbox === "string" ? body.imapFolderInbox.trim() : null,
+        imapFolderSent:
+          typeof body.imapFolderSent === "string" ? body.imapFolderSent.trim() : null,
+        imapFolderDrafts:
+          typeof body.imapFolderDrafts === "string" ? body.imapFolderDrafts.trim() : null,
+        imapFolderArchive:
+          typeof body.imapFolderArchive === "string" ? body.imapFolderArchive.trim() : null,
+        imapFolderTrash:
+          typeof body.imapFolderTrash === "string" ? body.imapFolderTrash.trim() : null,
+        imapSyncIntervalSeconds: Number.isFinite(body.imapSyncIntervalSeconds)
+          ? Number(body.imapSyncIntervalSeconds)
+          : null,
+        imapInitialSyncDays: Number.isFinite(body.imapInitialSyncDays)
+          ? Number(body.imapInitialSyncDays)
+          : null,
       },
     });
 

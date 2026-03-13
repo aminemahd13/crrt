@@ -82,6 +82,7 @@ const navGroups = [
   {
     label: "System",
     items: [
+      { label: "Inbox", href: "/admin/inbox", icon: Inbox },
       { label: "Email Templates", href: "/admin/email-templates", icon: Mail },
       { label: "Settings", href: "/admin/settings", icon: Settings },
     ],

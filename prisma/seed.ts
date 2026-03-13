@@ -95,9 +95,25 @@ async function main() {
             siteTitle: "CRRT - ENSA Agadir",
             siteUrl: "https://crrt.ensa-agadir.ac.ma",
             adminEmail: "contact@crrt.tech",
-            smtpHost: process.env.SMTP_HOST ?? null,
+            smtpHost: process.env.SMTP_HOST ?? "mail.purelymail.com",
             smtpPort: process.env.SMTP_PORT ? Number.parseInt(process.env.SMTP_PORT, 10) : null,
             smtpFrom: process.env.SMTP_FROM ?? "CRRT <contact@crrt.tech>",
+            imapHost: process.env.IMAP_HOST ?? "mail.purelymail.com",
+            imapPort: process.env.IMAP_PORT ? Number.parseInt(process.env.IMAP_PORT, 10) : 993,
+            imapSecure: process.env.IMAP_SECURE
+                ? process.env.IMAP_SECURE.toLowerCase() !== "false"
+                : true,
+            imapFolderInbox: process.env.IMAP_FOLDER_INBOX ?? "INBOX",
+            imapFolderSent: process.env.IMAP_FOLDER_SENT ?? "Sent",
+            imapFolderDrafts: process.env.IMAP_FOLDER_DRAFTS ?? "Drafts",
+            imapFolderArchive: process.env.IMAP_FOLDER_ARCHIVE ?? "Archive",
+            imapFolderTrash: process.env.IMAP_FOLDER_TRASH ?? "Trash",
+            imapSyncIntervalSeconds: process.env.IMAP_SYNC_INTERVAL_SECONDS
+                ? Number.parseInt(process.env.IMAP_SYNC_INTERVAL_SECONDS, 10)
+                : 30,
+            imapInitialSyncDays: process.env.IMAP_INITIAL_SYNC_DAYS
+                ? Number.parseInt(process.env.IMAP_INITIAL_SYNC_DAYS, 10)
+                : 90,
         },
     });
     console.log("  ✓ PlatformSettings");

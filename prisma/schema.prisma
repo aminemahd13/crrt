@@ -313,6 +313,16 @@ model PlatformSettings {
   smtpHost    String?
   smtpPort    Int?
   smtpFrom    String?
+  imapHost    String?
+  imapPort    Int?
+  imapSecure  Boolean?
+  imapFolderInbox   String?
+  imapFolderSent    String?
+  imapFolderDrafts  String?
+  imapFolderArchive String?
+  imapFolderTrash   String?
+  imapSyncIntervalSeconds Int?
+  imapInitialSyncDays     Int?
   updatedAt   DateTime @updatedAt
 }
 
@@ -325,6 +335,135 @@ model EmailTemplate {
   enabled   Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model MailThread {
+  id             String        @id @default(cuid())
+  mailbox        String        @default("shared")
+  threadKey      String
+  subject        String?
+  participants   Json          @default("[]")
+  snippet        String?
+  lastMessageAt  DateTime?
+  unreadCount    Int           @default(0)
+  hasAttachments Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  messages       MailMessage[]
+  drafts         MailDraft[]
+
+  @@unique([mailbox, threadKey])
+  @@index([mailbox, lastMessageAt])
+}
+
+model MailMessage {
+  id               String            @id @default(cuid())
+  mailbox          String            @default("shared")
+  threadId         String
+  thread           MailThread        @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  messageIdHeader  String?
+  inReplyTo        String?
+  references       Json              @default("[]")
+  imapFolder       String
+  imapUidValidity  BigInt?
+  imapUid          Int?
+  fromName         String?
+  fromEmail        String?
+  toRecipients     Json              @default("[]")
+  ccRecipients     Json              @default("[]")
+  bccRecipients    Json              @default("[]")
+  subject          String            @default("")
+  snippet          String?
+  textBody         String?
+  htmlBody         String?
+  rawMime          Bytes?
+  rawMimeEncoding  String?
+  date             DateTime
+  internalDate     DateTime?
+  isRead           Boolean           @default(false)
+  isFlagged        Boolean           @default(false)
+  isDraft          Boolean           @default(false)
+  isSent           Boolean           @default(false)
+  direction        String            @default("inbound") // inbound | outbound
+  appendPending    Boolean           @default(false)
+  appendError      String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  attachments      MailAttachment[]
+
+  @@unique([imapFolder, imapUidValidity, imapUid])
+  @@index([mailbox, imapFolder, date])
+  @@index([threadId, date])
+  @@index([messageIdHeader])
+}
+
+model MailAttachment {
+  id             String      @id @default(cuid())
+  messageId      String
+  message        MailMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  filename       String
+  mimeType       String
+  size           Int
+  contentId      String?
+  isInline       Boolean     @default(false)
+  rawContent     Bytes?
+  transferEncoding String?
+  createdAt      DateTime    @default(now())
+
+  @@index([messageId])
+}
+
+model MailDraft {
+  id              String               @id @default(cuid())
+  mailbox         String               @default("shared")
+  threadId        String?
+  thread          MailThread?          @relation(fields: [threadId], references: [id], onDelete: SetNull)
+  remoteUidValidity BigInt?
+  remoteUid       Int?
+  toRecipients    Json                 @default("[]")
+  ccRecipients    Json                 @default("[]")
+  bccRecipients   Json                 @default("[]")
+  subject         String               @default("")
+  htmlBody        String               @default("")
+  textBody        String               @default("")
+  version         Int                  @default(1)
+  status          String               @default("active") // active | sending | sent
+  lastError       String?
+  createdByEmail  String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  attachments     MailDraftAttachment[]
+
+  @@index([mailbox, updatedAt])
+}
+
+model MailDraftAttachment {
+  id         String    @id @default(cuid())
+  draftId    String
+  draft      MailDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  filename   String
+  mimeType   String
+  size       Int
+  content    Bytes
+  createdAt  DateTime  @default(now())
+
+  @@index([draftId])
+}
+
+model MailFolderCursor {
+  id             String   @id @default(cuid())
+  mailbox        String   @default("shared")
+  folderKey      String
+  folderName     String
+  uidValidity    BigInt?
+  highestUid     Int?
+  lastSyncedAt   DateTime?
+  syncStatus     String   @default("idle") // idle | running | success | failed
+  lastError      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([mailbox, folderKey])
 }
 
 enum EventRegistrationStatus {

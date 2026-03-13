@@ -32,6 +32,26 @@ export function recordApplicationFailure(action: string) {
   inc(`admin_application_failures_total{action="${action}"}`);
 }
 
+export function recordInboxSync(result: "success" | "failure") {
+  inc("admin_inbox_sync_total");
+  inc(`admin_inbox_sync_total{result="${result}"}`);
+}
+
+export function recordInboxSend(result: "success" | "failure") {
+  inc("admin_inbox_send_total");
+  inc(`admin_inbox_send_total{result="${result}"}`);
+}
+
+export function recordInboxDraft(action: "create" | "update" | "delete" | "send", result: "success" | "failure") {
+  inc("admin_inbox_draft_total");
+  inc(`admin_inbox_draft_total{action="${action}",result="${result}"}`);
+}
+
+export function recordInboxMessageAction(action: "mark_read" | "move", result: "success" | "failure") {
+  inc("admin_inbox_message_action_total");
+  inc(`admin_inbox_message_action_total{action="${action}",result="${result}"}`);
+}
+
 export function getMetricsSnapshot() {
   return {
     startedAt,

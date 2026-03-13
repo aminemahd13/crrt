@@ -17,6 +17,16 @@ export interface PlatformSettingsSnapshot {
   smtpHost: string;
   smtpPort: number;
   smtpFrom: string;
+  imapHost: string;
+  imapPort: number;
+  imapSecure: boolean;
+  imapFolderInbox: string;
+  imapFolderSent: string;
+  imapFolderDrafts: string;
+  imapFolderArchive: string;
+  imapFolderTrash: string;
+  imapSyncIntervalSeconds: number;
+  imapInitialSyncDays: number;
 }
 
 const DEFAULT_HEADER_LINKS: SiteLink[] = [
@@ -54,13 +64,26 @@ function toLinks(items: Array<{ label: string; href: string }>): SiteLink[] {
 
 export function getDefaultPlatformSettings(): PlatformSettingsSnapshot {
   const envPort = Number.parseInt(process.env.SMTP_PORT ?? "587", 10);
+  const imapPort = Number.parseInt(process.env.IMAP_PORT ?? "993", 10);
+  const syncInterval = Number.parseInt(process.env.IMAP_SYNC_INTERVAL_SECONDS ?? "30", 10);
+  const initialSyncDays = Number.parseInt(process.env.IMAP_INITIAL_SYNC_DAYS ?? "90", 10);
   return {
     siteTitle: "CRRT - ENSA Agadir",
     siteUrl: process.env.NEXTAUTH_URL ?? "http://localhost:3000",
     adminEmail: process.env.ADMIN_EMAIL ?? "contact@crrt.tech",
-    smtpHost: process.env.SMTP_HOST ?? "",
+    smtpHost: process.env.SMTP_HOST ?? "mail.purelymail.com",
     smtpPort: Number.isFinite(envPort) ? envPort : 587,
     smtpFrom: process.env.SMTP_FROM ?? "CRRT <contact@crrt.tech>",
+    imapHost: process.env.IMAP_HOST ?? "mail.purelymail.com",
+    imapPort: Number.isFinite(imapPort) ? imapPort : 993,
+    imapSecure: (process.env.IMAP_SECURE ?? "true").toLowerCase() !== "false",
+    imapFolderInbox: process.env.IMAP_FOLDER_INBOX ?? "INBOX",
+    imapFolderSent: process.env.IMAP_FOLDER_SENT ?? "Sent",
+    imapFolderDrafts: process.env.IMAP_FOLDER_DRAFTS ?? "Drafts",
+    imapFolderArchive: process.env.IMAP_FOLDER_ARCHIVE ?? "Archive",
+    imapFolderTrash: process.env.IMAP_FOLDER_TRASH ?? "Trash",
+    imapSyncIntervalSeconds: Number.isFinite(syncInterval) ? syncInterval : 30,
+    imapInitialSyncDays: Number.isFinite(initialSyncDays) ? initialSyncDays : 90,
   };
 }
 
@@ -76,6 +99,16 @@ export async function getPlatformSettingsSnapshot(): Promise<PlatformSettingsSna
         smtpHost: true,
         smtpPort: true,
         smtpFrom: true,
+        imapHost: true,
+        imapPort: true,
+        imapSecure: true,
+        imapFolderInbox: true,
+        imapFolderSent: true,
+        imapFolderDrafts: true,
+        imapFolderArchive: true,
+        imapFolderTrash: true,
+        imapSyncIntervalSeconds: true,
+        imapInitialSyncDays: true,
       },
     });
 
@@ -90,6 +123,27 @@ export async function getPlatformSettingsSnapshot(): Promise<PlatformSettingsSna
       smtpHost: normalizeString(settings.smtpHost) || defaults.smtpHost,
       smtpPort: normalizePort(settings.smtpPort, defaults.smtpPort),
       smtpFrom: normalizeString(settings.smtpFrom) || defaults.smtpFrom,
+      imapHost: normalizeString(settings.imapHost) || defaults.imapHost,
+      imapPort: normalizePort(settings.imapPort, defaults.imapPort),
+      imapSecure:
+        typeof settings.imapSecure === "boolean"
+          ? settings.imapSecure
+          : defaults.imapSecure,
+      imapFolderInbox: normalizeString(settings.imapFolderInbox) || defaults.imapFolderInbox,
+      imapFolderSent: normalizeString(settings.imapFolderSent) || defaults.imapFolderSent,
+      imapFolderDrafts:
+        normalizeString(settings.imapFolderDrafts) || defaults.imapFolderDrafts,
+      imapFolderArchive:
+        normalizeString(settings.imapFolderArchive) || defaults.imapFolderArchive,
+      imapFolderTrash: normalizeString(settings.imapFolderTrash) || defaults.imapFolderTrash,
+      imapSyncIntervalSeconds: normalizePort(
+        settings.imapSyncIntervalSeconds,
+        defaults.imapSyncIntervalSeconds
+      ),
+      imapInitialSyncDays: normalizePort(
+        settings.imapInitialSyncDays,
+        defaults.imapInitialSyncDays
+      ),
     };
   } catch {
     return defaults;
