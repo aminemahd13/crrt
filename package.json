@@ -19,7 +19,7 @@
     "db:migrate": "npx prisma migrate dev",
     "db:deploy": "npx prisma migrate deploy && npm run db:backfill:forms",
     "db:backfill:forms": "npx tsx prisma/backfill-form-submissions.ts",
-    "db:seed": "npx tsx prisma/seed.ts",
+    "db:seed": "npm exec -- tsx prisma/seed.ts",
     "db:reset": "npx prisma migrate reset",
     "db:studio": "npx prisma studio"
   },

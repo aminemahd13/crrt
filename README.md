@@ -160,9 +160,11 @@ docker compose --env-file .env --profile production up -d --build
 
 # Optional deterministic reset + reseed (recommended for first production cutover)
 docker compose --env-file .env --profile production run --rm --no-deps migrate npm exec -- prisma migrate reset --force --skip-generate --skip-seed
-docker compose --env-file .env --profile production --profile seed run --rm --no-deps seed
 
-# Bring app back up after reset
+# Seed via migrate image (same deps stage, no dedicated seed service)
+docker compose --env-file .env --profile production run --rm --no-deps migrate npm exec -- tsx prisma/seed.ts
+
+# Bring app up after reset + seed
 docker compose --env-file .env --profile production up -d app
 ```
 
