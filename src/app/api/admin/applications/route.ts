@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import type { EventRegistrationStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { toStringRecord } from "@/lib/json";
+import { encodeRegistrationApplicationId, encodeSubmissionApplicationId } from "@/lib/application-id";
+import { parseSubmissionData, toDisplayRecordFromSubmission } from "@/lib/form-submission";
 import { logError, logInfo } from "@/lib/logger";
 import { recordApiError, recordApiRequest } from "@/lib/metrics";
 
@@ -57,6 +58,8 @@ export async function GET(request: Request) {
     const pageSize = clampNumber(url.searchParams.get("pageSize"), 25, 1, MAX_PAGE_SIZE);
     const dateFrom = parseStartOfDay(url.searchParams.get("dateFrom"));
     const dateTo = parseEndOfDay(url.searchParams.get("dateTo"));
+    const mode = (url.searchParams.get("mode") ?? "").trim().toLowerCase();
+    const reviewQueueMode = mode === "review_queue";
 
     const registrationStatusRaw = (url.searchParams.get("registrationStatus") ?? "").trim();
     const registrationStatus = REGISTRATION_STATUSES.has(registrationStatusRaw as EventRegistrationStatus)
@@ -64,9 +67,13 @@ export async function GET(request: Request) {
       : null;
 
     const reviewStatusRaw = (url.searchParams.get("reviewStatus") ?? "").trim();
-    const reviewStatus = REVIEW_STATUSES.has(reviewStatusRaw as "new" | "in_review" | "accepted" | "rejected")
-      ? (reviewStatusRaw as "new" | "in_review" | "accepted" | "rejected")
-      : null;
+    const reviewStatuses: Array<"new" | "in_review" | "accepted" | "rejected"> = reviewStatusRaw
+      ? REVIEW_STATUSES.has(reviewStatusRaw as "new" | "in_review" | "accepted" | "rejected")
+        ? [reviewStatusRaw as "new" | "in_review" | "accepted" | "rejected"]
+        : []
+      : reviewQueueMode
+        ? ["new", "in_review"]
+        : [];
 
     const createdAtFilter = dateFrom || dateTo
       ? {
@@ -79,7 +86,9 @@ export async function GET(request: Request) {
       where: {
         ...(eventId ? { eventId } : {}),
         ...(registrationStatus ? { status: registrationStatus } : {}),
-        ...(reviewStatus ? { formSubmission: { is: { status: reviewStatus } } } : {}),
+        ...(reviewStatuses.length > 0
+          ? { formSubmission: { is: { status: { in: reviewStatuses } } } }
+          : {}),
         ...(createdAtFilter ? { createdAt: createdAtFilter } : {}),
       },
       include: {
@@ -102,12 +111,21 @@ export async function GET(request: Request) {
             id: true,
             status: true,
             data: true,
+            schemaVersion: true,
             createdAt: true,
             updatedAt: true,
+            form: {
+              select: {
+                fields: {
+                  select: { id: true, label: true, type: true, order: true },
+                  orderBy: { order: "asc" },
+                },
+              },
+            },
           },
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: reviewQueueMode ? "asc" : "desc" },
       take: MAX_SCAN,
     });
 
@@ -116,7 +134,7 @@ export async function GET(request: Request) {
       : await prisma.formSubmission.findMany({
           where: {
             eventRegistrationId: null,
-            ...(reviewStatus ? { status: reviewStatus } : {}),
+            ...(reviewStatuses.length > 0 ? { status: { in: reviewStatuses } } : {}),
             ...(createdAtFilter ? { createdAt: createdAtFilter } : {}),
             form: {
               ...(eventId ? { eventId } : { eventId: { not: null } }),
@@ -125,6 +143,10 @@ export async function GET(request: Request) {
           include: {
             form: {
               include: {
+                fields: {
+                  select: { id: true, label: true, type: true, order: true },
+                  orderBy: { order: "asc" },
+                },
                 event: {
                   select: {
                     id: true,
@@ -135,7 +157,7 @@ export async function GET(request: Request) {
               },
             },
           },
-          orderBy: { createdAt: "desc" },
+          orderBy: { createdAt: reviewQueueMode ? "asc" : "desc" },
           take: MAX_SCAN,
         });
 
@@ -143,9 +165,11 @@ export async function GET(request: Request) {
       const submission = registration.formSubmission;
       const createdAt = submission?.createdAt ?? registration.createdAt;
       const updatedAt = submission?.updatedAt ?? registration.updatedAt;
+      const fields = submission?.form?.fields ?? [];
+      const parsed = parseSubmissionData(submission?.data);
 
       return {
-        id: `reg:${registration.id}`,
+        id: encodeRegistrationApplicationId(registration.id),
         registrationId: registration.id,
         submissionId: submission?.id ?? null,
         eventId: registration.eventId,
@@ -157,7 +181,15 @@ export async function GET(request: Request) {
         registrationStatus: registration.status,
         reviewStatus: submission?.status ?? null,
         note: registration.note,
-        submissionData: toStringRecord(submission?.data),
+        submissionData: toDisplayRecordFromSubmission(submission?.data, fields),
+        structuredSubmissionData:
+          parsed.schemaVersion >= 2
+            ? {
+                schemaVersion: parsed.schemaVersion,
+                answers: parsed.answers,
+                legacy: { unmapped: parsed.legacyUnmapped },
+              }
+            : undefined,
         createdAt: createdAt.toISOString(),
         updatedAt: updatedAt.toISOString(),
       };
@@ -166,10 +198,11 @@ export async function GET(request: Request) {
     const orphanRows = orphanSubmissions.flatMap((submission) => {
       const event = submission.form.event;
       if (!event) return [];
+      const parsed = parseSubmissionData(submission.data);
 
       return [
         {
-          id: `sub:${submission.id}`,
+          id: encodeSubmissionApplicationId(submission.id),
           registrationId: null,
           submissionId: submission.id,
           eventId: event.id,
@@ -181,7 +214,18 @@ export async function GET(request: Request) {
           registrationStatus: null,
           reviewStatus: submission.status,
           note: null,
-          submissionData: toStringRecord(submission.data),
+          submissionData: toDisplayRecordFromSubmission(
+            submission.data,
+            submission.form.fields ?? []
+          ),
+          structuredSubmissionData:
+            parsed.schemaVersion >= 2
+              ? {
+                  schemaVersion: parsed.schemaVersion,
+                  answers: parsed.answers,
+                  legacy: { unmapped: parsed.legacyUnmapped },
+                }
+              : undefined,
           createdAt: submission.createdAt.toISOString(),
           updatedAt: submission.updatedAt.toISOString(),
         },
@@ -197,7 +241,7 @@ export async function GET(request: Request) {
       .sort((a, b) => {
         const bTime = new Date(b.createdAt).getTime();
         const aTime = new Date(a.createdAt).getTime();
-        return bTime - aTime;
+        return reviewQueueMode ? aTime - bTime : bTime - aTime;
       });
 
     const total = rows.length;

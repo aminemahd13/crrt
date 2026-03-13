@@ -253,7 +253,7 @@ export default function SettingsPage() {
               type="text"
               value={settings.smtpFrom}
               onChange={(e) => setSettings((prev) => ({ ...prev, smtpFrom: e.target.value }))}
-              placeholder="CRRT <notifications@example.com>"
+              placeholder="CRRT <contact@crrt.tech>"
               className="w-full px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white"
             />
           </div>

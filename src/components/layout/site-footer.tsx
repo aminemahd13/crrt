@@ -13,7 +13,7 @@ const socialLinks = [
   { icon: Linkedin, href: "https://linkedin.com/company/crrt/", label: "LinkedIn" },
   { icon: Instagram, href: "https://instagram.com/club_robotique_crrt", label: "Instagram" },
   { icon: Github, href: "https://github.com/crrt-ensa", label: "GitHub" },
-  { icon: Mail, href: "mailto:crrt@ensa-agadir.ac.ma", label: "Email" },
+  { icon: Mail, href: "mailto:contact@crrt.tech", label: "Email" },
 ];
 
 export function SiteFooter({ links }: { links?: FooterLink[] }) {
@@ -32,7 +32,7 @@ export function SiteFooter({ links }: { links?: FooterLink[] }) {
       { label: messages.nav.blog, href: "/blog" },
     ],
     connect: [
-      { label: messages.footer.contact, href: "mailto:crrt@ensa-agadir.ac.ma" },
+      { label: messages.footer.contact, href: "mailto:contact@crrt.tech" },
       { label: "LinkedIn", href: "https://linkedin.com/company/crrt/" },
       { label: "Instagram", href: "https://instagram.com/club_robotique_crrt" },
     ],

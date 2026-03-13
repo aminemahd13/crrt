@@ -22,6 +22,9 @@ import {
   LogOut,
   User,
   Layers,
+  Menu,
+  X,
+  Command,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,6 +58,7 @@ const navGroups = [
     items: [
       { label: "Events Hub", href: "/admin/events", icon: Calendar },
       { label: "Applications", href: "/admin/applications", icon: Inbox },
+      { label: "Review Queue", href: "/admin/review-queue", icon: Inbox },
     ],
   },
   {
@@ -89,6 +93,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession();
   const messages = appCopy;
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
   const [commandSearch, setCommandSearch] = useState("");
 
@@ -136,25 +141,53 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
   }, [pathname, flatItems]);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-midnight">
+    <div className="relative flex min-h-screen overflow-hidden bg-midnight">
+      {mobileNavOpen ? (
+        <button
+          type="button"
+          onClick={() => setMobileNavOpen(false)}
+          className="fixed inset-0 z-30 bg-midnight/70 md:hidden"
+          aria-label="Close sidebar overlay"
+        />
+      ) : null}
+
       <aside
-        className={`flex flex-col border-r border-[var(--ghost-border)] bg-midnight-light transition-all duration-200 ${
-          collapsed ? "w-16" : "w-64"
-        }`}
+        className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-[var(--ghost-border)] bg-midnight-light transition-transform duration-200 md:static md:z-auto md:translate-x-0 ${
+          mobileNavOpen ? "translate-x-0" : "-translate-x-full"
+        } ${collapsed ? "md:w-16" : "md:w-64"}`}
       >
-        <div className="flex items-center justify-between border-b border-[var(--ghost-border)] px-4 py-4">
+        <div className="relative flex items-center justify-between border-b border-[var(--ghost-border)] px-4 py-4">
           <Link
             href="/admin"
+            onClick={() => setMobileNavOpen(false)}
             className={`flex items-center gap-2 ${collapsed ? "mx-auto" : ""}`}
             aria-label={messages.admin.studio}
           >
-            <NextImage src="/logo.png" alt="CRRT" width={28} height={28} unoptimized className="size-7 rounded-md object-contain" />
+            <NextImage
+              src="/logo.png"
+              alt="CRRT"
+              width={28}
+              height={28}
+              unoptimized
+              className="size-7 rounded-md object-contain"
+            />
             {!collapsed && (
               <span className="font-heading text-sm font-semibold text-ice-white">
                 {messages.admin.studio}
               </span>
             )}
           </Link>
+
+          <Button
+            size="icon-xs"
+            variant="ghost"
+            onClick={() => setMobileNavOpen(false)}
+            className="text-steel-gray hover:text-ice-white md:hidden"
+            aria-label="Close sidebar"
+          >
+            <X size={16} />
+          </Button>
+
           {!collapsed && (
             <Button
               size="icon-xs"
@@ -185,20 +218,24 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
             onClick={() => setCmdOpen(true)}
             className="mx-3 mt-3 justify-between border-[var(--ghost-border)] bg-[var(--ghost-white)] text-steel-gray hover:bg-white/5 hover:text-ice-white"
           >
-            <span>{messages.admin.searchPlaceholder}</span>
-            <CommandShortcut>Ctrl+K</CommandShortcut>
+            <span className="inline-flex items-center gap-2">
+              <Command size={13} /> Quick search
+            </span>
+            <kbd className="rounded border border-[var(--ghost-border)] px-1.5 py-0.5 text-[10px] text-steel-gray">
+              Ctrl K
+            </kbd>
           </Button>
         )}
 
-        <nav className="flex-1 space-y-4 overflow-y-auto px-2 py-3">
+        <nav className="flex-1 space-y-5 overflow-y-auto px-2 py-4">
           {navGroups.map((group) => (
             <div key={group.label}>
               {!collapsed && (
-                <h4 className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-widest text-steel-gray/60">
+                <h4 className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-steel-gray/60">
                   {group.label}
                 </h4>
               )}
-              <ul className="space-y-0.5">
+              <ul className="space-y-1">
                 {group.items.map((item) => {
                   const isActive =
                     pathname === item.href ||
@@ -207,10 +244,11 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
                     <li key={item.href}>
                       <Link
                         href={item.href}
+                        onClick={() => setMobileNavOpen(false)}
                         className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors ${
                           isActive
-                            ? "border border-signal-orange/20 bg-signal-orange/10 text-signal-orange"
-                            : "border border-transparent text-steel-gray hover:bg-white/5 hover:text-ice-white"
+                            ? "border border-signal-orange/30 bg-signal-orange/15 font-medium text-signal-orange"
+                            : "border border-transparent text-steel-gray hover:border-[var(--ghost-border)] hover:bg-white/5 hover:text-ice-white"
                         } ${collapsed ? "justify-center" : ""}`}
                         title={collapsed ? item.label : undefined}
                       >
@@ -261,7 +299,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
               collapsed ? "justify-center" : ""
             }`}
           >
-            <Link href="/">
+            <Link href="/" onClick={() => setMobileNavOpen(false)}>
               <ChevronLeft size={14} />
               {!collapsed && <span>{messages.admin.backToSite}</span>}
             </Link>
@@ -269,19 +307,47 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main id="main-content" className="flex-1 overflow-y-auto">
+      <main id="main-content" className="min-w-0 flex-1 overflow-y-auto">
+        <div className="sticky top-0 z-20 flex items-center justify-between border-b border-[var(--ghost-border)] bg-midnight-light/90 px-4 py-3 backdrop-blur md:hidden">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            onClick={() => setMobileNavOpen(true)}
+            className="text-steel-gray hover:text-ice-white"
+            aria-label="Open sidebar"
+          >
+            <Menu size={16} />
+          </Button>
+          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-steel-gray">
+            {messages.admin.studio}
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            onClick={() => setCmdOpen(true)}
+            className="text-steel-gray hover:text-ice-white"
+            aria-label="Open command palette"
+          >
+            <Command size={15} />
+          </Button>
+        </div>
+
         {session?.user?.mustRotatePassword && session.user.role === "admin" && (
           <div className="mx-6 mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-300">
             {messages.admin.securityBanner}
           </div>
         )}
         {breadcrumbs.length > 0 && (
-          <div className="px-8 pt-6 pb-0">
+          <div className="px-6 pb-0 pt-5 md:px-8 md:pt-6">
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
-                    <Link href="/admin" className="text-steel-gray hover:text-ice-white">Dashboard</Link>
+                    <Link href="/admin" className="text-steel-gray hover:text-ice-white">
+                      Dashboard
+                    </Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 {breadcrumbs.map((crumb, i) => (
@@ -292,7 +358,9 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
                         <BreadcrumbPage className="text-ice-white">{crumb.label}</BreadcrumbPage>
                       ) : (
                         <BreadcrumbLink asChild>
-                          <Link href={crumb.href} className="text-steel-gray hover:text-ice-white">{crumb.label}</Link>
+                          <Link href={crumb.href} className="text-steel-gray hover:text-ice-white">
+                            {crumb.label}
+                          </Link>
                         </BreadcrumbLink>
                       )}
                     </BreadcrumbItem>

@@ -133,10 +133,10 @@ NEXTAUTH_SECRET=LONG_RANDOM_SECRET
 NEXTAUTH_URL=https://your-domain.com
 SMTP_HOST=smtp.example.com
 SMTP_PORT=587
-SMTP_USER=alerts@example.com
+SMTP_USER=contact@crrt.tech
 SMTP_PASS=CHANGE_ME
-SMTP_FROM=CRRT <alerts@your-domain.com>
-ADMIN_EMAIL=admin@your-domain.com
+SMTP_FROM=CRRT <contact@crrt.tech>
+ADMIN_EMAIL=contact@crrt.tech
 MEDIA_UPLOAD_DIR_HOST=./data/uploads
 ```
 

@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { toStringRecord } from "@/lib/json";
+import { toDisplayRecordFromSubmission, updateSubmissionFromDisplayPatch } from "@/lib/form-submission";
 import { logError, logInfo } from "@/lib/logger";
 import {
   recordApiError,
@@ -13,10 +13,6 @@ import {
 } from "@/lib/metrics";
 
 const ALLOWED_STATUSES = new Set(["new", "in_review", "accepted", "rejected"] as const);
-
-function toJsonObject(record: Record<string, string>): Prisma.InputJsonObject {
-  return JSON.parse(JSON.stringify(record)) as Prisma.InputJsonObject;
-}
 
 export async function PUT(
   request: Request,
@@ -55,7 +51,16 @@ export async function PUT(
         id: true,
         status: true,
         data: true,
+        schemaVersion: true,
         eventRegistrationId: true,
+        form: {
+          select: {
+            fields: {
+              select: { id: true, label: true, type: true, order: true },
+              orderBy: { order: "asc" },
+            },
+          },
+        },
       },
     });
 
@@ -63,23 +68,24 @@ export async function PUT(
       return NextResponse.json({ error: "Submission not found." }, { status: 404 });
     }
 
+    const submissionFields = existing.form?.fields ?? [];
     let nextData: Record<string, string> | null = null;
+    let nextStructuredData: Prisma.InputJsonObject | null = null;
     if (patchData !== undefined) {
-      const currentData = toStringRecord(existing.data);
       const incoming = patchData as Record<string, unknown>;
-
-      for (const key of Object.keys(incoming)) {
-        if (!(key in currentData)) {
-          return NextResponse.json(
-            { error: `Invalid payload key: ${key}. Only existing keys can be updated.` },
-            { status: 400 }
-          );
-        }
-      }
-
-      nextData = { ...currentData };
-      for (const [key, value] of Object.entries(incoming)) {
-        nextData[key] = String(value ?? "");
+      try {
+        const structured = updateSubmissionFromDisplayPatch(
+          existing.data,
+          submissionFields,
+          incoming
+        );
+        nextStructuredData = JSON.parse(JSON.stringify(structured)) as Prisma.InputJsonObject;
+        nextData = toDisplayRecordFromSubmission(structured, submissionFields);
+      } catch (error) {
+        return NextResponse.json(
+          { error: error instanceof Error ? error.message : "Failed to update payload." },
+          { status: 400 }
+        );
       }
     }
 
@@ -87,7 +93,7 @@ export async function PUT(
       where: { id },
       data: {
         ...(status ? { status } : {}),
-        ...(nextData ? { data: toJsonObject(nextData) } : {}),
+        ...(nextStructuredData ? { data: nextStructuredData, schemaVersion: 2 } : {}),
       },
     });
 
@@ -111,7 +117,7 @@ export async function PUT(
     return NextResponse.json({
       id: updated.id,
       status: updated.status,
-      data: toStringRecord(updated.data),
+      data: toDisplayRecordFromSubmission(updated.data, submissionFields),
       createdAt: updated.createdAt.toISOString(),
       updatedAt: updated.updatedAt.toISOString(),
       eventRegistrationId: updated.eventRegistrationId,

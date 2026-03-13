@@ -27,6 +27,7 @@ function isMutatingMethod(method: string): boolean {
 function isCsrfProtectedPath(pathname: string): boolean {
   if (pathname.startsWith("/api/admin")) return true;
   if (pathname.startsWith("/api/events/") && pathname.includes("/registrations")) return true;
+  if (pathname.startsWith("/api/events/") && pathname.includes("/uploads")) return true;
   if (pathname === "/api/events/registrations") return true;
   return false;
 }

@@ -34,12 +34,12 @@ services:
       DATABASE_URL: postgresql://crrt:crrt@postgres:5432/crrt?schema=public
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-crrt-dev-secret-change-in-production}
       NEXTAUTH_URL: http://localhost:3000
-      ADMIN_EMAIL: admin@crrt.ma
+      ADMIN_EMAIL: contact@crrt.tech
       SMTP_HOST: ""
       SMTP_PORT: "587"
       SMTP_USER: ""
       SMTP_PASS: ""
-      SMTP_FROM: CRRT <notifications@example.com>
+      SMTP_FROM: CRRT <contact@crrt.tech>
       MEDIA_MAX_UPLOAD_BYTES: "10485760"
       CHOKIDAR_USEPOLLING: "1"
       WATCHPACK_POLLING: "true"

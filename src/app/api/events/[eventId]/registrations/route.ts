@@ -7,6 +7,7 @@ import { logError, logInfo } from "@/lib/logger";
 import { recordApiError, recordApiRequest, recordRegistrationCreated } from "@/lib/metrics";
 import { ACTIVE_REGISTRATION_STATUSES, nextRegistrationStatus } from "@/lib/event-registration";
 import { sendTemplatedEmail } from "@/lib/email";
+import { migrateLegacySubmissionData, parseSubmissionData } from "@/lib/form-submission";
 
 export async function POST(
   request: Request,
@@ -22,7 +23,7 @@ export async function POST(
     }
 
     const body = await request.json().catch(() => ({}));
-    const formData = body.formData && typeof body.formData === "object" && !Array.isArray(body.formData)
+    const rawFormData = body.formData && typeof body.formData === "object" && !Array.isArray(body.formData)
       ? (body.formData as Record<string, unknown>)
       : null;
 
@@ -44,7 +45,10 @@ export async function POST(
         select: {
           id: true,
           status: true,
-          fields: { select: { id: true, label: true, type: true, required: true }, orderBy: { order: "asc" } },
+          fields: {
+            select: { id: true, label: true, type: true, required: true, order: true },
+            orderBy: { order: "asc" },
+          },
         },
       }),
     ]);
@@ -54,15 +58,28 @@ export async function POST(
 
     // If event has a form, require form data
     if (form && form.fields.length > 0) {
-      if (!formData) {
+      if (!rawFormData) {
         return NextResponse.json({ error: "Registration form data is required" }, { status: 400 });
       }
+      const structured = migrateLegacySubmissionData(rawFormData, form.fields);
+
       // Validate required fields
       const missingFields: string[] = [];
       for (const field of form.fields) {
-        if (field.required) {
-          const value = formData[field.label];
-          if (value === undefined || value === null || (typeof value === "string" && !value.trim())) {
+        if (!field.required) continue;
+        const answer = structured.answers[field.id];
+        if (!answer) {
+          missingFields.push(field.label);
+          continue;
+        }
+
+        if (typeof answer.value === "string" && !answer.value.trim()) {
+          missingFields.push(field.label);
+          continue;
+        }
+
+        if (typeof answer.value === "object" && answer.value !== null) {
+          if (!answer.value.url || !answer.value.filename) {
             missingFields.push(field.label);
           }
         }
@@ -120,8 +137,17 @@ export async function POST(
         });
 
     // Create linked FormSubmission if form exists and data was provided
-    if (form && formData) {
-      const sanitizedData = JSON.parse(JSON.stringify(formData)) as Prisma.InputJsonObject;
+    if (form && rawFormData) {
+      const parsed = parseSubmissionData(rawFormData);
+      const payloadData = parsed.schemaVersion >= 2
+        ? {
+            schemaVersion: 2,
+            answers: parsed.answers,
+            legacy: { unmapped: parsed.legacyUnmapped },
+          }
+        : migrateLegacySubmissionData(rawFormData, form.fields);
+
+      const sanitizedData = JSON.parse(JSON.stringify(payloadData)) as Prisma.InputJsonObject;
       // Delete old submission for this registration if re-registering
       if (existing) {
         await prisma.formSubmission.deleteMany({
@@ -132,6 +158,7 @@ export async function POST(
         data: {
           formId: form.id,
           eventRegistrationId: registration.id,
+          schemaVersion: 2,
           data: sanitizedData,
           status: isManualReview ? "in_review" : "new",
         },

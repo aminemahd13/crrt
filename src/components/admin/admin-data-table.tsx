@@ -32,7 +32,7 @@ export function AdminDataTable({
     <Card className="glass-card overflow-hidden border-[var(--ghost-border)] py-0">
       <Table>
         <TableHeader>
-          <TableRow className="border-[var(--ghost-border)] hover:bg-transparent">
+          <TableRow className="border-[var(--ghost-border)] bg-midnight-light/60 hover:bg-midnight-light/60">
             {columns.map((column) => (
               <TableHead
                 key={column.key}

@@ -2,28 +2,17 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { EventPayloadValidationError, normalizeEventPayload } from "@/lib/event-payload";
-
-interface FieldInput {
-    label: string;
-    type: string;
-    required?: boolean;
-    placeholder?: string;
-    options?: unknown;
-}
-
-function normalizeFieldOptions(value: unknown): Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput {
-    if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
-    if (typeof value === "string") return value.split(",").map((item) => item.trim()).filter(Boolean);
-    return Prisma.JsonNull;
-}
+import {
+    normalizeRegistrationFields,
+    normalizeRegistrationSections,
+} from "@/lib/admin-form-builder";
 
 export async function POST(request: Request) {
     try {
         const body = await request.json();
         const normalized = normalizeEventPayload(body);
-        const registrationFields: FieldInput[] = Array.isArray(body.registrationFields)
-            ? body.registrationFields
-            : [];
+        const registrationSections = normalizeRegistrationSections(body.registrationSections);
+        const registrationFields = normalizeRegistrationFields(body.registrationFields);
 
         const event = await prisma.event.create({
             data: normalized,
@@ -38,17 +27,55 @@ export async function POST(request: Request) {
                     slug: formSlug,
                     status: normalized.published ? "published" : "draft",
                     eventId: event.id,
-                    fields: {
-                        create: registrationFields.map((f, i) => ({
-                            label: f.label,
-                            type: f.type,
-                            required: f.required ?? false,
-                            placeholder: f.placeholder ?? null,
-                            options: normalizeFieldOptions(f.options),
-                            order: i,
+                    sections: {
+                        create: (registrationSections.length > 0
+                            ? registrationSections
+                            : [
+                                  {
+                                      title: "Application",
+                                      description: null,
+                                      order: 0,
+                                      visibility: Prisma.JsonNull,
+                                  },
+                              ]).map((section, index) => ({
+                            title: section.title,
+                            description: section.description,
+                            order: index,
+                            visibility: section.visibility,
                         })),
                     },
                 },
+            });
+
+            const createdForm = await prisma.form.findUniqueOrThrow({
+                where: { eventId: event.id },
+                include: { sections: { orderBy: { order: "asc" } } },
+            });
+            const sectionIds = createdForm.sections.map((section) => section.id);
+            const fallbackSectionId = sectionIds[0];
+            const sectionMap = new Map<string, string>();
+            registrationSections.forEach((section, index) => {
+                if (section.id && sectionIds[index]) {
+                    sectionMap.set(section.id, sectionIds[index]);
+                }
+            });
+
+            await prisma.formField.createMany({
+                data: registrationFields.map((field, index) => ({
+                    formId: createdForm.id,
+                    sectionId:
+                        (field.sectionId ? sectionMap.get(field.sectionId) : undefined) ??
+                        sectionIds[index % Math.max(sectionIds.length, 1)] ??
+                        fallbackSectionId,
+                    label: field.label,
+                    type: field.type,
+                    required: field.required,
+                    placeholder: field.placeholder,
+                    options: field.options,
+                    visibility: field.visibility,
+                    config: field.config,
+                    order: index,
+                })),
             });
         }
 

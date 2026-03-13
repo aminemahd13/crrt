@@ -44,10 +44,15 @@ function clampPage(value: number): number {
   return Number.isFinite(value) && value > 0 ? Math.floor(value) : 1;
 }
 
-export function ApplicationsCenterClient() {
+export function ApplicationsCenterClient({
+  mode = "all",
+}: {
+  mode?: "all" | "review_queue";
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const reviewQueueMode = mode === "review_queue";
 
   const initialState = useMemo(() => {
     const q = searchParams.get("q") ?? "";
@@ -91,6 +96,7 @@ export function ApplicationsCenterClient() {
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
+    if (reviewQueueMode) params.set("mode", "review_queue");
     if (q.trim()) params.set("q", q.trim());
     if (eventId !== "all") params.set("eventId", eventId);
     if (registrationStatus !== "all") params.set("registrationStatus", registrationStatus);
@@ -100,7 +106,11 @@ export function ApplicationsCenterClient() {
     if (page > 1) params.set("page", String(page));
     if (pageSize !== 25) params.set("pageSize", String(pageSize));
     return params.toString();
-  }, [dateFrom, dateTo, eventId, page, pageSize, q, registrationStatus, reviewStatus]);
+  }, [dateFrom, dateTo, eventId, page, pageSize, q, registrationStatus, reviewQueueMode, reviewStatus]);
+  const returnTo = useMemo(
+    () => (queryString ? `${pathname}?${queryString}` : pathname),
+    [pathname, queryString]
+  );
 
   useEffect(() => {
     const current = searchParams.toString();
@@ -158,17 +168,42 @@ export function ApplicationsCenterClient() {
   return (
     <div className="p-8 mx-auto max-w-7xl space-y-6">
       <PageHeader
-        title="Applications Center"
-        description="Manage event applications in one place: status updates, payload review, and hard delete."
+        title={reviewQueueMode ? "Review Queue" : "Applications Center"}
+        description={
+          reviewQueueMode
+            ? "Oldest-first queue focused on pending review submissions."
+            : "Scan applications quickly, then open detail pages for all review actions."
+        }
         actions={
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
-            className="border-[var(--ghost-border)] bg-transparent text-steel-gray hover:bg-white/5 hover:text-ice-white"
-          >
-            <Link href="/admin/events">Back to Events</Link>
-          </Button>
+          <>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="border-[var(--ghost-border)] bg-transparent text-steel-gray hover:bg-white/5 hover:text-ice-white"
+            >
+              <Link href="/admin/events">Back to Events</Link>
+            </Button>
+            {reviewQueueMode ? (
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="border-[var(--ghost-border)] bg-transparent text-steel-gray hover:bg-white/5 hover:text-ice-white"
+              >
+                <Link href="/admin/applications">All Applications</Link>
+              </Button>
+            ) : (
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="border-[var(--ghost-border)] bg-transparent text-steel-gray hover:bg-white/5 hover:text-ice-white"
+              >
+                <Link href="/admin/review-queue">Review Queue</Link>
+              </Button>
+            )}
+          </>
         }
       />
 
@@ -179,6 +214,68 @@ export function ApplicationsCenterClient() {
           setPage(1);
         }}
         searchPlaceholder="Search by event, member, email, or payload..."
+        advancedLabel="More filters"
+        advancedChildren={
+          <>
+            <Select
+              value={registrationStatus}
+              onValueChange={(value) => {
+                setRegistrationStatus(value as "all" | RegistrationStatus);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="w-[180px] border-[var(--ghost-border)] bg-midnight-light text-ice-white">
+                <SelectValue placeholder="All registration states" />
+              </SelectTrigger>
+              <SelectContent className="border-[var(--ghost-border)] bg-midnight text-ice-white">
+                {REGISTRATION_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => {
+                setDateFrom(e.target.value);
+                setPage(1);
+              }}
+              className="w-[156px] border-[var(--ghost-border)] bg-midnight-light text-ice-white"
+              aria-label="Date from"
+            />
+            <Input
+              type="date"
+              value={dateTo}
+              onChange={(e) => {
+                setDateTo(e.target.value);
+                setPage(1);
+              }}
+              className="w-[156px] border-[var(--ghost-border)] bg-midnight-light text-ice-white"
+              aria-label="Date to"
+            />
+            <Select
+              value={String(pageSize)}
+              onValueChange={(value) => {
+                const nextSize = Number.parseInt(value, 10);
+                setPageSize(nextSize);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="w-[120px] border-[var(--ghost-border)] bg-midnight-light text-ice-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="border-[var(--ghost-border)] bg-midnight text-ice-white">
+                {[10, 25, 50, 100].map((size) => (
+                  <SelectItem key={size} value={String(size)}>
+                    {size} / page
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </>
+        }
       >
         <Select
           value={eventId}
@@ -200,24 +297,6 @@ export function ApplicationsCenterClient() {
           </SelectContent>
         </Select>
         <Select
-          value={registrationStatus}
-          onValueChange={(value) => {
-            setRegistrationStatus(value as "all" | RegistrationStatus);
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="w-[180px] border-[var(--ghost-border)] bg-midnight-light text-ice-white">
-            <SelectValue placeholder="All registration states" />
-          </SelectTrigger>
-          <SelectContent className="border-[var(--ghost-border)] bg-midnight text-ice-white">
-            {REGISTRATION_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
           value={reviewStatus}
           onValueChange={(value) => {
             setReviewStatus(value as "all" | ReviewSubmissionStatus);
@@ -225,51 +304,12 @@ export function ApplicationsCenterClient() {
           }}
         >
           <SelectTrigger className="w-[170px] border-[var(--ghost-border)] bg-midnight-light text-ice-white">
-            <SelectValue placeholder="All review states" />
+            <SelectValue placeholder={reviewQueueMode ? "Queue status" : "All review states"} />
           </SelectTrigger>
           <SelectContent className="border-[var(--ghost-border)] bg-midnight text-ice-white">
             {REVIEW_OPTIONS.map((option) => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Input
-          type="date"
-          value={dateFrom}
-          onChange={(e) => {
-            setDateFrom(e.target.value);
-            setPage(1);
-          }}
-          className="w-[156px] border-[var(--ghost-border)] bg-midnight-light text-ice-white"
-          aria-label="Date from"
-        />
-        <Input
-          type="date"
-          value={dateTo}
-          onChange={(e) => {
-            setDateTo(e.target.value);
-            setPage(1);
-          }}
-          className="w-[156px] border-[var(--ghost-border)] bg-midnight-light text-ice-white"
-          aria-label="Date to"
-        />
-        <Select
-          value={String(pageSize)}
-          onValueChange={(value) => {
-            const nextSize = Number.parseInt(value, 10);
-            setPageSize(nextSize);
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="w-[120px] border-[var(--ghost-border)] bg-midnight-light text-ice-white">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="border-[var(--ghost-border)] bg-midnight text-ice-white">
-            {[10, 25, 50, 100].map((size) => (
-              <SelectItem key={size} value={String(size)}>
-                {size} / page
               </SelectItem>
             ))}
           </SelectContent>
@@ -295,11 +335,12 @@ export function ApplicationsCenterClient() {
         <div className="glass-card px-4 py-8 text-center text-sm text-steel-gray">Loading applications...</div>
       ) : (
         <ApplicationsPanel
-          initialRows={rows}
+          rows={rows}
           showEventColumn
-          showFilters={false}
-          onRowsChange={setRows}
           emptyMessage="No applications match the selected filters."
+          getRowHref={(row) =>
+            `/admin/applications/${row.id}?returnTo=${encodeURIComponent(returnTo)}`
+          }
         />
       )}
 

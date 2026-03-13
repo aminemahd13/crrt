@@ -32,7 +32,7 @@ const DEFAULT_FOOTER_LINKS: SiteLink[] = [
   { label: "Our Mission", href: "/about" },
   { label: "Team", href: "/about#team" },
   { label: "Timeline", href: "/about#timeline" },
-  { label: "Contact Us", href: "mailto:crrt@ensa-agadir.ac.ma" },
+  { label: "Contact Us", href: "mailto:contact@crrt.tech" },
 ];
 
 function normalizeString(value: string | null | undefined): string {
@@ -57,10 +57,10 @@ export function getDefaultPlatformSettings(): PlatformSettingsSnapshot {
   return {
     siteTitle: "CRRT - ENSA Agadir",
     siteUrl: process.env.NEXTAUTH_URL ?? "http://localhost:3000",
-    adminEmail: process.env.ADMIN_EMAIL ?? "",
+    adminEmail: process.env.ADMIN_EMAIL ?? "contact@crrt.tech",
     smtpHost: process.env.SMTP_HOST ?? "",
     smtpPort: Number.isFinite(envPort) ? envPort : 587,
-    smtpFrom: process.env.SMTP_FROM ?? "",
+    smtpFrom: process.env.SMTP_FROM ?? "CRRT <contact@crrt.tech>",
   };
 }
 
@@ -134,4 +134,3 @@ export async function getPublicNavigationConfig(): Promise<PublicNavigationConfi
     };
   }
 }
-

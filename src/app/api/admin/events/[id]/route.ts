@@ -2,19 +2,76 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { EventPayloadValidationError, normalizeEventPayload } from "@/lib/event-payload";
+import {
+    normalizeRegistrationFields,
+    normalizeRegistrationSections,
+} from "@/lib/admin-form-builder";
 
-interface FieldInput {
-    label: string;
-    type: string;
-    required?: boolean;
-    placeholder?: string;
-    options?: unknown;
-}
+async function syncFormBuilder(
+    formId: string,
+    sectionsInput: ReturnType<typeof normalizeRegistrationSections>,
+    fieldsInput: ReturnType<typeof normalizeRegistrationFields>
+) {
+    await prisma.formField.deleteMany({ where: { formId } });
+    await prisma.formSection.deleteMany({ where: { formId } });
 
-function normalizeFieldOptions(value: unknown): Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput {
-    if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
-    if (typeof value === "string") return value.split(",").map((item) => item.trim()).filter(Boolean);
-    return Prisma.JsonNull;
+    const sectionsToCreate =
+        sectionsInput.length > 0
+            ? sectionsInput
+            : [
+                  {
+                      title: "Application",
+                      description: null,
+                      order: 0,
+                      visibility: Prisma.JsonNull,
+                  },
+              ];
+
+    const createdSections: Array<{ id: string; sourceId?: string }> = [];
+    for (let i = 0; i < sectionsToCreate.length; i++) {
+        const section = sectionsToCreate[i];
+        const created = await prisma.formSection.create({
+            data: {
+                ...(section.id ? { id: section.id } : {}),
+                formId,
+                title: section.title,
+                description: section.description,
+                order: i,
+                visibility: section.visibility,
+            },
+            select: { id: true },
+        });
+        createdSections.push({ id: created.id, sourceId: section.id });
+    }
+
+    const sourceToCreated = new Map<string, string>();
+    for (const section of createdSections) {
+        if (section.sourceId) {
+            sourceToCreated.set(section.sourceId, section.id);
+        }
+    }
+    const fallbackSectionId = createdSections[0]?.id;
+
+    for (let i = 0; i < fieldsInput.length; i++) {
+        const field = fieldsInput[i];
+        await prisma.formField.create({
+            data: {
+                ...(field.id ? { id: field.id } : {}),
+                formId,
+                sectionId:
+                    (field.sectionId ? sourceToCreated.get(field.sectionId) : undefined) ??
+                    fallbackSectionId,
+                label: field.label,
+                type: field.type,
+                required: field.required,
+                placeholder: field.placeholder,
+                options: field.options,
+                visibility: field.visibility,
+                config: field.config,
+                order: i,
+            },
+        });
+    }
 }
 
 export async function PUT(
@@ -25,9 +82,8 @@ export async function PUT(
         const { id } = await params;
         const body = await request.json();
         const normalized = normalizeEventPayload(body);
-        const registrationFields: FieldInput[] = Array.isArray(body.registrationFields)
-            ? body.registrationFields
-            : [];
+        const registrationSections = normalizeRegistrationSections(body.registrationSections);
+        const registrationFields = normalizeRegistrationFields(body.registrationFields);
 
         const event = await prisma.event.update({
             where: { id },
@@ -39,7 +95,6 @@ export async function PUT(
 
         if (normalized.registrationMode === "internal" && registrationFields.length > 0) {
             if (existingForm) {
-                // Update existing form: replace fields
                 await prisma.form.update({
                     where: { id: existingForm.id },
                     data: {
@@ -47,43 +102,22 @@ export async function PUT(
                         status: normalized.published ? "published" : "draft",
                     },
                 });
-                await prisma.formField.deleteMany({ where: { formId: existingForm.id } });
-                for (let i = 0; i < registrationFields.length; i++) {
-                    const f = registrationFields[i];
-                    await prisma.formField.create({
-                        data: {
-                            formId: existingForm.id,
-                            label: f.label,
-                            type: f.type,
-                            required: f.required ?? false,
-                            placeholder: f.placeholder ?? null,
-                            options: normalizeFieldOptions(f.options),
-                            order: i,
-                        },
-                    });
-                }
+                await syncFormBuilder(existingForm.id, registrationSections, registrationFields);
             } else {
-                // Create new form
                 const formSlug = `event-${normalized.slug}-${crypto.randomUUID().slice(0, 8)}`;
-                await prisma.form.create({
+                const createdForm = await prisma.form.create({
                     data: {
                         title: `Registration: ${normalized.title}`,
                         slug: formSlug,
                         status: normalized.published ? "published" : "draft",
                         eventId: id,
-                        fields: {
-                            create: registrationFields.map((f, i) => ({
-                                label: f.label,
-                                type: f.type,
-                                required: f.required ?? false,
-                                placeholder: f.placeholder ?? null,
-                                options: normalizeFieldOptions(f.options),
-                                order: i,
-                            })),
-                        },
                     },
+                    select: { id: true },
                 });
+                await syncFormBuilder(createdForm.id, registrationSections, registrationFields);
             }
+        } else if (existingForm) {
+            await prisma.form.delete({ where: { id: existingForm.id } });
         }
 
         return NextResponse.json(event);

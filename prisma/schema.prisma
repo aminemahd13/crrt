@@ -218,24 +218,46 @@ model Form {
   spamProtection  Boolean          @default(false)
   eventId         String?          @unique
   event           Event?           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  sections        FormSection[]
   fields          FormField[]
   submissions     FormSubmission[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 }
 
+model FormSection {
+  id          String     @id @default(cuid())
+  formId      String
+  form        Form       @relation(fields: [formId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  visibility  Json?
+  order       Int        @default(0)
+  fields      FormField[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([formId, order])
+}
+
 model FormField {
   id           String  @id @default(cuid())
   formId       String
   form         Form    @relation(fields: [formId], references: [id], onDelete: Cascade)
+  sectionId    String?
+  section      FormSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
   type         String  // text | textarea | select | checkbox | radio | date | file | repeater
   label        String
   placeholder  String?
   required     Boolean @default(false)
   options      Json?
   validation   Json?
+  visibility   Json?
+  config       Json?
   order        Int     @default(0)
   page         Int     @default(0)
+
+  @@index([formId, sectionId, order])
 }
 
 model FormSubmission {
@@ -245,6 +267,7 @@ model FormSubmission {
   eventRegistrationId   String?             @unique
   eventRegistration     EventRegistration?  @relation(fields: [eventRegistrationId], references: [id], onDelete: SetNull)
   status                String              @default("new") // new | in_review | accepted | rejected
+  schemaVersion         Int                 @default(1)
   data                  Json                @default("{}")
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt

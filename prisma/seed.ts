@@ -94,10 +94,10 @@ async function main() {
             id: "default",
             siteTitle: "CRRT - ENSA Agadir",
             siteUrl: "https://crrt.ensa-agadir.ac.ma",
-            adminEmail: "admin@crrt.ma",
+            adminEmail: "contact@crrt.tech",
             smtpHost: process.env.SMTP_HOST ?? null,
             smtpPort: process.env.SMTP_PORT ? Number.parseInt(process.env.SMTP_PORT, 10) : null,
-            smtpFrom: process.env.SMTP_FROM ?? null,
+            smtpFrom: process.env.SMTP_FROM ?? "CRRT <contact@crrt.tech>",
         },
     });
     console.log("  ✓ PlatformSettings");
@@ -1150,7 +1150,7 @@ rclpy.spin(HelloPublisher())
         { label: "Our Mission", href: "/about", order: 0, section: "footer", visible: true },
         { label: "Team", href: "/about#team", order: 1, section: "footer", visible: true },
         { label: "Timeline", href: "/about#timeline", order: 2, section: "footer", visible: true },
-        { label: "Contact Us", href: "mailto:crrt@ensa-agadir.ac.ma", order: 3, section: "footer", visible: true },
+        { label: "Contact Us", href: "mailto:contact@crrt.tech", order: 3, section: "footer", visible: true },
     ];
     for (const n of navItems) {
         await prisma.navItem.create({ data: n });

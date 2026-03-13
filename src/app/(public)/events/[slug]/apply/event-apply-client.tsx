@@ -2,7 +2,17 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Calendar, ClipboardCheck, MapPin, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  Calendar,
+  ClipboardCheck,
+  FileText,
+  Loader2,
+  MapPin,
+  Upload,
+  Users,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -21,21 +31,43 @@ import { getEventThemeStyles } from "@/lib/event-config";
 import {
   clearEventApplyDraft,
   createEventApplyDraftKey,
-  loadEventApplyDraft,
-  saveEventApplyDraft,
+  loadEventApplyStructuredDraft,
+  saveEventApplyStructuredDraft,
   validateApplyRequiredFields,
 } from "@/lib/event-apply-draft";
 import { registrationStatusLabel } from "@/lib/event-registration";
+import { APPLICATION_MAX_UPLOAD_BYTES } from "@/lib/file-upload-policy";
+import type { FileAnswerValue, SubmissionDataV2 } from "@/lib/form-submission";
+import { isVisibilityRuleSatisfied, type VisibilityRule } from "@/lib/form-visibility";
 
 type RegistrationStatus = "registered" | "waitlisted" | "approved" | "rejected" | "cancelled";
 
+interface EventFormSection {
+  id: string;
+  title: string;
+  description?: string | null;
+  order: number;
+  visibility?: VisibilityRule | null;
+}
+
+interface EventFormFieldConfig {
+  helperText?: string;
+  file?: {
+    accept?: string[];
+    maxSizeBytes?: number;
+  };
+}
+
 interface EventFormField {
   id: string;
+  sectionId?: string | null;
   label: string;
   type: string;
   required: boolean;
   placeholder: string | null;
   options: unknown;
+  visibility?: VisibilityRule | null;
+  config?: EventFormFieldConfig | null;
 }
 
 interface EventApplyClientProps {
@@ -55,6 +87,7 @@ interface EventApplyClientProps {
     registrationReviewMode?: string | null;
     activeRegistrationCount: number;
     tags: string[];
+    formSections: EventFormSection[];
     formFields: EventFormField[];
   };
   auth: {
@@ -72,6 +105,16 @@ interface EventApplyClientProps {
     organization?: string;
     city?: string;
   } | null;
+}
+
+const isActiveRegistration = (status: RegistrationStatus | undefined) =>
+  status === "registered" || status === "approved" || status === "waitlisted";
+
+function formatFileSize(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  if (bytes >= 1024) return `${Math.ceil(bytes / 1024)} KB`;
+  return `${bytes} B`;
 }
 
 function getProfilePrefill(
@@ -106,8 +149,33 @@ function getFieldOptions(field: EventFormField): string[] {
   return [];
 }
 
-const isActiveRegistration = (status: RegistrationStatus | undefined) =>
-  status === "registered" || status === "approved" || status === "waitlisted";
+function getFieldMaxSize(field: EventFormField): number {
+  const configured = field.config?.file?.maxSizeBytes;
+  if (typeof configured === "number" && Number.isFinite(configured) && configured > 0) {
+    return Math.floor(configured);
+  }
+  return APPLICATION_MAX_UPLOAD_BYTES;
+}
+
+function getFieldAcceptList(field: EventFormField): string[] {
+  return Array.isArray(field.config?.file?.accept)
+    ? field.config.file?.accept?.map((entry) => String(entry).trim()).filter(Boolean) ?? []
+    : [];
+}
+
+function isAcceptedFile(file: File, acceptList: string[]): boolean {
+  if (acceptList.length === 0) return true;
+  const fileType = file.type.toLowerCase();
+  const filename = file.name.toLowerCase();
+
+  return acceptList.some((ruleRaw) => {
+    const rule = ruleRaw.trim().toLowerCase();
+    if (!rule) return false;
+    if (rule.startsWith(".")) return filename.endsWith(rule);
+    if (rule.endsWith("/*")) return fileType.startsWith(rule.slice(0, -1));
+    return fileType === rule;
+  });
+}
 
 export function EventApplyClient({
   event,
@@ -130,7 +198,8 @@ export function EventApplyClient({
   const defaultValues = useMemo(() => {
     const initial: Record<string, string> = {};
     for (const field of event.formFields) {
-      initial[field.label] = getProfilePrefill(field.label, userProfile);
+      if (field.type === "file") continue;
+      initial[field.id] = getProfilePrefill(field.label, userProfile);
     }
     return initial;
   }, [event.formFields, userProfile]);
@@ -138,7 +207,10 @@ export function EventApplyClient({
   const [registration, setRegistration] = useState(userRegistration);
   const [activeRegistrationCount, setActiveRegistrationCount] = useState(event.activeRegistrationCount);
   const [formValues, setFormValues] = useState<Record<string, string>>(defaultValues);
+  const [fileValues, setFileValues] = useState<Record<string, FileAnswerValue>>({});
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [fileErrors, setFileErrors] = useState<Record<string, string>>({});
+  const [uploadingFieldId, setUploadingFieldId] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [draftNotice, setDraftNotice] = useState<string>("Draft not saved yet");
@@ -147,10 +219,72 @@ export function EventApplyClient({
   const hasFormFields = event.formFields.length > 0;
   const hasActive = isActiveRegistration(registration?.status);
 
+  const sortedSections = useMemo(() => {
+    const sections = [...event.formSections].sort((a, b) => a.order - b.order);
+    if (sections.length > 0) return sections;
+    return [
+      {
+        id: "default-section",
+        title: "Application",
+        description: "",
+        order: 0,
+        visibility: null,
+      },
+    ] satisfies EventFormSection[];
+  }, [event.formSections]);
+
+  const sectionFieldMap = useMemo(() => {
+    const map = new Map<string, EventFormField[]>();
+    const fallbackSectionId = sortedSections[0]?.id ?? "default-section";
+    for (const section of sortedSections) {
+      map.set(section.id, []);
+    }
+
+    for (const field of event.formFields) {
+      const sectionId = field.sectionId ?? fallbackSectionId;
+      const bucket = map.get(sectionId) ?? [];
+      bucket.push(field);
+      map.set(sectionId, bucket);
+    }
+
+    return map;
+  }, [event.formFields, sortedSections]);
+
   const draftKey = useMemo(() => {
     if (!auth.userId || !hasFormFields) return null;
     return createEventApplyDraftKey(event.id, auth.userId, event.formFields);
   }, [auth.userId, event.id, event.formFields, hasFormFields]);
+
+  const visibilityContext = useMemo(() => {
+    const context: Record<string, unknown> = { ...formValues };
+    for (const [fieldId, value] of Object.entries(fileValues)) {
+      context[fieldId] = value.filename || value.url;
+    }
+    return context;
+  }, [fileValues, formValues]);
+
+  const visibleSections = useMemo(
+    () =>
+      sortedSections
+        .map((section) => {
+          const visible = isVisibilityRuleSatisfied(section.visibility ?? undefined, visibilityContext);
+          const fields = (sectionFieldMap.get(section.id) ?? []).filter((field) =>
+            isVisibilityRuleSatisfied(field.visibility ?? undefined, visibilityContext)
+          );
+          return {
+            ...section,
+            visible,
+            fields,
+          };
+        })
+        .filter((section) => section.visible),
+    [sectionFieldMap, sortedSections, visibilityContext]
+  );
+
+  const visibleFields = useMemo(
+    () => visibleSections.flatMap((section) => section.fields),
+    [visibleSections]
+  );
 
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -160,9 +294,10 @@ export function EventApplyClient({
       return;
     }
 
-    const draft = loadEventApplyDraft(window.localStorage, draftKey);
+    const draft = loadEventApplyStructuredDraft(window.localStorage, draftKey);
     if (draft) {
-      setFormValues((prev) => ({ ...prev, ...draft }));
+      setFormValues((prev) => ({ ...prev, ...draft.values }));
+      setFileValues(draft.files);
       setDraftNotice("Draft restored");
     } else {
       setDraftNotice("Draft not found");
@@ -179,7 +314,10 @@ export function EventApplyClient({
 
     saveTimeoutRef.current = setTimeout(() => {
       try {
-        saveEventApplyDraft(window.localStorage, draftKey, formValues);
+        saveEventApplyStructuredDraft(window.localStorage, draftKey, {
+          values: formValues,
+          files: fileValues,
+        });
         setDraftNotice(
           `Draft saved at ${new Date().toLocaleTimeString("en-US", {
             hour: "2-digit",
@@ -196,26 +334,154 @@ export function EventApplyClient({
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [auth.isAuthenticated, draftKey, draftReady, formValues, hasActive, hasFormFields]);
+  }, [auth.isAuthenticated, draftKey, draftReady, fileValues, formValues, hasActive, hasFormFields]);
 
   const discardDraft = () => {
     if (!draftKey) return;
     clearEventApplyDraft(window.localStorage, draftKey);
     setFormValues(defaultValues);
+    setFileValues({});
     setFieldErrors({});
+    setFileErrors({});
     setDraftNotice("Draft discarded");
+  };
+
+  const setFieldValue = (fieldId: string, value: string) => {
+    setFormValues((prev) => ({ ...prev, [fieldId]: value }));
+    setFieldErrors((prev) => {
+      if (!prev[fieldId]) return prev;
+      const next = { ...prev };
+      delete next[fieldId];
+      return next;
+    });
+  };
+
+  const removeFile = (fieldId: string) => {
+    setFileValues((prev) => {
+      const next = { ...prev };
+      delete next[fieldId];
+      return next;
+    });
+    setFieldValue(fieldId, "");
+    setFileErrors((prev) => {
+      const next = { ...prev };
+      delete next[fieldId];
+      return next;
+    });
+  };
+
+  const handleFileUpload = async (field: EventFormField, file: File | null) => {
+    if (!file) return;
+
+    const maxSize = getFieldMaxSize(field);
+    const acceptList = getFieldAcceptList(field);
+    if (file.size > maxSize) {
+      setFileErrors((prev) => ({
+        ...prev,
+        [field.id]: `Max file size is ${formatFileSize(maxSize)}.`,
+      }));
+      return;
+    }
+
+    if (!isAcceptedFile(file, acceptList)) {
+      setFileErrors((prev) => ({
+        ...prev,
+        [field.id]: "Unsupported file type for this field.",
+      }));
+      return;
+    }
+
+    setUploadingFieldId(field.id);
+    setSubmissionError(null);
+    setFileErrors((prev) => {
+      const next = { ...prev };
+      delete next[field.id];
+      return next;
+    });
+
+    try {
+      const body = new FormData();
+      body.append("file", file);
+
+      const response = await fetch(`/api/events/${event.id}/uploads`, {
+        method: "POST",
+        body,
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      } & FileAnswerValue;
+
+      if (!response.ok) {
+        setFileErrors((prev) => ({
+          ...prev,
+          [field.id]: payload.error ?? "Failed to upload file.",
+        }));
+        return;
+      }
+
+      const uploadedFile: FileAnswerValue = {
+        url: payload.url,
+        filename: payload.filename,
+        mimeType: payload.mimeType,
+        size: payload.size,
+      };
+      setFileValues((prev) => ({ ...prev, [field.id]: uploadedFile }));
+      setFieldValue(field.id, uploadedFile.filename);
+    } catch {
+      setFileErrors((prev) => ({
+        ...prev,
+        [field.id]: "Failed to upload file.",
+      }));
+    } finally {
+      setUploadingFieldId(null);
+    }
   };
 
   const handleSubmit = async () => {
     setSubmissionError(null);
+    setFieldErrors({});
+    setFileErrors({});
 
     if (hasFormFields) {
-      const validationErrors = validateApplyRequiredFields(event.formFields, formValues);
-      setFieldErrors(validationErrors);
-      if (Object.keys(validationErrors).length > 0) {
+      const requiredErrors = validateApplyRequiredFields(
+        visibleFields.map((field) => ({
+          id: field.id,
+          label: field.label,
+          required: field.required,
+        })),
+        formValues,
+        fileValues
+      );
+      if (Object.keys(requiredErrors).length > 0) {
+        const nextFieldErrors: Record<string, string> = {};
+        for (const field of visibleFields) {
+          const message = requiredErrors[field.label];
+          if (message) nextFieldErrors[field.id] = message;
+        }
+        setFieldErrors(nextFieldErrors);
         return;
       }
     }
+
+    const answers: SubmissionDataV2["answers"] = {};
+    for (const field of event.formFields) {
+      const fileValue = fileValues[field.id];
+      if (fileValue) {
+        answers[field.id] = { type: field.type, value: fileValue };
+        continue;
+      }
+
+      const value = formValues[field.id];
+      if (typeof value === "string" && value.trim().length > 0) {
+        answers[field.id] = { type: field.type, value: value.trim() };
+      }
+    }
+
+    const structuredPayload: SubmissionDataV2 = {
+      schemaVersion: 2,
+      answers,
+      legacy: { unmapped: {} },
+    };
 
     setIsPending(true);
     try {
@@ -223,12 +489,23 @@ export function EventApplyClient({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          formData: hasFormFields ? formValues : undefined,
+          formData: hasFormFields ? structuredPayload : undefined,
         }),
       });
       const payload = await response.json();
       if (!response.ok) {
         setSubmissionError(payload.error || "Failed to submit application.");
+        if (Array.isArray(payload.missingFields)) {
+          const missingById: Record<string, string> = {};
+          for (const field of visibleFields) {
+            if (payload.missingFields.includes(field.label)) {
+              missingById[field.id] = `${field.label} is required`;
+            }
+          }
+          if (Object.keys(missingById).length > 0) {
+            setFieldErrors(missingById);
+          }
+        }
         return;
       }
 
@@ -278,6 +555,151 @@ export function EventApplyClient({
     } finally {
       setIsPending(false);
     }
+  };
+
+  const renderField = (field: EventFormField) => {
+    const helperText = typeof field.config?.helperText === "string" ? field.config.helperText : "";
+    const error = fieldErrors[field.id] || fileErrors[field.id];
+
+    if (field.type === "file") {
+      const fileValue = fileValues[field.id];
+      const acceptList = getFieldAcceptList(field);
+      const maxSize = getFieldMaxSize(field);
+      const isUploading = uploadingFieldId === field.id;
+
+      return (
+        <div key={field.id} className="space-y-1.5">
+          <label className="text-xs text-steel-gray">
+            {field.label}
+            {field.required ? <span className="ml-0.5 text-signal-orange">*</span> : null}
+          </label>
+          {helperText ? <p className="text-[11px] text-steel-gray/80">{helperText}</p> : null}
+
+          <div className="rounded-lg border border-[var(--ghost-border)] bg-[var(--ghost-white)] p-3 space-y-2">
+            {fileValue ? (
+              <div className="rounded-md border border-[var(--ghost-border)] bg-midnight-light px-3 py-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-xs text-ice-white">{fileValue.filename}</p>
+                    <p className="text-[11px] text-steel-gray">{formatFileSize(fileValue.size)}</p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <a
+                      href={fileValue.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 rounded border border-[var(--ghost-border)] px-2 py-1 text-[10px] text-steel-gray hover:bg-white/5 hover:text-ice-white"
+                    >
+                      <FileText size={11} /> Open
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(field.id)}
+                      className="inline-flex items-center gap-1 rounded border border-red-500/30 px-2 py-1 text-[10px] text-red-300 hover:bg-red-500/10"
+                    >
+                      <X size={11} /> Remove
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            <Input
+              type="file"
+              accept={acceptList.join(",")}
+              disabled={isPending || isUploading}
+              onChange={(e) => {
+                const nextFile = e.currentTarget.files?.[0] ?? null;
+                void handleFileUpload(field, nextFile);
+                e.currentTarget.value = "";
+              }}
+              className="border-[var(--ghost-border)] bg-midnight text-ice-white file:mr-3 file:rounded-md file:border-0 file:bg-white/10 file:px-3 file:py-1 file:text-xs file:text-ice-white"
+            />
+            <p className="text-[11px] text-steel-gray">
+              Max {formatFileSize(maxSize)}
+              {acceptList.length > 0 ? ` - ${acceptList.join(", ")}` : ""}
+            </p>
+            {isUploading ? (
+              <div className="space-y-1">
+                <p className="flex items-center gap-1 text-[11px] text-steel-gray">
+                  <Loader2 size={12} className="animate-spin" /> Uploading...
+                </p>
+                <div className="h-1 overflow-hidden rounded bg-midnight">
+                  <div className="h-full w-1/2 animate-pulse bg-signal-orange" />
+                </div>
+              </div>
+            ) : (
+              <p className="flex items-center gap-1 text-[11px] text-steel-gray">
+                <Upload size={12} />
+                {fileValue ? "Replace file if needed." : "Upload one file."}
+              </p>
+            )}
+          </div>
+
+          {error ? <p className="text-xs text-red-400">{error}</p> : null}
+        </div>
+      );
+    }
+
+    return (
+      <div key={field.id} className="space-y-1.5">
+        <label className="text-xs text-steel-gray">
+          {field.label}
+          {field.required ? <span className="ml-0.5 text-signal-orange">*</span> : null}
+        </label>
+        {helperText ? <p className="text-[11px] text-steel-gray/80">{helperText}</p> : null}
+        {field.type === "textarea" ? (
+          <Textarea
+            rows={4}
+            placeholder={field.placeholder ?? ""}
+            value={formValues[field.id] ?? ""}
+            onChange={(e) => setFieldValue(field.id, e.target.value)}
+            className="border-[var(--ghost-border)] bg-[var(--ghost-white)] text-ice-white placeholder:text-steel-gray/60"
+          />
+        ) : field.type === "select" ? (
+          <Select
+            value={formValues[field.id] || undefined}
+            onValueChange={(value) => setFieldValue(field.id, value)}
+          >
+            <SelectTrigger className="w-full border-[var(--ghost-border)] bg-[var(--ghost-white)] text-ice-white">
+              <SelectValue placeholder={field.placeholder || "Select..."} />
+            </SelectTrigger>
+            <SelectContent className="border-[var(--ghost-border)] bg-midnight text-ice-white">
+              {getFieldOptions(field).map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : field.type === "checkbox" ? (
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-ice-white">
+            <Checkbox
+              checked={formValues[field.id] === "true"}
+              onCheckedChange={(checked) => setFieldValue(field.id, checked === true ? "true" : "")}
+            />
+            {field.placeholder || field.label}
+          </label>
+        ) : (
+          <Input
+            type={
+              field.type === "number"
+                ? "number"
+                : field.type === "date"
+                  ? "date"
+                  : field.type === "email"
+                    ? "email"
+                    : "text"
+            }
+            placeholder={field.placeholder ?? ""}
+            value={formValues[field.id] ?? ""}
+            onChange={(e) => setFieldValue(field.id, e.target.value)}
+            className="border-[var(--ghost-border)] bg-[var(--ghost-white)] text-ice-white placeholder:text-steel-gray/60"
+          />
+        )}
+        {error ? <p className="text-xs text-red-400">{error}</p> : null}
+      </div>
+    );
   };
 
   return (
@@ -406,78 +828,22 @@ export function EventApplyClient({
             <div className="space-y-4">
               {hasFormFields ? (
                 <>
-                  {event.formFields.map((field) => (
-                    <div key={field.id} className="space-y-1.5">
-                      <label className="text-xs text-steel-gray">
-                        {field.label}
-                        {field.required ? <span className="ml-0.5 text-signal-orange">*</span> : null}
-                      </label>
-                      {field.type === "textarea" ? (
-                        <Textarea
-                          rows={4}
-                          placeholder={field.placeholder ?? ""}
-                          value={formValues[field.label] ?? ""}
-                          onChange={(e) =>
-                            setFormValues((prev) => ({ ...prev, [field.label]: e.target.value }))
-                          }
-                          className="border-[var(--ghost-border)] bg-[var(--ghost-white)] text-ice-white placeholder:text-steel-gray/60"
-                        />
-                      ) : field.type === "select" ? (
-                        <Select
-                          value={formValues[field.label] || undefined}
-                          onValueChange={(value) =>
-                            setFormValues((prev) => ({ ...prev, [field.label]: value }))
-                          }
-                        >
-                          <SelectTrigger className="w-full border-[var(--ghost-border)] bg-[var(--ghost-white)] text-ice-white">
-                            <SelectValue placeholder={field.placeholder || "Select..."} />
-                          </SelectTrigger>
-                          <SelectContent className="border-[var(--ghost-border)] bg-midnight text-ice-white">
-                            {getFieldOptions(field).map((option) => (
-                              <SelectItem key={option} value={option}>
-                                {option}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : field.type === "checkbox" ? (
-                        <label className="flex cursor-pointer items-center gap-2 text-sm text-ice-white">
-                          <Checkbox
-                            checked={formValues[field.label] === "true"}
-                            onCheckedChange={(checked) =>
-                              setFormValues((prev) => ({
-                                ...prev,
-                                [field.label]: checked === true ? "true" : "",
-                              }))
-                            }
-                          />
-                          {field.placeholder || field.label}
-                        </label>
-                      ) : (
-                        <Input
-                          type={
-                            field.type === "number"
-                              ? "number"
-                              : field.type === "date"
-                                ? "date"
-                                : field.type === "email"
-                                  ? "email"
-                                  : "text"
-                          }
-                          placeholder={field.placeholder ?? ""}
-                          value={formValues[field.label] ?? ""}
-                          onChange={(e) =>
-                            setFormValues((prev) => ({ ...prev, [field.label]: e.target.value }))
-                          }
-                          className="border-[var(--ghost-border)] bg-[var(--ghost-white)] text-ice-white placeholder:text-steel-gray/60"
-                        />
-                      )}
-                      {fieldErrors[field.label] ? (
-                        <p className="text-xs text-red-400">{fieldErrors[field.label]}</p>
-                      ) : null}
+                  {visibleSections.map((section) => (
+                    <div
+                      key={section.id}
+                      className="rounded-xl border border-[var(--ghost-border)] bg-midnight-light/30 p-4 space-y-3"
+                    >
+                      <div>
+                        <h3 className="text-sm font-semibold text-ice-white">
+                          {section.title || "Application Section"}
+                        </h3>
+                        {section.description ? (
+                          <p className="text-xs text-steel-gray mt-1">{section.description}</p>
+                        ) : null}
+                      </div>
+                      <div className="space-y-3">{section.fields.map((field) => renderField(field))}</div>
                     </div>
                   ))}
-
                   {draftKey ? (
                     <div className="flex items-center justify-between rounded-lg border border-[var(--ghost-border)] bg-midnight-light px-3 py-2">
                       <p className="text-xs text-steel-gray">{draftNotice}</p>
@@ -501,7 +867,7 @@ export function EventApplyClient({
               <Button
                 type="button"
                 onClick={handleSubmit}
-                disabled={isPending}
+                disabled={isPending || Boolean(uploadingFieldId)}
                 style={theme.buttonStyle}
                 data-testid="event-apply-submit"
                 className="h-auto w-full rounded-xl py-3 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"

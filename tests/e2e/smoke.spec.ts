@@ -71,31 +71,50 @@ test("admin routes are protected and applications center flow works", async ({ p
   await expect(page.getByRole("heading", { name: /^events$/i })).toBeVisible();
   await expect(page.getByRole("link", { name: /applications center/i })).toBeVisible();
 
-  const deepLink = page.getByRole("link", { name: /^applications$/i }).first();
-  if (await deepLink.count()) {
-    await deepLink.click();
-    await expect(page).toHaveURL(/\/admin\/applications\?eventId=/);
-  }
-
   await page.goto("/admin/applications");
   const firstReviewRow = page.locator("[data-testid='application-row']").first();
   if (await firstReviewRow.count()) {
-    const registrationBefore = (await firstReviewRow.getAttribute("data-registration-status")) ?? "";
-    const currentStatus = (await firstReviewRow.getAttribute("data-review-status")) ?? "new";
-    const nextStatus = currentStatus === "accepted" ? "rejected" : "accepted";
+    await expect(page.getByRole("columnheader", { name: /^name$/i })).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: /^email$/i })).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: /^event$/i })).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: /^date$/i })).toBeVisible();
 
-    await firstReviewRow
-      .locator("td")
-      .nth(3)
-      .getByRole("button", { name: new RegExp(`^${nextStatus.replace("_", " ")}$`, "i") })
-      .click();
-    await expect(firstReviewRow).toHaveAttribute("data-review-status", nextStatus);
+    await expect(firstReviewRow.getByRole("button")).toHaveCount(0);
 
-    await page.reload();
+    const currentStatus = (await firstReviewRow.getAttribute("data-review-status")) ?? "";
+    const currentRegistration = (await firstReviewRow.getAttribute("data-registration-status")) ?? "";
+
+    await firstReviewRow.click();
+    await expect(page).toHaveURL(/\/admin\/applications\/[^/?]+/);
+    await expect(page.getByTestId("application-save-button")).toBeVisible();
+
+    let statusSelector = "";
+    let nextStatus = "";
+    if (currentStatus) {
+      statusSelector = "application-review-status";
+      nextStatus = currentStatus === "accepted" ? "rejected" : "accepted";
+    } else if (currentRegistration) {
+      statusSelector = "application-registration-status";
+      nextStatus = currentRegistration === "approved" ? "rejected" : "approved";
+    }
+
+    if (statusSelector && nextStatus) {
+      const nextLabel = nextStatus
+        .split("_")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ");
+      await page.getByTestId(statusSelector).click();
+      await page.getByRole("option", { name: new RegExp(`^${nextLabel}$`, "i") }).click();
+      await page.getByTestId("application-save-button").click();
+    }
+
+    await page.goto("/admin/applications");
     const rowAfterReload = page.locator("[data-testid='application-row']").first();
-    await expect(rowAfterReload).toHaveAttribute("data-review-status", nextStatus);
-    const registrationAfter = (await rowAfterReload.getAttribute("data-registration-status")) ?? "";
-    expect(registrationAfter).toBe(registrationBefore);
+    if (statusSelector === "application-review-status" && nextStatus) {
+      await expect(rowAfterReload).toHaveAttribute("data-review-status", nextStatus);
+    } else if (statusSelector === "application-registration-status" && nextStatus) {
+      await expect(rowAfterReload).toHaveAttribute("data-registration-status", nextStatus);
+    }
   } else {
     await expect(page.getByText(/no applications match|no applications found/i)).toBeVisible();
   }

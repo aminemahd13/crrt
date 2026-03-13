@@ -113,7 +113,15 @@ export function ContentListClient({
         {filtered.map((item) => (
           <tr
             key={item.id}
-            className="border-b border-[var(--ghost-border)] last:border-0 hover:bg-white/[0.02] transition-colors"
+            tabIndex={0}
+            role="link"
+            onClick={() => router.push(item.editHref)}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter" && event.key !== " ") return;
+              event.preventDefault();
+              router.push(item.editHref);
+            }}
+            className="border-b border-[var(--ghost-border)] last:border-0 cursor-pointer transition-colors hover:bg-white/[0.02] focus-visible:bg-white/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-orange/40"
           >
             <td className="px-4 py-3">
               <div>
@@ -150,6 +158,7 @@ export function ContentListClient({
               <div className="flex items-center justify-end gap-1">
                 <Link
                   href={item.editHref}
+                  onClick={(event) => event.stopPropagation()}
                   className="p-1.5 rounded-md text-steel-gray hover:text-ice-white hover:bg-white/5 transition-colors"
                   title="Edit"
                 >
@@ -158,6 +167,7 @@ export function ContentListClient({
                 <Link
                   href={item.viewHref || `/${contentType === "posts" ? "blog" : contentType}/${item.slug}`}
                   target="_blank"
+                  onClick={(event) => event.stopPropagation()}
                   className="p-1.5 rounded-md text-steel-gray hover:text-ice-white hover:bg-white/5 transition-colors"
                   title="View"
                 >
@@ -165,7 +175,10 @@ export function ContentListClient({
                 </Link>
                 <button
                   type="button"
-                  onClick={() => setConfirmDeleteId(item.id)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setConfirmDeleteId(item.id);
+                  }}
                   className="p-1.5 rounded-md text-steel-gray hover:text-red-400 hover:bg-red-500/5 transition-colors"
                   title="Delete"
                 >

@@ -13,7 +13,9 @@ async function resolveSmtpConfig() {
   const settings = await getPlatformSettingsSnapshot();
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
-  const fallbackFrom = process.env.SMTP_USER ? `CRRT <${process.env.SMTP_USER}>` : "CRRT <no-reply@localhost>";
+  const fallbackFrom = process.env.SMTP_USER
+    ? `CRRT <${process.env.SMTP_USER}>`
+    : "CRRT <contact@crrt.tech>";
 
   return {
     host: settings.smtpHost,

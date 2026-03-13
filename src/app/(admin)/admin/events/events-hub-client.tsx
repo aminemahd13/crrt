@@ -117,13 +117,19 @@ export function EventsHubClient({ events }: { events: EventListRow[] }) {
           return (
             <tr
               key={item.id}
-              className="border-b border-[var(--ghost-border)] last:border-0 hover:bg-white/[0.02] transition-colors"
+              tabIndex={0}
+              role="link"
+              onClick={() => router.push(`/admin/events/${item.id}`)}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" && event.key !== " ") return;
+                event.preventDefault();
+                router.push(`/admin/events/${item.id}`);
+              }}
+              className="border-b border-[var(--ghost-border)] last:border-0 cursor-pointer transition-colors hover:bg-white/[0.02] focus-visible:bg-white/[0.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal-orange/40"
             >
               <td className="px-4 py-3">
-                <Link href={`/admin/events/${item.id}`} className="hover:text-signal-orange transition-colors">
-                  <p className="text-sm font-medium text-ice-white">{item.title}</p>
-                  <p className="text-xs text-steel-gray">{item.slug}</p>
-                </Link>
+                <p className="text-sm font-medium text-ice-white">{item.title}</p>
+                <p className="text-xs text-steel-gray">{item.slug}</p>
               </td>
               <td className="px-4 py-3">
                 <Badge
@@ -156,7 +162,12 @@ export function EventsHubClient({ events }: { events: EventListRow[] }) {
               <td className="px-4 py-3">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon-xs" className="text-steel-gray hover:text-ice-white">
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      className="text-steel-gray hover:text-ice-white"
+                      onClick={(event) => event.stopPropagation()}
+                    >
                       <MoreHorizontal size={14} />
                     </Button>
                   </DropdownMenuTrigger>
