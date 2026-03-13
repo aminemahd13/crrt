@@ -11,10 +11,8 @@ RUN npm ci --ignore-scripts
 COPY prisma ./prisma
 RUN DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=public" npx prisma generate
 
-FROM base AS builder
+FROM deps AS builder
 ENV NODE_ENV=production
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/prisma ./prisma
 COPY . .
 RUN DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=public" npx prisma generate
 RUN npm run build
