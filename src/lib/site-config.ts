@@ -63,7 +63,7 @@ function toLinks(items: Array<{ label: string; href: string }>): SiteLink[] {
 }
 
 export function getDefaultPlatformSettings(): PlatformSettingsSnapshot {
-  const envPort = Number.parseInt(process.env.SMTP_PORT ?? "587", 10);
+  const envPort = Number.parseInt(process.env.SMTP_PORT ?? "465", 10);
   const imapPort = Number.parseInt(process.env.IMAP_PORT ?? "993", 10);
   const syncInterval = Number.parseInt(process.env.IMAP_SYNC_INTERVAL_SECONDS ?? "30", 10);
   const initialSyncDays = Number.parseInt(process.env.IMAP_INITIAL_SYNC_DAYS ?? "90", 10);
@@ -71,10 +71,10 @@ export function getDefaultPlatformSettings(): PlatformSettingsSnapshot {
     siteTitle: "CRRT - ENSA Agadir",
     siteUrl: process.env.NEXTAUTH_URL ?? "http://localhost:3000",
     adminEmail: process.env.ADMIN_EMAIL ?? "contact@crrt.tech",
-    smtpHost: process.env.SMTP_HOST ?? "mail.purelymail.com",
-    smtpPort: Number.isFinite(envPort) ? envPort : 587,
+    smtpHost: process.env.SMTP_HOST ?? "smtp.purelymail.com",
+    smtpPort: Number.isFinite(envPort) ? envPort : 465,
     smtpFrom: process.env.SMTP_FROM ?? "CRRT <contact@crrt.tech>",
-    imapHost: process.env.IMAP_HOST ?? "mail.purelymail.com",
+    imapHost: process.env.IMAP_HOST ?? "imap.purelymail.com",
     imapPort: Number.isFinite(imapPort) ? imapPort : 993,
     imapSecure: (process.env.IMAP_SECURE ?? "true").toLowerCase() !== "false",
     imapFolderInbox: process.env.IMAP_FOLDER_INBOX ?? "INBOX",

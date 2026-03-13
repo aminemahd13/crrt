@@ -41,9 +41,9 @@ export async function resolveMailboxConfig(): Promise<MailboxResolvedConfig> {
   return {
     mailbox: "shared",
     smtp: {
-      host: settings.smtpHost.trim() || process.env.SMTP_HOST?.trim() || "mail.purelymail.com",
-      port: settings.smtpPort || parsePort(process.env.SMTP_PORT, 587),
-      secure: (settings.smtpPort || parsePort(process.env.SMTP_PORT, 587)) === 465,
+      host: settings.smtpHost.trim() || process.env.SMTP_HOST?.trim() || "smtp.purelymail.com",
+      port: settings.smtpPort || parsePort(process.env.SMTP_PORT, 465),
+      secure: (settings.smtpPort || parsePort(process.env.SMTP_PORT, 465)) === 465,
       user: smtpUser,
       pass: smtpPass,
       from: normalizeFrom(
@@ -53,7 +53,7 @@ export async function resolveMailboxConfig(): Promise<MailboxResolvedConfig> {
       replyTo: settings.adminEmail.trim() || process.env.ADMIN_EMAIL?.trim() || "contact@crrt.tech",
     },
     imap: {
-      host: settings.imapHost.trim() || process.env.IMAP_HOST?.trim() || "mail.purelymail.com",
+      host: settings.imapHost.trim() || process.env.IMAP_HOST?.trim() || "imap.purelymail.com",
       port: settings.imapPort || parsePort(process.env.IMAP_PORT, 993),
       secure: typeof settings.imapSecure === "boolean"
         ? settings.imapSecure

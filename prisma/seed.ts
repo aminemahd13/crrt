@@ -95,10 +95,10 @@ async function main() {
             siteTitle: "CRRT - ENSA Agadir",
             siteUrl: "https://crrt.ensa-agadir.ac.ma",
             adminEmail: "contact@crrt.tech",
-            smtpHost: process.env.SMTP_HOST ?? "mail.purelymail.com",
+            smtpHost: process.env.SMTP_HOST ?? "smtp.purelymail.com",
             smtpPort: process.env.SMTP_PORT ? Number.parseInt(process.env.SMTP_PORT, 10) : null,
             smtpFrom: process.env.SMTP_FROM ?? "CRRT <contact@crrt.tech>",
-            imapHost: process.env.IMAP_HOST ?? "mail.purelymail.com",
+            imapHost: process.env.IMAP_HOST ?? "imap.purelymail.com",
             imapPort: process.env.IMAP_PORT ? Number.parseInt(process.env.IMAP_PORT, 10) : 993,
             imapSecure: process.env.IMAP_SECURE
                 ? process.env.IMAP_SECURE.toLowerCase() !== "false"

@@ -131,12 +131,12 @@ POSTGRES_PASSWORD=CHANGE_ME
 DATABASE_URL=postgresql://crrt:CHANGE_ME@postgres:5432/crrt?schema=public
 NEXTAUTH_SECRET=LONG_RANDOM_SECRET
 NEXTAUTH_URL=https://your-domain.com
-SMTP_HOST=mail.purelymail.com
-SMTP_PORT=587
+SMTP_HOST=smtp.purelymail.com
+SMTP_PORT=465
 SMTP_USER=contact@crrt.tech
 SMTP_PASS=CHANGE_ME
 SMTP_FROM=CRRT <contact@crrt.tech>
-IMAP_HOST=mail.purelymail.com
+IMAP_HOST=imap.purelymail.com
 IMAP_PORT=993
 IMAP_SECURE=true
 IMAP_USER=contact@crrt.tech

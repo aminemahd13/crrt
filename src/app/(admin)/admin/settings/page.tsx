@@ -35,11 +35,11 @@ interface SettingsState {
 const INITIAL_SETTINGS: SettingsState = {
   siteTitle: "CRRT - ENSA Agadir",
   siteUrl: "http://localhost:3000",
-  smtpHost: "mail.purelymail.com",
-  smtpPort: 587,
+  smtpHost: "smtp.purelymail.com",
+  smtpPort: 465,
   smtpFrom: "",
   adminEmail: "",
-  imapHost: "mail.purelymail.com",
+  imapHost: "imap.purelymail.com",
   imapPort: 993,
   imapSecure: true,
   imapFolderInbox: "INBOX",
@@ -80,11 +80,11 @@ export default function SettingsPage() {
         setSettings({
           siteTitle: payload.siteTitle ?? INITIAL_SETTINGS.siteTitle,
           siteUrl: payload.siteUrl ?? INITIAL_SETTINGS.siteUrl,
-          smtpHost: payload.smtpHost ?? "mail.purelymail.com",
-          smtpPort: payload.smtpPort ?? 587,
+          smtpHost: payload.smtpHost ?? "smtp.purelymail.com",
+          smtpPort: payload.smtpPort ?? 465,
           smtpFrom: payload.smtpFrom ?? "",
           adminEmail: payload.adminEmail ?? "",
-          imapHost: payload.imapHost ?? "mail.purelymail.com",
+          imapHost: payload.imapHost ?? "imap.purelymail.com",
           imapPort: payload.imapPort ?? 993,
           imapSecure: typeof payload.imapSecure === "boolean" ? payload.imapSecure : true,
           imapFolderInbox: payload.imapFolderInbox ?? "INBOX",
@@ -301,7 +301,7 @@ export default function SettingsPage() {
               onChange={(e) =>
                 setSettings((prev) => ({
                   ...prev,
-                  smtpPort: Number.parseInt(e.target.value || "587", 10),
+                  smtpPort: Number.parseInt(e.target.value || "465", 10),
                 }))
               }
               className="w-full px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white"
