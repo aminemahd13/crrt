@@ -7,6 +7,8 @@ import { HomePosts } from "./sections/home-posts";
 import { HomePartners } from "./sections/home-partners";
 import { toStringArray, toTrackMap } from "@/lib/json";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const now = new Date();
   const [homeConfig, nextEvent, projects, posts, partners] = await Promise.all([

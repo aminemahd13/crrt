@@ -5,6 +5,64 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ACTIVE_REGISTRATION_STATUSES } from "@/lib/event-registration";
 
+interface EventSpeakerRecord {
+  id: string;
+  name: string;
+  role: string | null;
+  bio: string | null;
+  image: string | null;
+}
+
+interface EventPartnerRecord {
+  id: string;
+  name: string;
+  logoUrl: string;
+  website: string | null;
+}
+
+interface EventTagRecord {
+  tag: { name: string };
+}
+
+type PublicEventWithRelations = Record<string, unknown> & {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  content: string;
+  type: string;
+  published: boolean;
+  publishStart: Date | null;
+  publishEnd: Date | null;
+  startDate: Date;
+  endDate: Date | null;
+  location: string | null;
+  capacity: number | null;
+  themePreset: string;
+  themeAccent: string | null;
+  registrationMode: string;
+  registrationLabel: string | null;
+  registrationUrl: string | null;
+  registrationReviewMode: string;
+  speakers: EventSpeakerRecord[];
+  partners: EventPartnerRecord[];
+  tags: EventTagRecord[];
+};
+
+interface EventWithRelationsDelegate {
+  findUnique(args: {
+    where: { slug: string };
+    include: {
+      speakers: { orderBy: { order: "asc" } };
+      partners: { orderBy: { order: "asc" } };
+      tags: { include: { tag: true } };
+    };
+  }): Promise<PublicEventWithRelations | null>;
+}
+
+const eventWithRelationsDelegate =
+  (prisma as unknown as { event: EventWithRelationsDelegate }).event;
+
 export default async function EventDetailPage({
   params,
 }: {
@@ -14,7 +72,7 @@ export default async function EventDetailPage({
   const now = new Date();
   const session = await getServerSession(authOptions);
 
-  const event = await (prisma as any).event.findUnique({
+  const event = await eventWithRelationsDelegate.findUnique({
     where: { slug },
     include: {
       speakers: { orderBy: { order: "asc" } },
@@ -71,20 +129,20 @@ export default async function EventDetailPage({
         registrationLabel: event.registrationLabel,
         registrationUrl: event.registrationUrl,
         registrationReviewMode: event.registrationReviewMode,
-        speakers: event.speakers.map((s: any) => ({
+        speakers: event.speakers.map((s) => ({
           id: s.id,
           name: s.name,
           role: s.role,
           bio: s.bio,
           image: s.image,
         })),
-        partners: (event.partners ?? []).map((partner: any) => ({
+        partners: (event.partners ?? []).map((partner) => ({
           id: partner.id,
           name: partner.name,
           logoUrl: partner.logoUrl,
           website: partner.website,
         })),
-        tags: Array.from(new Set(event.tags.map((ct: any) => ct.tag.name))),
+        tags: Array.from(new Set(event.tags.map((ct) => ct.tag.name))),
       }}
     />
   );

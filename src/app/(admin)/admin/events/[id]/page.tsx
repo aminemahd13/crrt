@@ -17,6 +17,34 @@ import type {
 } from "@/components/admin/events-admin-types";
 import { EditEventClient } from "./edit-client";
 
+interface EventPartnerRecord {
+  id: string;
+  name: string;
+  logoUrl: string;
+  website: string | null;
+}
+
+type AdminEventWithPartners = Record<string, unknown> & {
+  id: string;
+  title: string;
+  slug: string;
+  startDate: Date;
+  endDate: Date | null;
+  publishStart: Date | null;
+  publishEnd: Date | null;
+  partners: EventPartnerRecord[];
+};
+
+interface EventWithPartnersDelegate {
+  findUnique(args: {
+    where: { id: string };
+    include: { partners: { orderBy: { order: "asc" } } };
+  }): Promise<AdminEventWithPartners | null>;
+}
+
+const eventWithPartnersDelegate =
+  (prisma as unknown as { event: EventWithPartnersDelegate }).event;
+
 function parseVisibilityRule(value: unknown): VisibilityRule | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const item = value as Record<string, unknown>;
@@ -75,7 +103,7 @@ export default async function EditEventPage({
   const { tab } = await searchParams;
 
   const [event, form, registrations, orphanSubmissions] = await Promise.all([
-    (prisma as any).event.findUnique({
+    eventWithPartnersDelegate.findUnique({
       where: { id },
       include: {
         partners: { orderBy: { order: "asc" } },
@@ -233,7 +261,7 @@ export default async function EditEventPage({
         endDate: event.endDate?.toISOString().slice(0, 16) ?? "",
         publishStart: event.publishStart?.toISOString().slice(0, 16) ?? "",
         publishEnd: event.publishEnd?.toISOString().slice(0, 16) ?? "",
-        eventPartners: (event.partners ?? []).map((partner: any) => ({
+        eventPartners: (event.partners ?? []).map((partner) => ({
           id: partner.id,
           name: partner.name,
           logoUrl: partner.logoUrl,

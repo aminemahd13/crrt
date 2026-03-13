@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { ResourcesPage } from "./resources-client";
 
+export const dynamic = "force-dynamic";
+
 export default async function ResourcesServerPage() {
   const categories = await prisma.resourceCategory.findMany({
     select: {

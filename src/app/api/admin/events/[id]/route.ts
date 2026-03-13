@@ -13,6 +13,22 @@ interface ParsedEventPartner {
     website: string | null;
 }
 
+interface EventPartnerCreateInput {
+    eventId: string;
+    name: string;
+    logoUrl: string;
+    website: string | null;
+    order: number;
+}
+
+interface EventPartnerDelegate {
+    deleteMany(args: { where: { eventId: string } }): Promise<unknown>;
+    createMany(args: { data: EventPartnerCreateInput[] }): Promise<unknown>;
+}
+
+const eventPartnerDelegate =
+    (prisma as unknown as { eventPartner: EventPartnerDelegate }).eventPartner;
+
 function normalizeText(value: unknown): string {
     return typeof value === "string" ? value.trim() : "";
 }
@@ -141,9 +157,9 @@ export async function PUT(
             data: normalized,
         });
 
-        await (prisma as any).eventPartner.deleteMany({ where: { eventId: id } });
+        await eventPartnerDelegate.deleteMany({ where: { eventId: id } });
         if (eventPartners.length > 0) {
-            await (prisma as any).eventPartner.createMany({
+            await eventPartnerDelegate.createMany({
                 data: eventPartners.map((partner, index) => ({
                     eventId: id,
                     name: partner.name,

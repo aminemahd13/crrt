@@ -3,7 +3,6 @@ import Link from "next/link";
 import { Clock, ArrowUpRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 
 export default async function BlogPage() {
   const posts = await prisma.post.findMany({
@@ -35,7 +34,7 @@ export default async function BlogPage() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {posts.map((post, i) => {
+          {posts.map((post) => {
             const dateStr = new Date(post.createdAt).toLocaleDateString("en-US", {
               month: "long",
               day: "numeric",

@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { getVisibleEventsWhere } from "@/lib/event-config";
 import { EventsPage } from "./events-client";
 
+export const dynamic = "force-dynamic";
+
 export default async function EventsServerPage() {
   const now = new Date();
   const events = await prisma.event.findMany({
