@@ -6,6 +6,7 @@ import { assertImapConfigured, resolveMailboxConfig } from "@/lib/mailbox/config
 import { createMailboxProvider } from "@/lib/mailbox/provider";
 import type { MailboxFolderKey } from "@/lib/mailbox/types";
 import {
+  assertMailboxPrismaDelegates,
   ensureThread,
   gzipMime,
   mapFolder,
@@ -29,6 +30,7 @@ export async function verifyImapConnection() {
 }
 
 export async function syncMailbox(options: { folderKey?: MailboxFolderKey } = {}) {
+  assertMailboxPrismaDelegates();
   const config = await resolveMailboxConfig();
   assertImapConfigured(config);
 
@@ -274,6 +276,7 @@ export async function listInboxThreads(input: {
   page?: number;
   pageSize?: number;
 }) {
+  assertMailboxPrismaDelegates();
   const config = await resolveMailboxConfig();
   const folderName = mapFolder(config, input.folderKey);
   const page = Math.max(1, input.page ?? 1);
@@ -343,6 +346,7 @@ export async function listInboxThreads(input: {
 }
 
 export async function getThreadMessages(threadId: string) {
+  assertMailboxPrismaDelegates();
   const rows = await prisma.mailMessage.findMany({
     where: { threadId },
     orderBy: { date: "asc" },
@@ -376,6 +380,7 @@ export async function getThreadMessages(threadId: string) {
 }
 
 export async function setMessageReadState(messageId: string, seen: boolean) {
+  assertMailboxPrismaDelegates();
   const config = await resolveMailboxConfig();
   const existing = await prisma.mailMessage.findUnique({
     where: { id: messageId },
@@ -402,6 +407,7 @@ export async function setMessageReadState(messageId: string, seen: boolean) {
 }
 
 export async function moveMessageToFolder(messageId: string, targetFolderKey: "inbox" | "archive" | "trash") {
+  assertMailboxPrismaDelegates();
   const config = await resolveMailboxConfig();
   const existing = await prisma.mailMessage.findUnique({
     where: { id: messageId },
@@ -441,6 +447,7 @@ export async function moveMessageToFolder(messageId: string, targetFolderKey: "i
 }
 
 export async function getMailboxAttachmentContent(attachmentId: string) {
+  assertMailboxPrismaDelegates();
   const attachment = await prisma.mailAttachment.findUnique({
     where: { id: attachmentId },
     select: { id: true, filename: true, mimeType: true, size: true, rawContent: true },
@@ -456,6 +463,7 @@ export async function getMailboxAttachmentContent(attachmentId: string) {
 }
 
 export async function getMailboxStatus() {
+  assertMailboxPrismaDelegates();
   const config = await resolveMailboxConfig();
   const cursors = await prisma.mailFolderCursor.findMany({
     where: { mailbox: config.mailbox },

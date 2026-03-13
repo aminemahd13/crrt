@@ -8,6 +8,7 @@ import { createMailboxProvider } from "@/lib/mailbox/provider";
 import type { DraftPayload, MailboxAddress, OutgoingAttachmentInput, SendMailInput } from "@/lib/mailbox/types";
 import {
   asMailboxAddresses,
+  assertMailboxPrismaDelegates,
   buildTransportOptions,
   ensureThread,
   generateRawMime,
@@ -125,6 +126,7 @@ export async function sendMailboxMessage(
   input: SendMailInput,
   options: { actorEmail?: string | null; threadId?: string | null } = {}
 ) {
+  assertMailboxPrismaDelegates();
   void options.actorEmail;
   const config = await resolveMailboxConfig();
   assertSmtpConfigured(config);
@@ -257,6 +259,7 @@ export async function replyToMailboxMessage(input: {
   attachments: OutgoingAttachmentInput[];
   actorEmail?: string | null;
 }) {
+  assertMailboxPrismaDelegates();
   const source = await prisma.mailMessage.findUnique({
     where: { id: input.messageId },
     select: {
@@ -368,6 +371,7 @@ function serializeDraft(draft: {
 }
 
 export async function listMailboxDrafts(input: { page?: number; pageSize?: number; query?: string } = {}) {
+  assertMailboxPrismaDelegates();
   const page = Math.max(1, input.page ?? 1);
   const pageSize = Math.min(50, Math.max(1, input.pageSize ?? 20));
   const query = input.query?.trim() ?? "";
@@ -415,6 +419,7 @@ export async function listMailboxDrafts(input: { page?: number; pageSize?: numbe
 }
 
 export async function getMailboxDraft(id: string) {
+  assertMailboxPrismaDelegates();
   const draft = await prisma.mailDraft.findUnique({
     where: { id },
     include: {
@@ -428,6 +433,7 @@ export async function getMailboxDraft(id: string) {
 }
 
 export async function createMailboxDraft(payload: DraftPayload, actorEmail?: string | null) {
+  assertMailboxPrismaDelegates();
   const attachments = parseAndValidateAttachments(payload.attachments);
   const created = await prisma.mailDraft.create({
     data: {
@@ -487,6 +493,7 @@ export async function createMailboxDraft(payload: DraftPayload, actorEmail?: str
 }
 
 export async function updateMailboxDraft(draftId: string, payload: DraftPayload, expectedVersion: number) {
+  assertMailboxPrismaDelegates();
   const existing = await prisma.mailDraft.findUnique({
     where: { id: draftId },
     include: { attachments: true },
@@ -556,6 +563,7 @@ export async function updateMailboxDraft(draftId: string, payload: DraftPayload,
 }
 
 export async function deleteMailboxDraft(draftId: string) {
+  assertMailboxPrismaDelegates();
   const existing = await prisma.mailDraft.findUnique({
     where: { id: draftId },
     select: { id: true, remoteUid: true },
@@ -588,6 +596,7 @@ export async function deleteMailboxDraft(draftId: string) {
 }
 
 export async function sendMailboxDraft(draftId: string, actorEmail?: string | null) {
+  assertMailboxPrismaDelegates();
   const draft = await prisma.mailDraft.findUnique({
     where: { id: draftId },
     include: { attachments: true },

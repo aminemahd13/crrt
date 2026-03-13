@@ -163,6 +163,26 @@ export function mapFolder(config: { folders: Record<MailboxFolderKey, string> },
   return config.folders[key];
 }
 
+export function assertMailboxPrismaDelegates(): void {
+  const candidate = prisma as unknown as Record<string, unknown>;
+  const requiredDelegates = [
+    "mailThread",
+    "mailMessage",
+    "mailAttachment",
+    "mailDraft",
+    "mailDraftAttachment",
+    "mailFolderCursor",
+  ];
+  const missing = requiredDelegates.filter((delegate) => {
+    const value = candidate[delegate] as Record<string, unknown> | undefined;
+    return !value || typeof value.findMany !== "function";
+  });
+  if (missing.length === 0) return;
+  throw new Error(
+    `Prisma client is missing mailbox delegates (${missing.join(", ")}). Stop the dev server, run 'npx prisma generate', then restart.`
+  );
+}
+
 export async function tryAcquireSyncLock(): Promise<boolean> {
   const rows = await prisma.$queryRaw<Array<{ locked: boolean }>>`
     SELECT pg_try_advisory_lock(${SYNC_LOCK_KEY}) AS locked
