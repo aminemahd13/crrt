@@ -21,14 +21,55 @@ const EMPTY_TEMPLATE: EmailTemplate = {
   enabled: true,
 };
 
-const PREVIEW_DEFAULT_VALUES: Record<string, string> = {
-  name: "Alex Doe",
-  eventTitle: "Community Workshop",
-  status: "confirmed",
-  note: "Bring a photo ID at check-in.",
-  formTitle: "General Inquiry",
-  email: "alex@example.com",
-};
+const AVAILABLE_TEMPLATE_VARIABLES = [
+  {
+    key: "name",
+    description: "Recipient name (falls back to email when name is unavailable).",
+    sample: "Alex Doe",
+    templates: [
+      "registration-confirmed",
+      "registration-waitlisted",
+      "registration-status-update",
+      "form-submission-received",
+    ],
+  },
+  {
+    key: "eventTitle",
+    description: "Event title shown in registration-related emails.",
+    sample: "Community Workshop",
+    templates: [
+      "registration-confirmed",
+      "registration-waitlisted",
+      "registration-status-update",
+    ],
+  },
+  {
+    key: "status",
+    description: "Registration status label (for example: confirmed, waitlisted, approved).",
+    sample: "confirmed",
+    templates: [
+      "registration-confirmed",
+      "registration-waitlisted",
+      "registration-status-update",
+    ],
+  },
+  {
+    key: "note",
+    description: "Optional admin note for status update emails.",
+    sample: "Bring a photo ID at check-in.",
+    templates: ["registration-status-update"],
+  },
+  {
+    key: "formTitle",
+    description: "Form name/title used by form submission notifications.",
+    sample: "General Inquiry",
+    templates: ["form-submission-received"],
+  },
+] as const;
+
+const PREVIEW_DEFAULT_VALUES: Record<string, string> = Object.fromEntries(
+  AVAILABLE_TEMPLATE_VARIABLES.map((variable) => [variable.key, variable.sample])
+);
 
 function extractTemplateVariables(input: string): string[] {
   const seen = new Set<string>();
@@ -79,10 +120,23 @@ export default function EmailTemplatesPage() {
     [templates, selectedKey]
   );
 
+  const selectedTemplateVariables = useMemo(() => {
+    if (!selected) return AVAILABLE_TEMPLATE_VARIABLES;
+    const variables = AVAILABLE_TEMPLATE_VARIABLES.filter((variable) =>
+      variable.templates.includes(selected.key)
+    );
+    return variables.length > 0 ? variables : AVAILABLE_TEMPLATE_VARIABLES;
+  }, [selected]);
+
   const previewVariables = useMemo(() => {
     if (!selected) return [];
     return extractTemplateVariables(`${selected.subject}\n${selected.body}`);
   }, [selected]);
+
+  const unknownPreviewVariables = useMemo(() => {
+    const known = new Set(AVAILABLE_TEMPLATE_VARIABLES.map((variable) => variable.key));
+    return previewVariables.filter((variable) => !known.has(variable));
+  }, [previewVariables]);
 
   const previewValues = useMemo(() => {
     const values: Record<string, string> = {};
@@ -238,6 +292,34 @@ export default function EmailTemplatesPage() {
                   onChange={(e) => updateTemplate("subject", e.target.value)}
                   className="w-full px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white"
                 />
+              </div>
+
+              <div className="glass-card p-5 space-y-3">
+                <label className="text-xs text-steel-gray">Available Variables</label>
+                <div className="flex flex-wrap gap-2">
+                  {selectedTemplateVariables.map((variable) => (
+                    <span
+                      key={variable.key}
+                      className="rounded-full border border-[var(--ghost-border)] bg-midnight px-2 py-1 text-[11px] text-ice-white"
+                    >
+                      {`{{${variable.key}}}`}
+                    </span>
+                  ))}
+                </div>
+                <div className="space-y-1">
+                  {selectedTemplateVariables.map((variable) => (
+                    <p key={variable.key} className="text-[11px] text-steel-gray">
+                      <span className="text-ice-white">{`{{${variable.key}}}`}</span> {variable.description}
+                    </p>
+                  ))}
+                </div>
+                {unknownPreviewVariables.length > 0 ? (
+                  <p className="text-[11px] text-amber-300">
+                    Unknown placeholders in this template:{" "}
+                    {unknownPreviewVariables.map((variable) => `{{${variable}}}`).join(", ")}.
+                    Add backend variables before using them in production emails.
+                  </p>
+                ) : null}
               </div>
 
               <div className="glass-card p-5 space-y-2">
