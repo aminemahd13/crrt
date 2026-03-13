@@ -20,17 +20,25 @@ interface AboutMilestone {
   description: string;
 }
 
+interface AboutPartner {
+  id: string;
+  name: string;
+  logoUrl: string;
+  website: string;
+}
+
 interface AboutStudioClientProps {
   config: AboutConfigSnapshot;
   members: AboutMember[];
   milestones: AboutMilestone[];
+  partners: AboutPartner[];
 }
 
 function createClientId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-export function AboutStudioClient({ config, members, milestones }: AboutStudioClientProps) {
+export function AboutStudioClient({ config, members, milestones, partners }: AboutStudioClientProps) {
   const [heroTitle, setHeroTitle] = useState(config.heroTitle);
   const [storyText, setStoryText] = useState(config.storyText);
   const [teamCurrentLabel, setTeamCurrentLabel] = useState(config.teamCurrentLabel);
@@ -39,6 +47,7 @@ export function AboutStudioClient({ config, members, milestones }: AboutStudioCl
   const [valueCards, setValueCards] = useState<AboutValueCard[]>(config.valueCards);
   const [teamMembers, setTeamMembers] = useState<AboutMember[]>(members);
   const [timelineMilestones, setTimelineMilestones] = useState<AboutMilestone[]>(milestones);
+  const [aboutPartners, setAboutPartners] = useState<AboutPartner[]>(partners);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -115,6 +124,32 @@ export function AboutStudioClient({ config, members, milestones }: AboutStudioCl
     setError(null);
   };
 
+  const addPartner = () => {
+    setAboutPartners((prev) => [
+      ...prev,
+      {
+        id: createClientId("partner"),
+        name: "",
+        logoUrl: "",
+        website: "",
+      },
+    ]);
+    setSaved(false);
+    setError(null);
+  };
+
+  const updatePartner = (id: string, key: keyof AboutPartner, value: string) => {
+    setAboutPartners((prev) => prev.map((item) => (item.id === id ? { ...item, [key]: value } : item)));
+    setSaved(false);
+    setError(null);
+  };
+
+  const removePartner = (id: string) => {
+    setAboutPartners((prev) => prev.filter((item) => item.id !== id));
+    setSaved(false);
+    setError(null);
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setError(null);
@@ -133,6 +168,7 @@ export function AboutStudioClient({ config, members, milestones }: AboutStudioCl
           },
           members: teamMembers,
           milestones: timelineMilestones,
+          partners: aboutPartners,
         }),
       });
 
@@ -396,6 +432,52 @@ export function AboutStudioClient({ config, members, milestones }: AboutStudioCl
           ))}
           {timelineMilestones.length === 0 && (
             <p className="text-sm text-steel-gray/60 py-2">No milestones configured yet.</p>
+          )}
+        </div>
+      </div>
+
+      <div className="glass-card p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-heading font-semibold text-ice-white text-sm">Partners Strip</h3>
+          <button onClick={addPartner} className="inline-flex items-center gap-1 text-xs text-signal-orange hover:underline">
+            <Plus size={12} /> Add Partner
+          </button>
+        </div>
+        <div className="space-y-3">
+          {aboutPartners.map((partner) => (
+            <div key={partner.id} className="rounded-lg border border-[var(--ghost-border)] p-3 space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <input
+                  type="text"
+                  value={partner.name}
+                  onChange={(e) => updatePartner(partner.id, "name", e.target.value)}
+                  placeholder="Partner name"
+                  className="px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white"
+                />
+                <input
+                  type="text"
+                  value={partner.logoUrl}
+                  onChange={(e) => updatePartner(partner.id, "logoUrl", e.target.value)}
+                  placeholder="Logo URL"
+                  className="px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white"
+                />
+                <input
+                  type="text"
+                  value={partner.website}
+                  onChange={(e) => updatePartner(partner.id, "website", e.target.value)}
+                  placeholder="Website URL (optional)"
+                  className="px-3 py-2 rounded-lg bg-midnight border border-[var(--ghost-border)] text-sm text-ice-white"
+                />
+              </div>
+              <div className="flex justify-end">
+                <button onClick={() => removePartner(partner.id)} className="p-2 text-steel-gray hover:text-red-400">
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+          ))}
+          {aboutPartners.length === 0 && (
+            <p className="text-sm text-steel-gray/60 py-2">No partners configured yet.</p>
           )}
         </div>
       </div>

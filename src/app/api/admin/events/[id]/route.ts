@@ -7,6 +7,52 @@ import {
     normalizeRegistrationSections,
 } from "@/lib/admin-form-builder";
 
+interface ParsedEventPartner {
+    name: string;
+    logoUrl: string;
+    website: string | null;
+}
+
+function normalizeText(value: unknown): string {
+    return typeof value === "string" ? value.trim() : "";
+}
+
+function parseEventPartners(value: unknown): { partners: ParsedEventPartner[]; error: string | null } {
+    if (value === undefined || value === null) {
+        return { partners: [], error: null };
+    }
+
+    if (!Array.isArray(value)) {
+        return { partners: [], error: "Invalid event partners payload." };
+    }
+
+    const partners: ParsedEventPartner[] = [];
+    for (const [index, item] of value.entries()) {
+        if (!item || typeof item !== "object") continue;
+        const row = item as Record<string, unknown>;
+        const name = normalizeText(row.name);
+        const logoUrl = normalizeText(row.logoUrl);
+        const website = normalizeText(row.website);
+        const hasAnyValue = Boolean(name || logoUrl || website);
+
+        if (!hasAnyValue) continue;
+        if (!name || !logoUrl) {
+            return {
+                partners: [],
+                error: `Event partner #${index + 1} requires name and logo URL.`,
+            };
+        }
+
+        partners.push({
+            name,
+            logoUrl,
+            website: website || null,
+        });
+    }
+
+    return { partners, error: null };
+}
+
 async function syncFormBuilder(
     formId: string,
     sectionsInput: ReturnType<typeof normalizeRegistrationSections>,
@@ -84,11 +130,29 @@ export async function PUT(
         const normalized = normalizeEventPayload(body);
         const registrationSections = normalizeRegistrationSections(body.registrationSections);
         const registrationFields = normalizeRegistrationFields(body.registrationFields);
+        const { partners: eventPartners, error: eventPartnersError } = parseEventPartners(body.eventPartners);
+
+        if (eventPartnersError) {
+            return NextResponse.json({ error: eventPartnersError }, { status: 400 });
+        }
 
         const event = await prisma.event.update({
             where: { id },
             data: normalized,
         });
+
+        await (prisma as any).eventPartner.deleteMany({ where: { eventId: id } });
+        if (eventPartners.length > 0) {
+            await (prisma as any).eventPartner.createMany({
+                data: eventPartners.map((partner, index) => ({
+                    eventId: id,
+                    name: partner.name,
+                    logoUrl: partner.logoUrl,
+                    website: partner.website,
+                    order: index,
+                })),
+            });
+        }
 
         // Sync linked registration form
         const existingForm = await prisma.form.findUnique({ where: { eventId: id } });

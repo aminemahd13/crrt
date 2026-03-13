@@ -27,6 +27,13 @@ interface ParsedConfig {
   valueCards: Array<{ title: string; desc: string }>;
 }
 
+interface ParsedPartner {
+  id: string | null;
+  name: string;
+  logoUrl: string;
+  website: string | null;
+}
+
 function normalizeText(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -35,7 +42,14 @@ function parsePersistedId(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const id = value.trim();
   if (!id) return null;
-  if (id.startsWith("new-") || id.startsWith("member-") || id.startsWith("milestone-")) return null;
+  if (
+    id.startsWith("new-") ||
+    id.startsWith("member-") ||
+    id.startsWith("milestone-") ||
+    id.startsWith("partner-")
+  ) {
+    return null;
+  }
   return id;
 }
 
@@ -135,11 +149,51 @@ function parseMilestones(value: unknown): { milestones: ParsedMilestone[]; error
   return { milestones, error: null };
 }
 
+function parsePartners(value: unknown): {
+  partners: ParsedPartner[];
+  provided: boolean;
+  error: string | null;
+} {
+  if (value === undefined || value === null) {
+    return { partners: [], provided: false, error: null };
+  }
+
+  if (!Array.isArray(value)) {
+    return { partners: [], provided: true, error: "Invalid partners payload." };
+  }
+
+  const partners: ParsedPartner[] = [];
+  for (const [index, item] of value.entries()) {
+    if (!item || typeof item !== "object") continue;
+    const row = item as Record<string, unknown>;
+    const name = normalizeText(row.name);
+    const logoUrl = normalizeText(row.logoUrl);
+    const website = normalizeText(row.website);
+
+    const hasAnyField = Boolean(name || logoUrl || website);
+    if (!hasAnyField) continue;
+
+    if (!name || !logoUrl) {
+      return { partners: [], provided: true, error: `Partner #${index + 1} requires name and logo URL.` };
+    }
+
+    partners.push({
+      id: parsePersistedId(row.id),
+      name,
+      logoUrl,
+      website: website || null,
+    });
+  }
+
+  return { partners, provided: true, error: null };
+}
+
 export async function GET() {
-  const [config, members, milestones] = await Promise.all([
+  const [config, members, milestones, partners] = await Promise.all([
     prisma.aboutConfig.findUnique({ where: { id: "default" } }),
     prisma.teamMember.findMany({ orderBy: { order: "asc" } }),
     prisma.timelineMilestone.findMany({ orderBy: { order: "asc" } }),
+    prisma.partner.findMany({ orderBy: { order: "asc" } }),
   ]);
 
   return NextResponse.json({
@@ -153,6 +207,7 @@ export async function GET() {
     },
     members,
     milestones,
+    partners,
   });
 }
 
@@ -172,6 +227,11 @@ export async function PUT(request: Request) {
   const { milestones, error: milestonesError } = parseMilestones(payload.milestones);
   if (milestonesError) {
     return NextResponse.json({ error: milestonesError }, { status: 400 });
+  }
+
+  const { partners, provided: partnersProvided, error: partnersError } = parsePartners(payload.partners);
+  if (partnersError) {
+    return NextResponse.json({ error: partnersError }, { status: 400 });
   }
 
   await prisma.$transaction(async (tx) => {
@@ -248,6 +308,41 @@ export async function PUT(request: Request) {
         await tx.timelineMilestone.update({ where: { id: milestone.id }, data });
       } else {
         await tx.timelineMilestone.create({ data });
+      }
+    }
+
+    if (partnersProvided) {
+      const existingPartners = await tx.partner.findMany({ select: { id: true } });
+      const existingPartnerIds = new Set(existingPartners.map((partner) => partner.id));
+      const retainedPartnerIds = partners
+        .map((partner) => partner.id)
+        .filter((id): id is string => Boolean(id && existingPartnerIds.has(id)));
+
+      if (retainedPartnerIds.length > 0) {
+        await tx.partner.deleteMany({
+          where: {
+            id: {
+              notIn: retainedPartnerIds,
+            },
+          },
+        });
+      } else {
+        await tx.partner.deleteMany();
+      }
+
+      for (const [index, partner] of partners.entries()) {
+        const data = {
+          name: partner.name,
+          logoUrl: partner.logoUrl,
+          website: partner.website,
+          order: index,
+        };
+
+        if (partner.id && existingPartnerIds.has(partner.id)) {
+          await tx.partner.update({ where: { id: partner.id }, data });
+        } else {
+          await tx.partner.create({ data });
+        }
       }
     }
   });

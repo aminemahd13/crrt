@@ -34,13 +34,13 @@ export function HomePartners({ partners }: HomePartnersProps) {
         viewport={{ once: true }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       >
-        <h2 className="font-heading font-bold text-xl text-ice-white mb-2">
+        <h2 className="font-heading font-bold text-2xl md:text-3xl text-ice-white mb-2">
           Partners & Supporters
         </h2>
-        <p className="text-sm text-steel-gray">Organizations backing our mission.</p>
+        <p className="text-base text-steel-gray">Organizations backing our mission.</p>
       </motion.div>
 
-      <div className="mx-auto max-w-4xl">
+      <div className="mx-auto max-w-5xl">
         <Carousel
           opts={{ align: "center", loop: true }}
           className="w-full"
@@ -52,10 +52,16 @@ export function HomePartners({ partners }: HomePartnersProps) {
                   href={partner.website ?? "#"}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-center h-20 px-4 rounded-xl border border-[var(--ghost-border)] bg-midnight-light/50 opacity-60 hover:opacity-100 transition-all grayscale hover:grayscale-0 hover:border-signal-orange/30"
+                  className="group flex min-h-28 flex-col items-center justify-center gap-2 rounded-2xl border border-[var(--ghost-border)] bg-midnight-light/70 px-4 py-4 transition-all hover:-translate-y-0.5 hover:border-signal-orange/40 hover:bg-midnight-light"
                   title={partner.name}
                 >
-                  <span className="font-heading font-bold text-lg text-steel-gray hover:text-ice-white transition-colors text-center">
+                  <img
+                    src={partner.logoUrl}
+                    alt={`${partner.name} logo`}
+                    loading="lazy"
+                    className="h-11 w-auto max-w-[140px] object-contain"
+                  />
+                  <span className="text-center font-heading text-sm font-semibold text-ice-white/90 transition-colors group-hover:text-ice-white">
                     {partner.name}
                   </span>
                 </a>

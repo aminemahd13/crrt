@@ -12,13 +12,13 @@ export default async function AboutServerPage() {
   return (
     <AboutPage
       config={buildAboutConfigSnapshot(aboutConfig)}
-      milestones={milestones.map((m) => ({
+      milestones={milestones.map((m: any) => ({
         id: m.id,
         year: m.year,
         title: m.title,
         description: m.description,
       }))}
-      members={members.map((m) => ({
+      members={members.map((m: any) => ({
         id: m.id,
         name: m.name,
         role: m.role,

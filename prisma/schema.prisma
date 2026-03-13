@@ -105,6 +105,7 @@ model Event {
   published   Boolean  @default(false)
   tags        ContentTag[]
   speakers    EventSpeaker[]
+  partners    EventPartner[]
   registrations EventRegistration[]
   form        Form?
   createdAt   DateTime @default(now())
@@ -546,6 +547,18 @@ model Partner {
   logoUrl  String
   website  String?
   order    Int    @default(0)
+}
+
+model EventPartner {
+  id       String @id @default(cuid())
+  eventId  String
+  name     String
+  logoUrl  String
+  website  String?
+  order    Int    @default(0)
+  event    Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, order])
 }
 
 model TeamMember {

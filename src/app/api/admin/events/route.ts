@@ -7,16 +7,79 @@ import {
     normalizeRegistrationSections,
 } from "@/lib/admin-form-builder";
 
+interface ParsedEventPartner {
+    name: string;
+    logoUrl: string;
+    website: string | null;
+}
+
+function normalizeText(value: unknown): string {
+    return typeof value === "string" ? value.trim() : "";
+}
+
+function parseEventPartners(value: unknown): { partners: ParsedEventPartner[]; error: string | null } {
+    if (value === undefined || value === null) {
+        return { partners: [], error: null };
+    }
+
+    if (!Array.isArray(value)) {
+        return { partners: [], error: "Invalid event partners payload." };
+    }
+
+    const partners: ParsedEventPartner[] = [];
+    for (const [index, item] of value.entries()) {
+        if (!item || typeof item !== "object") continue;
+        const row = item as Record<string, unknown>;
+        const name = normalizeText(row.name);
+        const logoUrl = normalizeText(row.logoUrl);
+        const website = normalizeText(row.website);
+        const hasAnyValue = Boolean(name || logoUrl || website);
+
+        if (!hasAnyValue) continue;
+        if (!name || !logoUrl) {
+            return {
+                partners: [],
+                error: `Event partner #${index + 1} requires name and logo URL.`,
+            };
+        }
+
+        partners.push({
+            name,
+            logoUrl,
+            website: website || null,
+        });
+    }
+
+    return { partners, error: null };
+}
+
 export async function POST(request: Request) {
     try {
         const body = await request.json();
         const normalized = normalizeEventPayload(body);
         const registrationSections = normalizeRegistrationSections(body.registrationSections);
         const registrationFields = normalizeRegistrationFields(body.registrationFields);
+        const { partners: eventPartners, error: eventPartnersError } = parseEventPartners(body.eventPartners);
+
+        if (eventPartnersError) {
+            return NextResponse.json({ error: eventPartnersError }, { status: 400 });
+        }
 
         const event = await prisma.event.create({
             data: normalized,
         });
+
+        if (eventPartners.length > 0) {
+            await (prisma as any).eventPartner.createMany({
+                data: eventPartners.map((partner, index) => ({
+                    eventId: event.id,
+                    name: partner.name,
+                    logoUrl: partner.logoUrl,
+                    website: partner.website,
+                    order: index,
+                })),
+            });
+        }
 
         // Create linked registration form when internal mode + fields provided
         if (normalized.registrationMode === "internal" && registrationFields.length > 0) {

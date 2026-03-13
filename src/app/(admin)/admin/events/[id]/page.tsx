@@ -75,8 +75,11 @@ export default async function EditEventPage({
   const { tab } = await searchParams;
 
   const [event, form, registrations, orphanSubmissions] = await Promise.all([
-    prisma.event.findUnique({
+    (prisma as any).event.findUnique({
       where: { id },
+      include: {
+        partners: { orderBy: { order: "asc" } },
+      },
     }),
     prisma.form.findUnique({
       where: { eventId: id },
@@ -230,6 +233,12 @@ export default async function EditEventPage({
         endDate: event.endDate?.toISOString().slice(0, 16) ?? "",
         publishStart: event.publishStart?.toISOString().slice(0, 16) ?? "",
         publishEnd: event.publishEnd?.toISOString().slice(0, 16) ?? "",
+        eventPartners: (event.partners ?? []).map((partner: any) => ({
+          id: partner.id,
+          name: partner.name,
+          logoUrl: partner.logoUrl,
+          website: partner.website ?? "",
+        })),
       }}
       initialRegistrationSections={registrationSections}
       initialRegistrationFields={registrationFields}

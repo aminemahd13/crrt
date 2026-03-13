@@ -16,6 +16,7 @@ export default async function NewEventPage({
         themePreset: "default",
         registrationMode: "internal",
         registrationReviewMode: "auto",
+        eventPartners: [],
       }}
       initialTab={tab}
     />

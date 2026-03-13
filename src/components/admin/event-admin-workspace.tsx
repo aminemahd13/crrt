@@ -66,6 +66,13 @@ interface EventFieldDef {
   options?: { value: string; label: string }[];
 }
 
+interface EventPartnerInput {
+  id?: string;
+  name: string;
+  logoUrl: string;
+  website: string;
+}
+
 const DETAIL_FIELDS: EventFieldDef[] = [
   { key: "title", label: "Title", type: "text", required: true },
   {
@@ -246,6 +253,21 @@ export function EventAdminWorkspace({
   const searchParams = useSearchParams();
   const [form, setForm] = useState<Record<string, unknown>>(initialData);
   const [saving, setSaving] = useState(false);
+  const [eventPartners, setEventPartners] = useState<EventPartnerInput[]>(() => {
+    const source = Array.isArray(initialData.eventPartners) ? initialData.eventPartners : [];
+    const normalized: EventPartnerInput[] = [];
+    for (const item of source) {
+      if (!item || typeof item !== "object") continue;
+      const row = item as Record<string, unknown>;
+      normalized.push({
+        id: typeof row.id === "string" ? row.id : undefined,
+        name: typeof row.name === "string" ? row.name : "",
+        logoUrl: typeof row.logoUrl === "string" ? row.logoUrl : "",
+        website: typeof row.website === "string" ? row.website : "",
+      });
+    }
+    return normalized;
+  });
   const normalizedInitialSections = normalizeSections(initialRegistrationSections);
   const [sections, setSections] = useState<RegistrationSection[]>(normalizedInitialSections);
   const [fields, setFields] = useState<RegistrationField[]>(() =>
@@ -484,12 +506,22 @@ export function EventAdminWorkspace({
       },
     }));
 
+    const payloadPartners = eventPartners
+      .map((partner) => ({
+        id: partner.id,
+        name: partner.name.trim(),
+        logoUrl: partner.logoUrl.trim(),
+        website: partner.website.trim(),
+      }))
+      .filter((partner) => partner.name.length > 0 || partner.logoUrl.length > 0 || partner.website.length > 0);
+
     try {
       const response = await fetch(url, {
         method: mode === "create" ? "POST" : "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          eventPartners: payloadPartners,
           registrationSections: payloadSections,
           registrationFields: payloadFields,
         }),
@@ -620,6 +652,18 @@ export function EventAdminWorkspace({
   const published = Boolean(form.published);
   const csvHref = eventId ? `/api/admin/events/${eventId}/registrations?format=csv` : "";
 
+  const addPartner = () => {
+    setEventPartners((prev) => [...prev, { name: "", logoUrl: "", website: "" }]);
+  };
+
+  const updatePartner = (index: number, key: keyof EventPartnerInput, value: string) => {
+    setEventPartners((prev) => prev.map((partner, i) => (i === index ? { ...partner, [key]: value } : partner)));
+  };
+
+  const removePartner = (index: number) => {
+    setEventPartners((prev) => prev.filter((_, i) => i !== index));
+  };
+
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-6">
       <div className="flex items-center justify-between gap-3">
@@ -697,6 +741,57 @@ export function EventAdminWorkspace({
 
         <TabsContent value="details" className="mt-4 space-y-4">
           {DETAIL_FIELDS.map((field) => renderField(field))}
+          <div className="glass-card p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-steel-gray uppercase tracking-wider">
+                Event Partners
+              </label>
+              <Button type="button" variant="outline" size="sm" onClick={addPartner}>
+                <Plus size={12} /> Add Partner
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              {eventPartners.map((partner, index) => (
+                <div key={`${partner.id ?? "new"}-${index}`} className="grid gap-2 md:grid-cols-[1fr,1fr,1fr,auto]">
+                  <Input
+                    type="text"
+                    value={partner.name}
+                    onChange={(e) => updatePartner(index, "name", e.target.value)}
+                    placeholder="Partner name"
+                    className="border-[var(--ghost-border)] bg-midnight text-ice-white"
+                  />
+                  <Input
+                    type="text"
+                    value={partner.logoUrl}
+                    onChange={(e) => updatePartner(index, "logoUrl", e.target.value)}
+                    placeholder="Logo URL"
+                    className="border-[var(--ghost-border)] bg-midnight text-ice-white"
+                  />
+                  <Input
+                    type="text"
+                    value={partner.website}
+                    onChange={(e) => updatePartner(index, "website", e.target.value)}
+                    placeholder="Website URL (optional)"
+                    className="border-[var(--ghost-border)] bg-midnight text-ice-white"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    className="text-red-300 hover:text-red-200"
+                    onClick={() => removePartner(index)}
+                  >
+                    <Trash2 size={12} />
+                  </Button>
+                </div>
+              ))}
+
+              {eventPartners.length === 0 && (
+                <p className="text-xs text-steel-gray">No event partners configured.</p>
+              )}
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="registration" className="mt-4 space-y-4">

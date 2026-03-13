@@ -14,10 +14,11 @@ export default async function EventDetailPage({
   const now = new Date();
   const session = await getServerSession(authOptions);
 
-  const event = await prisma.event.findUnique({
+  const event = await (prisma as any).event.findUnique({
     where: { slug },
     include: {
       speakers: { orderBy: { order: "asc" } },
+      partners: { orderBy: { order: "asc" } },
       tags: { include: { tag: true } },
     },
   });
@@ -76,6 +77,12 @@ export default async function EventDetailPage({
           role: s.role,
           bio: s.bio,
           image: s.image,
+        })),
+        partners: (event.partners ?? []).map((partner: any) => ({
+          id: partner.id,
+          name: partner.name,
+          logoUrl: partner.logoUrl,
+          website: partner.website,
         })),
         tags: Array.from(new Set(event.tags.map((ct) => ct.tag.name))),
       }}

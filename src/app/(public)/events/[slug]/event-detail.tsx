@@ -28,6 +28,13 @@ interface Speaker {
   image: string | null;
 }
 
+interface EventPartner {
+  id: string;
+  name: string;
+  logoUrl: string;
+  website?: string | null;
+}
+
 interface EventDetailProps {
   event: {
     id: string;
@@ -50,6 +57,7 @@ interface EventDetailProps {
     isAuthenticated: boolean;
     userRegistration: UserRegistrationSummary | null;
     speakers: Speaker[];
+    partners: EventPartner[];
     tags: string[];
   };
 }
@@ -247,6 +255,48 @@ export function EventDetail({ event }: EventDetailProps) {
                     />
                   </motion.div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {event.partners.length > 0 && (
+            <div className="glass-card border border-[var(--ghost-border)] p-6 md:p-7">
+              <h2 className="mb-5 flex items-center gap-3 font-heading text-xl font-bold text-ice-white">
+                <div className="h-5 w-1 rounded-full bg-signal-orange" />
+                Event Partners
+              </h2>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                {event.partners.map((partner) => {
+                  const card = (
+                    <div className="group flex min-h-24 flex-col items-center justify-center gap-2 rounded-xl border border-[var(--ghost-border)] bg-midnight-light/70 px-3 py-3 text-center transition-all hover:-translate-y-0.5 hover:border-[var(--event-accent)]/40 hover:bg-midnight-light">
+                      <img
+                        src={partner.logoUrl}
+                        alt={`${partner.name} logo`}
+                        loading="lazy"
+                        className="h-10 w-auto max-w-[120px] object-contain"
+                      />
+                      <span className="text-xs font-semibold text-ice-white/90 group-hover:text-ice-white">
+                        {partner.name}
+                      </span>
+                    </div>
+                  );
+
+                  if (partner.website) {
+                    return (
+                      <a
+                        key={partner.id}
+                        href={partner.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={partner.name}
+                      >
+                        {card}
+                      </a>
+                    );
+                  }
+
+                  return <div key={partner.id}>{card}</div>;
+                })}
               </div>
             </div>
           )}
