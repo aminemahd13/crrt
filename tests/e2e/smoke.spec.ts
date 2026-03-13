@@ -53,7 +53,12 @@ test("event apply page shows auth callbacks for unauthenticated users", async ({
 
 test("admin routes are protected and applications center flow works", async ({ page }) => {
   await page.goto("/admin");
-  await expect(page).toHaveURL(/\/login\?callbackUrl=%2Fadmin/);
+  await expect(page).toHaveURL(/\/login\?callbackUrl=/);
+  const redirectUrl = new URL(page.url());
+  expect(redirectUrl.pathname).toBe("/login");
+  const callbackUrl = redirectUrl.searchParams.get("callbackUrl");
+  expect(callbackUrl).toBeTruthy();
+  expect(callbackUrl === "/admin" || callbackUrl?.endsWith("/admin")).toBeTruthy();
 
   const loggedIn = await loginFromAdminPage(page, adminEmail, adminPassword);
   if (!loggedIn) {

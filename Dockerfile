@@ -9,14 +9,14 @@ COPY package.json package-lock.json* ./
 COPY prisma.config.ts ./
 RUN npm ci --ignore-scripts
 COPY prisma ./prisma
-RUN npx prisma generate
+RUN DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=public" npx prisma generate
 
 FROM base AS builder
 ENV NODE_ENV=production
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/prisma ./prisma
 COPY . .
-RUN npx prisma generate
+RUN DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=public" npx prisma generate
 RUN npm run build
 
 FROM base AS runner
