@@ -142,7 +142,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
   }, [pathname, flatItems]);
 
   return (
-    <div className="relative flex min-h-screen overflow-hidden bg-midnight">
+    <div className="relative flex h-screen min-h-0 overflow-hidden bg-midnight">
       {mobileNavOpen ? (
         <button
           type="button"
@@ -228,7 +228,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
           </Button>
         )}
 
-        <nav className="flex-1 space-y-5 overflow-y-auto px-2 py-4">
+        <nav className="min-h-0 flex-1 space-y-5 overflow-y-auto px-2 py-4">
           {navGroups.map((group) => (
             <div key={group.label}>
               {!collapsed && (
@@ -308,7 +308,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main id="main-content" className="min-w-0 flex-1 overflow-y-auto">
+      <main id="main-content" className="min-h-0 min-w-0 flex-1 overflow-y-auto">
         <div className="sticky top-0 z-20 flex items-center justify-between border-b border-[var(--ghost-border)] bg-midnight-light/90 px-4 py-3 backdrop-blur md:hidden">
           <Button
             type="button"

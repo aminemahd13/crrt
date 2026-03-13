@@ -861,7 +861,7 @@ export function InboxClient() {
     <div className="mx-auto flex max-w-[1400px] flex-col gap-6 p-8">
       <PageHeader
         title="Inbox"
-        description="Shared mailbox for contact@crrt.tech powered by IMAP cache + SMTP delivery."
+        description="Shared mailbox for contact@crrt.tech"
         actions={
           <>
             <Button
